@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.2.0
+Version: 1.2.1
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.2.0');
+define('SDL_VER', '1.2.1');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -43,8 +43,13 @@ add_action('sdl_cleanup', function () {
 });
 
 /* przesunięcie strefy czasowej strony względem UTC (sekundy) */
+function sdl_tz() {
+    /* gdy w WordPressie ustawiono samo przesunięcie UTC (np. UTC+0), liczymy doby wg czasu polskiego */
+    $name = get_option('timezone_string');
+    return new DateTimeZone($name ? $name : 'Europe/Warsaw');
+}
 function sdl_offset() {
-    return wp_timezone()->getOffset(new DateTime('now', new DateTimeZone('UTC')));
+    return sdl_tz()->getOffset(new DateTime('now', new DateTimeZone('UTC')));
 }
 
 function sdl_key_ok($s) { return is_string($s) && preg_match('/^[a-z0-9_]{1,32}$/', $s); }
@@ -96,7 +101,9 @@ function sdl_push(WP_REST_Request $r) {
     return ['ok' => true, 'saved' => $n];
 }
 
-/* rows: [[metric, unix_ts, value], ...]; wstawia tylko odczyty starsze niż pierwszy prawdziwy odczyt danej metryki */
+/* rows: [[metric, unix_ts, value], ...]
+   Import historii: dla każdej metryki usuwa istniejące odczyty z zakresu czasu paczki i wstawia nowe.
+   Paczka nie może sięgać ostatnich 6 godzin, żeby nie ruszać danych na żywo. */
 function sdl_backfill(WP_REST_Request $r) {
     global $wpdb;
     $t = sdl_table();
@@ -106,22 +113,27 @@ function sdl_backfill(WP_REST_Request $r) {
     if (!sdl_key_ok($device) || !is_array($rows) || count($rows) > 5000) {
         return new WP_Error('sdl_bad', 'Nieprawidłowe dane', ['status' => 400]);
     }
-    $first = [];
-    $n = 0;
+    $limit = time() - 6 * 3600;
+    $by = [];
     foreach ($rows as $row) {
         if (!is_array($row) || count($row) !== 3) continue;
         [$metric, $ts, $v] = $row;
         if (!sdl_key_ok($metric) || !is_numeric($ts) || !is_numeric($v)) continue;
-        if (!isset($first[$metric])) {
-            $f = $wpdb->get_var($wpdb->prepare("SELECT MIN(ts) FROM $t WHERE device=%s AND metric=%s", $device, $metric));
-            $first[$metric] = $f ? strtotime($f . ' UTC') : PHP_INT_MAX;
-        }
         $ts = (int) $ts;
-        if ($ts >= $first[$metric] || $ts < time() - 400 * 86400) continue;
-        $wpdb->insert($t, ['device' => $device, 'metric' => $metric, 'ts' => gmdate('Y-m-d H:i:s', $ts), 'value' => (float) $v], ['%s', '%s', '%s', '%f']);
-        $n++;
+        if ($ts >= $limit || $ts < time() - 400 * 86400) continue;
+        $by[$metric][] = [$ts, (float) $v];
     }
-    global $wpdb;
+    $n = 0;
+    foreach ($by as $metric => $list) {
+        $min = min(array_column($list, 0));
+        $max = max(array_column($list, 0));
+        $wpdb->query($wpdb->prepare("DELETE FROM $t WHERE device=%s AND metric=%s AND ts BETWEEN %s AND %s",
+            $device, $metric, gmdate('Y-m-d H:i:s', $min), gmdate('Y-m-d H:i:s', $max)));
+        foreach ($list as [$ts, $v]) {
+            $wpdb->insert($t, ['device' => $device, 'metric' => $metric, 'ts' => gmdate('Y-m-d H:i:s', $ts), 'value' => $v], ['%s', '%s', '%s', '%f']);
+            $n++;
+        }
+    }
     $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '\\_transient\\_sdl\\_%' OR option_name LIKE '\\_transient\\_timeout\\_sdl\\_%'");
     return ['ok' => true, 'saved' => $n];
 }
