@@ -122,7 +122,8 @@
         get('daily?device=' + device + '&metric=energy_total&days=30'),
         get('daily?device=' + device + '&metric=outdoor&agg=stats&days=30')
       ]).then(function (r) {
-        var kwh = r[0], out = {};
+        var kwh = r[0].slice(), out = {};
+        while (kwh.length && !kwh[0][1]) kwh.shift(); /* bez pustych dni na początku historii */
         r[1].forEach(function (x) { out[x[0]] = { avg: x[1], min: x[2], max: x[3] }; });
         var sum = kwh.reduce(function (a, x) { return a + x[1]; }, 0);
         setK('d30', kwh.length ? nf(sum, 0) : '–');
