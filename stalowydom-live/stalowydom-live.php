@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.3.0
+Version: 1.3.1
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.3.0');
+define('SDL_VER', '1.3.1');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -382,14 +382,14 @@ function sdl_settings_page() {
         <tr><th>Adres dla Home Assistant</th><td><code><?php echo esc_html(rest_url('sdl/v1/push')); ?></code></td></tr>
         <tr><th>Token (nagłówek X-SDL-Token)</th><td><input type="text" readonly class="regular-text code" value="<?php echo esc_attr(get_option('sdl_token')); ?>" onclick="this.select()"></td></tr>
         <tr><th>Zapisanych odczytów</th><td><?php echo number_format_i18n($count); ?></td></tr>
-        <tr><th>Ostatni odczyt (UTC)</th><td><?php echo $last ? esc_html($last) : 'brak – HA jeszcze nic nie wysłał'; ?></td></tr>
+        <tr><th>Ostatni odczyt</th><td><?php echo $last ? esc_html(wp_date('Y-m-d H:i', strtotime($last . ' UTC'), sdl_tz())) . ' (czas polski)' : 'brak – HA jeszcze nic nie wysłał'; ?></td></tr>
         <tr><th>Shortcode</th><td><code>[sdl_heiko]</code></td></tr>
         <?php $rel = sdl_remote_release(isset($_GET['sdl_check'])); ?>
         <tr><th>Aktualizacje (GitHub)</th><td>
           Zainstalowana: <strong><?php echo esc_html(SDL_VER); ?></strong> ·
           Najnowsza: <strong><?php echo esc_html($rel['version'] ?? '?'); ?></strong>
           <?php if (!empty($rel['error'])) echo ' · <span style="color:#b32d2e">błąd: ' . esc_html($rel['error']) . '</span>'; ?>
-          <?php if (!empty($rel['checked'])) echo ' · sprawdzono ' . esc_html(wp_date('Y-m-d H:i', $rel['checked'])); ?>
+          <?php if (!empty($rel['checked'])) echo ' · sprawdzono ' . esc_html(wp_date('Y-m-d H:i', $rel['checked'], sdl_tz())); ?>
           · <a href="<?php echo esc_url(add_query_arg('sdl_check', 1)); ?>">Sprawdź teraz</a>
         </td></tr>
       </table>
