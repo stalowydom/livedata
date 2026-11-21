@@ -1,0 +1,24 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check version matches tag
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          grep -q "^Version: ${TAG}$" stalowydom-live/stalowydom-live.php || { echo "Version w pliku nie zgadza się z tagiem ${TAG}"; exit 1; }
+      - name: Build zip
+        run: zip -r stalowydom-live.zip stalowydom-live
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" stalowydom-live.zip --title "${GITHUB_REF_NAME#v}" --generate-notes
