@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.4.1
+Version: 1.5.0
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.4.1');
+define('SDL_VER', '1.5.0');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -350,6 +350,30 @@ add_shortcode('sdl_heiko', function ($atts) {
     <div class="sdl-canvas sdl-canvas-sm"><canvas data-chart="dailytemp" role="img" aria-label="Najniższa, średnia i najwyższa temperatura zewnętrzna w kolejnych dniach"></canvas></div>
     <p class="sdl-note">Po najechaniu na słupek widać zużycie oraz najniższą i najwyższą temperaturę zewnętrzną z tego dnia.</p>
   </div>
+</div>
+<?php
+    return ob_get_clean();
+});
+
+/* ---------- wersja podstrony: [sdl_wersja v="1.0" data="21.11.2026"]1.0 – opis zmian (linia na wersję)[/sdl_wersja] ---------- */
+
+add_shortcode('sdl_wersja', function ($atts, $content = '') {
+    $a = shortcode_atts(['v' => '1.0', 'data' => '', 'id' => ''], $atts);
+    $id = $a['id'] !== '' ? $a['id'] : (string) get_the_ID();
+    $data = $a['data'] !== '' ? $a['data'] : get_the_modified_date('d.m.Y');
+    $lines = array_filter(array_map('trim', preg_split('/\r?\n|<br\s*\/?>/i', wp_strip_all_tags($content, false))));
+    wp_enqueue_style('sdl', SDL_URL . 'assets/sdl.css', [], SDL_VER);
+    wp_enqueue_script('sdl-ver', SDL_URL . 'assets/sdl-ver.js', [], SDL_VER, true);
+    ob_start(); ?>
+<div class="sdl-ver" data-sdl-ver="<?php echo esc_attr($a['v']); ?>" data-sdl-page="<?php echo esc_attr($id); ?>">
+  <span class="sdl-ver-new" hidden>zmieniono od Twojej ostatniej wizyty ·</span>
+  <button type="button" class="sdl-ver-btn" aria-expanded="false">wersja <?php echo esc_html($a['v']); ?> · <?php echo esc_html($data); ?></button>
+  <?php if ($lines) : ?>
+  <div class="sdl-ver-log" hidden>
+    <div class="sdl-ver-log-title">Co nowego</div>
+    <ul><?php foreach ($lines as $l) echo '<li>' . esc_html($l) . '</li>'; ?></ul>
+  </div>
+  <?php endif; ?>
 </div>
 <?php
     return ob_get_clean();
