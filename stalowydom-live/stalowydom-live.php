@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.5.2
+Version: 1.6.0
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.5.2');
+define('SDL_VER', '1.6.0');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -350,10 +350,20 @@ add_shortcode('sdl_heiko', function ($atts) {
     <div class="sdl-canvas sdl-canvas-sm"><canvas data-chart="dailytemp" role="img" aria-label="Najniższa, średnia i najwyższa temperatura zewnętrzna w kolejnych dniach"></canvas></div>
     <p class="sdl-note">Po najechaniu na słupek widać zużycie oraz najniższą i najwyższą temperaturę zewnętrzną z tego dnia.</p>
   </div>
+  <?php echo sdl_footer_note(); ?>
 </div>
 <?php
     return ob_get_clean();
 });
+
+/* stopka bloku danych na żywo – wspólna dla wszystkich podstron */
+function sdl_footer_note() {
+    return '<div class="sdl-foot"><span class="sdl-foot-dot"></span><p>'
+        . 'Dane na żywo z naszego domu z kontenerów, prosto z Home Assistant. '
+        . 'Odczyty trafiają na stronę co 5 minut, a otwarta strona odświeża je sama, bez przeładowania. '
+        . 'Wartości mogą być opóźnione o kilka minut; dobowe zużycie aktualizuje się co 10 minut. '
+        . 'Doby liczymy według czasu polskiego.</p></div>';
+}
 
 /* ---------- wersja podstrony: [sdl_wersja v="1.0" data="21.11.2026"]1.0 – opis zmian (linia na wersję)[/sdl_wersja] ---------- */
 
