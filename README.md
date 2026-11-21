@@ -8,5 +8,4 @@ Wtyczka WordPress, która odbiera odczyty z Home Assistant i pokazuje je na stro
 
 ## Nowa wersja
 1. Podnieś `Version:` i `SDL_VER` w `stalowydom-live/stalowydom-live.php`.
-2. Spakuj folder `stalowydom-live` do `stalowydom-live.zip`.
-3. Utwórz Release z tagiem `vX.Y.Z` i dołącz zip.
+2. Wyślij na main – GitHub Actions sam zbuduje zip i opublikuje wydanie `vX.Y.Z`.
