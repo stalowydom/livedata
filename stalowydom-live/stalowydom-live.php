@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.3.1
+Version: 1.4.0
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.3.1');
+define('SDL_VER', '1.4.0');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -250,19 +250,56 @@ add_shortcode('sdl_heiko', function ($atts) {
 
   <div class="sdl-row">
     <div class="sdl-card sdl-tank-card">
-      <svg class="sdl-tank" viewBox="0 0 200 300" role="img" aria-label="<?php echo esc_attr($a['tank']); ?> – temperatury warstw">
-        <defs><clipPath id="sdl-clip-<?php echo esc_attr($a['device']); ?>"><rect x="51" y="31" width="78" height="228" rx="37"/></clipPath></defs>
-        <g clip-path="url(#sdl-clip-<?php echo esc_attr($a['device']); ?>)">
-          <rect data-layer="noel_top" x="51" y="31" width="78" height="76" fill="#3a4654"/>
-          <rect data-layer="noel_mid" x="51" y="107" width="78" height="76" fill="#3a4654"/>
-          <rect data-layer="noel_bot" x="51" y="183" width="78" height="76" fill="#3a4654"/>
+      <svg class="sdl-tank" viewBox="0 0 330 520" role="img" aria-label="<?php echo esc_attr($a['tank']); ?> – przekrój z wężownicami i temperaturami warstw">
+        <defs>
+          <linearGradient id="sdl-strip-<?php echo esc_attr($a['device']); ?>" x1="0" y1="0" x2="0" y2="1">
+            <stop data-stop="noel_top" offset="0" stop-color="#ef4444"/><stop data-stop="noel_mid" offset="0.5" stop-color="#f97316"/><stop data-stop="noel_bot" offset="1" stop-color="#3b82f6"/>
+          </linearGradient>
+          <linearGradient id="sdl-body-<?php echo esc_attr($a['device']); ?>" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stop-color="#c9ced6"/><stop offset=".35" stop-color="#f4f6f8"/><stop offset="1" stop-color="#ffffff"/>
+          </linearGradient>
+          <linearGradient id="sdl-copper-<?php echo esc_attr($a['device']); ?>" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#f6b27a"/><stop offset=".5" stop-color="#c8622a"/><stop offset="1" stop-color="#7a3512"/>
+          </linearGradient>
+          <pattern id="sdl-ins-<?php echo esc_attr($a['device']); ?>" width="5" height="5" patternUnits="userSpaceOnUse"><rect width="5" height="5" fill="#9ca3ab"/><circle cx="1.5" cy="1.5" r=".8" fill="#7d858e"/><circle cx="4" cy="3.8" r=".6" fill="#b7bdc4"/></pattern>
+          <clipPath id="sdl-inner-<?php echo esc_attr($a['device']); ?>"><rect x="186" y="62" width="58" height="392" rx="22"/></clipPath>
+        </defs>
+        <text x="155" y="22" text-anchor="middle" class="sdl-tank-title"><?php echo esc_html($a['tank']); ?></text>
+        <ellipse cx="155" cy="492" rx="105" ry="9" fill="#0d141a" opacity=".6"/>
+        <rect x="88" y="476" width="10" height="12" fill="#3a4654"/><rect x="212" y="476" width="10" height="12" fill="#3a4654"/>
+
+        <g class="sdl-pipe sdl-hot"><path d="M0 150 H62"/></g>
+        <g class="sdl-pipe sdl-cold"><path d="M62 446 H0"/></g>
+        <g class="sdl-pipe sdl-hot sdl-thin"><path d="M252 70 H330"/></g>
+        <g class="sdl-pipe sdl-cold sdl-thin"><path d="M330 214 H252"/></g>
+        <g class="sdl-pipe sdl-warm sdl-thin"><path d="M252 274 H330"/></g>
+        <g class="sdl-pipe sdl-cold sdl-thin"><path d="M330 390 H252"/></g>
+
+        <rect x="62" y="40" width="190" height="438" rx="16" fill="url(#sdl-body-<?php echo esc_attr($a['device']); ?>)"/>
+        <rect x="150" y="40" width="30" height="438" fill="url(#sdl-strip-<?php echo esc_attr($a['device']); ?>)"/>
+        <path d="M180 40 H236 a16 16 0 0 1 16 16 V462 a16 16 0 0 1 -16 16 H180 Z" fill="url(#sdl-ins-<?php echo esc_attr($a['device']); ?>)"/>
+        <rect x="186" y="62" width="58" height="392" rx="22" fill="#1d2a36"/>
+        <g clip-path="url(#sdl-inner-<?php echo esc_attr($a['device']); ?>)">
+          <rect x="186" y="62" width="58" height="392" fill="url(#sdl-strip-<?php echo esc_attr($a['device']); ?>)" opacity=".42"/>
+          <g fill="none" stroke="url(#sdl-copper-<?php echo esc_attr($a['device']); ?>)" stroke-width="5.5"><ellipse cx="215" cy="82" rx="23" ry="4.2"/><ellipse cx="215" cy="91" rx="23" ry="4.2"/><ellipse cx="215" cy="100" rx="23" ry="4.2"/><ellipse cx="215" cy="109" rx="23" ry="4.2"/><ellipse cx="215" cy="118" rx="23" ry="4.2"/><ellipse cx="215" cy="127" rx="23" ry="4.2"/><ellipse cx="215" cy="136" rx="23" ry="4.2"/><ellipse cx="215" cy="145" rx="23" ry="4.2"/><ellipse cx="215" cy="154" rx="23" ry="4.2"/><ellipse cx="215" cy="163" rx="23" ry="4.2"/><ellipse cx="215" cy="172" rx="23" ry="4.2"/><ellipse cx="215" cy="181" rx="23" ry="4.2"/><ellipse cx="215" cy="190" rx="23" ry="4.2"/><ellipse cx="215" cy="199" rx="23" ry="4.2"/><ellipse cx="215" cy="208" rx="23" ry="4.2"/><ellipse cx="215" cy="217" rx="23" ry="4.2"/><ellipse cx="215" cy="226" rx="23" ry="4.2"/><ellipse cx="215" cy="235" rx="23" ry="4.2"/><ellipse cx="215" cy="244" rx="23" ry="4.2"/></g>
+          <g fill="none" stroke="url(#sdl-copper-<?php echo esc_attr($a['device']); ?>)" stroke-width="5.5"><ellipse cx="215" cy="296" rx="23" ry="4.2"/><ellipse cx="215" cy="305" rx="23" ry="4.2"/><ellipse cx="215" cy="314" rx="23" ry="4.2"/><ellipse cx="215" cy="323" rx="23" ry="4.2"/><ellipse cx="215" cy="332" rx="23" ry="4.2"/><ellipse cx="215" cy="341" rx="23" ry="4.2"/><ellipse cx="215" cy="350" rx="23" ry="4.2"/><ellipse cx="215" cy="359" rx="23" ry="4.2"/><ellipse cx="215" cy="368" rx="23" ry="4.2"/><ellipse cx="215" cy="377" rx="23" ry="4.2"/><ellipse cx="215" cy="386" rx="23" ry="4.2"/><ellipse cx="215" cy="395" rx="23" ry="4.2"/><ellipse cx="215" cy="404" rx="23" ry="4.2"/><ellipse cx="215" cy="413" rx="23" ry="4.2"/><ellipse cx="215" cy="422" rx="23" ry="4.2"/><ellipse cx="215" cy="431" rx="23" ry="4.2"/></g>
         </g>
-        <rect x="50" y="30" width="80" height="230" rx="38" fill="none" stroke="#9aa5b1" stroke-width="2"/>
-        <text x="140" y="74" class="sdl-t"><tspan data-t="noel_top">–</tspan>°</text>
-        <text x="140" y="150" class="sdl-t"><tspan data-t="noel_mid">–</tspan>°</text>
-        <text x="140" y="226" class="sdl-t"><tspan data-t="noel_bot">–</tspan>°</text>
-        <text x="0" y="18" class="sdl-ts">Zasilanie z PC: <tspan data-t="supply">–</tspan>°C</text>
-        <text x="90" y="290" text-anchor="middle" class="sdl-ts"><?php echo esc_html($a['tank']); ?></text>
+        <line x1="180" y1="40" x2="180" y2="478" stroke="#e5e7eb" stroke-width="1.5"/>
+        <g class="sdl-gauge"><circle cx="165" cy="70" r="11"/><path d="M165 70 L171 63"/></g>
+        <g class="sdl-gauge"><circle cx="165" cy="452" r="11"/><path d="M165 452 L159 445"/></g>
+        <rect x="252" y="66" width="10" height="8" fill="#cbd5e1"/><rect x="252" y="210" width="10" height="8" fill="#cbd5e1"/>
+        <rect x="252" y="270" width="10" height="8" fill="#cbd5e1"/><rect x="252" y="386" width="10" height="8" fill="#cbd5e1"/>
+
+        <circle cx="62" cy="150" r="5" class="sdl-port"/><circle cx="62" cy="446" r="5" class="sdl-port"/>
+        <g class="sdl-chip"><rect x="122" y="128" width="86" height="28" rx="14"/><text x="165" y="147" text-anchor="middle"><tspan data-t="noel_top">–</tspan> °C</text></g>
+        <g class="sdl-chip"><rect x="122" y="246" width="86" height="28" rx="14"/><text x="165" y="265" text-anchor="middle"><tspan data-t="noel_mid">–</tspan> °C</text></g>
+        <g class="sdl-chip"><rect x="122" y="402" width="86" height="28" rx="14"/><text x="165" y="421" text-anchor="middle"><tspan data-t="noel_bot">–</tspan> °C</text></g>
+        <text x="2" y="138" class="sdl-ts">z PC</text><text x="2" y="172" class="sdl-ts"><tspan data-t="supply">–</tspan>°C</text>
+        <text x="2" y="466" class="sdl-ts">do PC</text>
+        <text x="328" y="60" text-anchor="end" class="sdl-ts">CWU</text>
+        <text x="328" y="232" text-anchor="end" class="sdl-ts">zimna woda</text>
+        <text x="328" y="266" text-anchor="end" class="sdl-ts">maty</text><text x="328" y="380" text-anchor="end" class="sdl-ts">maty</text>
+        <text x="328" y="408" text-anchor="end" class="sdl-ts">powrót</text>
       </svg>
     </div>
     <div class="sdl-card sdl-chart-card">

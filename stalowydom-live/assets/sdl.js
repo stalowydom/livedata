@@ -85,8 +85,9 @@
         setK('outdoor', nf(v.outdoor, 1));
         ['noel_top', 'noel_mid', 'noel_bot', 'supply'].forEach(function (m) {
           var t = root.querySelector('[data-t="' + m + '"]'); if (t) t.textContent = nf(v[m], 1);
-          var layer = root.querySelector('[data-layer="' + m + '"]'); if (layer) layer.setAttribute('fill', tempColor(v[m]));
+          var stop = root.querySelector('[data-stop="' + m + '"]'); if (stop && v[m] != null) stop.setAttribute('stop-color', tempColor(v[m]));
         });
+        root.classList.toggle('is-running', v.power != null && v.power > 300);
       });
     }
 
