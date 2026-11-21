@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.2.2
+Version: 1.3.0
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.2.2');
+define('SDL_VER', '1.3.0');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -300,25 +300,32 @@ add_shortcode('sdl_heiko', function ($atts) {
 
 define('SDL_REPO', 'stalowydom/livedata');
 
+/* Najnowsza wersja = nagłówek "Version:" pliku wtyczki na gałęzi main (raw.githubusercontent.com, bez limitów API).
+   Paczka = załącznik wydania vX.Y.Z budowany przez GitHub Actions. */
 function sdl_remote_release($force = false) {
     $rel = $force ? false : get_site_transient('sdl_release');
     if ($rel === false) {
-        $res = wp_remote_get('https://api.github.com/repos/' . SDL_REPO . '/releases/latest', [
+        $res = wp_remote_get('https://raw.githubusercontent.com/' . SDL_REPO . '/main/stalowydom-live/stalowydom-live.php', [
             'timeout' => 10,
-            'headers' => ['Accept' => 'application/vnd.github+json', 'User-Agent' => 'stalowydom-live'],
+            'headers' => ['User-Agent' => 'stalowydom-live', 'Range' => 'bytes=0-2047'],
         ]);
-        $rel = ['version' => null];
-        if (!is_wp_error($res) && wp_remote_retrieve_response_code($res) === 200) {
-            $j = json_decode(wp_remote_retrieve_body($res), true);
-            $zip = null;
-            foreach (($j['assets'] ?? []) as $a) {
-                if (($a['name'] ?? '') === 'stalowydom-live.zip') $zip = $a['browser_download_url'];
-            }
-            if ($zip) {
-                $rel = ['version' => ltrim((string) $j['tag_name'], 'vV'), 'zip' => $zip, 'url' => $j['html_url'] ?? '', 'notes' => $j['body'] ?? ''];
-            }
+        $rel = ['version' => null, 'checked' => time()];
+        if (is_wp_error($res)) {
+            $rel['error'] = $res->get_error_message();
+        } elseif (!in_array(wp_remote_retrieve_response_code($res), [200, 206], true)) {
+            $rel['error'] = 'HTTP ' . wp_remote_retrieve_response_code($res);
+        } elseif (preg_match('/^Version:\s*([0-9.]+)/m', wp_remote_retrieve_body($res), $m)) {
+            $v = $m[1];
+            $rel = [
+                'version' => $v, 'checked' => time(),
+                'zip'   => 'https://github.com/' . SDL_REPO . '/releases/download/v' . $v . '/stalowydom-live.zip',
+                'url'   => 'https://github.com/' . SDL_REPO . '/releases/tag/v' . $v,
+                'notes' => '',
+            ];
+        } else {
+            $rel['error'] = 'Brak numeru wersji w pliku';
         }
-        set_site_transient('sdl_release', $rel, 6 * HOUR_IN_SECONDS);
+        set_site_transient('sdl_release', $rel, empty($rel['version']) ? 30 * MINUTE_IN_SECONDS : 6 * HOUR_IN_SECONDS);
     }
     return $rel;
 }
@@ -377,6 +384,14 @@ function sdl_settings_page() {
         <tr><th>Zapisanych odczytów</th><td><?php echo number_format_i18n($count); ?></td></tr>
         <tr><th>Ostatni odczyt (UTC)</th><td><?php echo $last ? esc_html($last) : 'brak – HA jeszcze nic nie wysłał'; ?></td></tr>
         <tr><th>Shortcode</th><td><code>[sdl_heiko]</code></td></tr>
+        <?php $rel = sdl_remote_release(isset($_GET['sdl_check'])); ?>
+        <tr><th>Aktualizacje (GitHub)</th><td>
+          Zainstalowana: <strong><?php echo esc_html(SDL_VER); ?></strong> ·
+          Najnowsza: <strong><?php echo esc_html($rel['version'] ?? '?'); ?></strong>
+          <?php if (!empty($rel['error'])) echo ' · <span style="color:#b32d2e">błąd: ' . esc_html($rel['error']) . '</span>'; ?>
+          <?php if (!empty($rel['checked'])) echo ' · sprawdzono ' . esc_html(wp_date('Y-m-d H:i', $rel['checked'])); ?>
+          · <a href="<?php echo esc_url(add_query_arg('sdl_check', 1)); ?>">Sprawdź teraz</a>
+        </td></tr>
       </table>
       <form method="post"><?php wp_nonce_field('sdl_regen'); ?>
         <p><button class="button" name="sdl_regen" value="1" onclick="return confirm('Stary token przestanie działać. Kontynuować?')">Wygeneruj nowy token</button></p>
