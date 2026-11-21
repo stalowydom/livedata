@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.4.0
+Version: 1.4.1
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.4.0');
+define('SDL_VER', '1.4.1');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -250,57 +250,79 @@ add_shortcode('sdl_heiko', function ($atts) {
 
   <div class="sdl-row">
     <div class="sdl-card sdl-tank-card">
-      <svg class="sdl-tank" viewBox="0 0 330 520" role="img" aria-label="<?php echo esc_attr($a['tank']); ?> – przekrój z wężownicami i temperaturami warstw">
-        <defs>
-          <linearGradient id="sdl-strip-<?php echo esc_attr($a['device']); ?>" x1="0" y1="0" x2="0" y2="1">
-            <stop data-stop="noel_top" offset="0" stop-color="#ef4444"/><stop data-stop="noel_mid" offset="0.5" stop-color="#f97316"/><stop data-stop="noel_bot" offset="1" stop-color="#3b82f6"/>
-          </linearGradient>
-          <linearGradient id="sdl-body-<?php echo esc_attr($a['device']); ?>" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0" stop-color="#c9ced6"/><stop offset=".35" stop-color="#f4f6f8"/><stop offset="1" stop-color="#ffffff"/>
-          </linearGradient>
-          <linearGradient id="sdl-copper-<?php echo esc_attr($a['device']); ?>" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="#f6b27a"/><stop offset=".5" stop-color="#c8622a"/><stop offset="1" stop-color="#7a3512"/>
-          </linearGradient>
-          <pattern id="sdl-ins-<?php echo esc_attr($a['device']); ?>" width="5" height="5" patternUnits="userSpaceOnUse"><rect width="5" height="5" fill="#9ca3ab"/><circle cx="1.5" cy="1.5" r=".8" fill="#7d858e"/><circle cx="4" cy="3.8" r=".6" fill="#b7bdc4"/></pattern>
-          <clipPath id="sdl-inner-<?php echo esc_attr($a['device']); ?>"><rect x="186" y="62" width="58" height="392" rx="22"/></clipPath>
-        </defs>
-        <text x="155" y="22" text-anchor="middle" class="sdl-tank-title"><?php echo esc_html($a['tank']); ?></text>
-        <ellipse cx="155" cy="492" rx="105" ry="9" fill="#0d141a" opacity=".6"/>
-        <rect x="88" y="476" width="10" height="12" fill="#3a4654"/><rect x="212" y="476" width="10" height="12" fill="#3a4654"/>
+      <svg class="sdl-tank" viewBox="0 0 380 560" role="img" aria-label="<?php echo esc_attr($a['tank']); ?> – przekrój: wężownica CWU u góry, wężownica mat kapilarnych pod środkiem, temperatury warstw wody">
+  <defs>
+    <linearGradient id="sdl-water-<?php echo esc_attr($a['device']); ?>" x1="0" y1="0" x2="0" y2="1">
+      <stop data-stop="noel_top" offset="0.08" stop-color="#ef4444"/><stop data-stop="noel_mid" offset="0.5" stop-color="#f97316"/><stop data-stop="noel_bot" offset="0.92" stop-color="#3b82f6"/>
+    </linearGradient>
+    <linearGradient id="sdl-shell-<?php echo esc_attr($a['device']); ?>" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#b9c0c9"/><stop offset=".22" stop-color="#e9ecef"/><stop offset=".55" stop-color="#ffffff"/><stop offset="1" stop-color="#f1f3f5"/>
+    </linearGradient>
+    <linearGradient id="sdl-stripe-<?php echo esc_attr($a['device']); ?>" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#f07a2c"/><stop offset="1" stop-color="#e8661a"/>
+    </linearGradient>
+    <linearGradient id="sdl-cu-<?php echo esc_attr($a['device']); ?>" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#8a3d14"/><stop offset=".3" stop-color="#e9935a"/><stop offset=".55" stop-color="#ffc79a"/><stop offset=".8" stop-color="#c8662d"/><stop offset="1" stop-color="#7a3512"/>
+    </linearGradient>
+    <pattern id="sdl-ins-<?php echo esc_attr($a['device']); ?>" width="6" height="6" patternUnits="userSpaceOnUse"><rect width="6" height="6" fill="#d9dde2"/><circle cx="2" cy="2" r=".9" fill="#b3b9c1"/><circle cx="5" cy="4.6" r=".7" fill="#c4c9cf"/></pattern>
+    <clipPath id="sdl-water-clip-<?php echo esc_attr($a['device']); ?>"><path d="M180 72 H246 a16 16 0 0 1 16 16 V478 H180 Z"/></clipPath>
+  </defs>
 
-        <g class="sdl-pipe sdl-hot"><path d="M0 150 H62"/></g>
-        <g class="sdl-pipe sdl-cold"><path d="M62 446 H0"/></g>
-        <g class="sdl-pipe sdl-hot sdl-thin"><path d="M252 70 H330"/></g>
-        <g class="sdl-pipe sdl-cold sdl-thin"><path d="M330 214 H252"/></g>
-        <g class="sdl-pipe sdl-warm sdl-thin"><path d="M252 274 H330"/></g>
-        <g class="sdl-pipe sdl-cold sdl-thin"><path d="M330 390 H252"/></g>
+  <text x="190" y="24" text-anchor="middle" class="sdl-tank-title"><?php echo esc_html($a['tank']); ?> · przekrój</text>
 
-        <rect x="62" y="40" width="190" height="438" rx="16" fill="url(#sdl-body-<?php echo esc_attr($a['device']); ?>)"/>
-        <rect x="150" y="40" width="30" height="438" fill="url(#sdl-strip-<?php echo esc_attr($a['device']); ?>)"/>
-        <path d="M180 40 H236 a16 16 0 0 1 16 16 V462 a16 16 0 0 1 -16 16 H180 Z" fill="url(#sdl-ins-<?php echo esc_attr($a['device']); ?>)"/>
-        <rect x="186" y="62" width="58" height="392" rx="22" fill="#1d2a36"/>
-        <g clip-path="url(#sdl-inner-<?php echo esc_attr($a['device']); ?>)">
-          <rect x="186" y="62" width="58" height="392" fill="url(#sdl-strip-<?php echo esc_attr($a['device']); ?>)" opacity=".42"/>
-          <g fill="none" stroke="url(#sdl-copper-<?php echo esc_attr($a['device']); ?>)" stroke-width="5.5"><ellipse cx="215" cy="82" rx="23" ry="4.2"/><ellipse cx="215" cy="91" rx="23" ry="4.2"/><ellipse cx="215" cy="100" rx="23" ry="4.2"/><ellipse cx="215" cy="109" rx="23" ry="4.2"/><ellipse cx="215" cy="118" rx="23" ry="4.2"/><ellipse cx="215" cy="127" rx="23" ry="4.2"/><ellipse cx="215" cy="136" rx="23" ry="4.2"/><ellipse cx="215" cy="145" rx="23" ry="4.2"/><ellipse cx="215" cy="154" rx="23" ry="4.2"/><ellipse cx="215" cy="163" rx="23" ry="4.2"/><ellipse cx="215" cy="172" rx="23" ry="4.2"/><ellipse cx="215" cy="181" rx="23" ry="4.2"/><ellipse cx="215" cy="190" rx="23" ry="4.2"/><ellipse cx="215" cy="199" rx="23" ry="4.2"/><ellipse cx="215" cy="208" rx="23" ry="4.2"/><ellipse cx="215" cy="217" rx="23" ry="4.2"/><ellipse cx="215" cy="226" rx="23" ry="4.2"/><ellipse cx="215" cy="235" rx="23" ry="4.2"/><ellipse cx="215" cy="244" rx="23" ry="4.2"/></g>
-          <g fill="none" stroke="url(#sdl-copper-<?php echo esc_attr($a['device']); ?>)" stroke-width="5.5"><ellipse cx="215" cy="296" rx="23" ry="4.2"/><ellipse cx="215" cy="305" rx="23" ry="4.2"/><ellipse cx="215" cy="314" rx="23" ry="4.2"/><ellipse cx="215" cy="323" rx="23" ry="4.2"/><ellipse cx="215" cy="332" rx="23" ry="4.2"/><ellipse cx="215" cy="341" rx="23" ry="4.2"/><ellipse cx="215" cy="350" rx="23" ry="4.2"/><ellipse cx="215" cy="359" rx="23" ry="4.2"/><ellipse cx="215" cy="368" rx="23" ry="4.2"/><ellipse cx="215" cy="377" rx="23" ry="4.2"/><ellipse cx="215" cy="386" rx="23" ry="4.2"/><ellipse cx="215" cy="395" rx="23" ry="4.2"/><ellipse cx="215" cy="404" rx="23" ry="4.2"/><ellipse cx="215" cy="413" rx="23" ry="4.2"/><ellipse cx="215" cy="422" rx="23" ry="4.2"/><ellipse cx="215" cy="431" rx="23" ry="4.2"/></g>
-        </g>
-        <line x1="180" y1="40" x2="180" y2="478" stroke="#e5e7eb" stroke-width="1.5"/>
-        <g class="sdl-gauge"><circle cx="165" cy="70" r="11"/><path d="M165 70 L171 63"/></g>
-        <g class="sdl-gauge"><circle cx="165" cy="452" r="11"/><path d="M165 452 L159 445"/></g>
-        <rect x="252" y="66" width="10" height="8" fill="#cbd5e1"/><rect x="252" y="210" width="10" height="8" fill="#cbd5e1"/>
-        <rect x="252" y="270" width="10" height="8" fill="#cbd5e1"/><rect x="252" y="386" width="10" height="8" fill="#cbd5e1"/>
+  <!-- rury: lewa strona = pompa ciepła (woda grzewcza w zbiorniku) -->
+  <path class="sdl-pipe sdl-hot" d="M8 190 H100"/>
+  <path class="sdl-pipe sdl-cold" d="M100 462 H8"/>
+  <text x="8" y="178" class="sdl-ts">zasilanie z PC</text><text x="8" y="208" class="sdl-tv"><tspan data-t="supply">–</tspan> °C</text>
+  <text x="8" y="482" class="sdl-ts">powrót do PC</text>
 
-        <circle cx="62" cy="150" r="5" class="sdl-port"/><circle cx="62" cy="446" r="5" class="sdl-port"/>
-        <g class="sdl-chip"><rect x="122" y="128" width="86" height="28" rx="14"/><text x="165" y="147" text-anchor="middle"><tspan data-t="noel_top">–</tspan> °C</text></g>
-        <g class="sdl-chip"><rect x="122" y="246" width="86" height="28" rx="14"/><text x="165" y="265" text-anchor="middle"><tspan data-t="noel_mid">–</tspan> °C</text></g>
-        <g class="sdl-chip"><rect x="122" y="402" width="86" height="28" rx="14"/><text x="165" y="421" text-anchor="middle"><tspan data-t="noel_bot">–</tspan> °C</text></g>
-        <text x="2" y="138" class="sdl-ts">z PC</text><text x="2" y="172" class="sdl-ts"><tspan data-t="supply">–</tspan>°C</text>
-        <text x="2" y="466" class="sdl-ts">do PC</text>
-        <text x="328" y="60" text-anchor="end" class="sdl-ts">CWU</text>
-        <text x="328" y="232" text-anchor="end" class="sdl-ts">zimna woda</text>
-        <text x="328" y="266" text-anchor="end" class="sdl-ts">maty</text><text x="328" y="380" text-anchor="end" class="sdl-ts">maty</text>
-        <text x="328" y="408" text-anchor="end" class="sdl-ts">powrót</text>
-      </svg>
+  <!-- rury: prawa strona = wężownice -->
+  <path class="sdl-pipe sdl-hot sdl-thin" d="M260 92 H372"/>
+  <path class="sdl-pipe sdl-cold sdl-thin" d="M372 232 H260"/>
+  <path class="sdl-pipe sdl-warm sdl-thin" d="M262 292 H372"/>
+  <path class="sdl-pipe sdl-cold sdl-thin" d="M372 352 H262"/>
+  <text x="372" y="82" text-anchor="end" class="sdl-ts">ciepła woda (CWU)</text>
+  <text x="372" y="250" text-anchor="end" class="sdl-ts">zimna woda</text>
+  <text x="372" y="282" text-anchor="end" class="sdl-ts">maty – zasilanie</text>
+  <text x="372" y="370" text-anchor="end" class="sdl-ts">maty – powrót</text>
+
+  <!-- cień i nóżki -->
+  <ellipse cx="180" cy="512" rx="112" ry="10" fill="#0d141a" opacity=".55"/>
+  <rect x="112" y="494" width="12" height="14" rx="2" fill="#4b5563"/><rect x="236" y="494" width="12" height="14" rx="2" fill="#4b5563"/>
+
+  <!-- lewa połowa: widok z zewnątrz -->
+  <path d="M116 50 H180 V500 H116 a16 16 0 0 1 -16 -16 V66 a16 16 0 0 1 16 -16 Z" fill="url(#sdl-shell-<?php echo esc_attr($a['device']); ?>)"/>
+  <rect x="158" y="50" width="22" height="450" fill="url(#sdl-stripe-<?php echo esc_attr($a['device']); ?>)"/>
+  <g class="sdl-gauge"><circle cx="169" cy="96" r="9"/><path d="M169 96 L174 91"/></g>
+  <g class="sdl-gauge"><circle cx="169" cy="458" r="9"/><path d="M169 458 L164 453"/></g>
+
+  <!-- prawa połowa: przekrój -->
+  <path d="M180 50 H244 a16 16 0 0 1 16 16 V484 a16 16 0 0 1 -16 16 H180 Z" fill="url(#sdl-ins-<?php echo esc_attr($a['device']); ?>)"/>
+  <path d="M180 72 H246 a16 16 0 0 1 16 16 V478 H180 Z" fill="url(#sdl-water-<?php echo esc_attr($a['device']); ?>)"/>
+  <g clip-path="url(#sdl-water-clip-<?php echo esc_attr($a['device']); ?>)" stroke="url(#sdl-cu-<?php echo esc_attr($a['device']); ?>)" fill="none" stroke-linecap="round">
+    <g class="sdl-coil"><path d="M184 92 Q223.0 99 262 91"/><path d="M184 102 Q223.0 109 262 101"/><path d="M184 112 Q223.0 119 262 111"/><path d="M184 122 Q223.0 129 262 121"/><path d="M184 132 Q223.0 139 262 131"/><path d="M184 142 Q223.0 149 262 141"/><path d="M184 152 Q223.0 159 262 151"/><path d="M184 162 Q223.0 169 262 161"/><path d="M184 172 Q223.0 179 262 171"/><path d="M184 182 Q223.0 189 262 181"/><path d="M184 192 Q223.0 199 262 191"/><path d="M184 202 Q223.0 209 262 201"/><path d="M184 212 Q223.0 219 262 211"/><path d="M184 222 Q223.0 229 262 221"/><path d="M184 232 Q223.0 239 262 231"/></g>
+    <g class="sdl-coil"><path d="M192 292 Q222.0 299 252 291"/><path d="M192 302 Q222.0 309 252 301"/><path d="M192 312 Q222.0 319 252 311"/><path d="M192 322 Q222.0 329 252 321"/><path d="M192 332 Q222.0 339 252 331"/><path d="M192 342 Q222.0 349 252 341"/><path d="M192 352 Q222.0 359 252 351"/></g>
+  </g>
+  <path d="M180 50 V500" stroke="#ffffff" stroke-width="2"/>
+  <path d="M180 72 H246 a16 16 0 0 1 16 16 V478 H180" fill="none" stroke="#6b7280" stroke-width="1.5"/>
+
+  <!-- etykiety wężownic -->
+  <path class="sdl-callout" d="M228 160 H296"/>
+  <text x="300" y="158" class="sdl-cl">wężownica</text><text x="300" y="174" class="sdl-cl">CWU</text>
+  <path class="sdl-callout" d="M224 314 H296"/>
+  <text x="300" y="312" class="sdl-cl">wężownica</text><text x="300" y="328" class="sdl-cl">mat</text>
+
+  <!-- czujniki temperatury (w wodzie, na linii przekroju) -->
+  <g class="sdl-sensor"><circle cx="180" cy="122" r="5"/><path d="M175 122 H156"/></g>
+  <g class="sdl-sensor"><circle cx="180" cy="275" r="5"/><path d="M175 275 H156"/></g>
+  <g class="sdl-sensor"><circle cx="180" cy="430" r="5"/><path d="M175 430 H156"/></g>
+  <g class="sdl-chip"><rect x="76" y="108" width="80" height="28" rx="14"/><text x="116" y="127" text-anchor="middle"><tspan data-t="noel_top">–</tspan> °C</text></g>
+  <g class="sdl-chip"><rect x="76" y="261" width="80" height="28" rx="14"/><text x="116" y="280" text-anchor="middle"><tspan data-t="noel_mid">–</tspan> °C</text></g>
+  <g class="sdl-chip"><rect x="76" y="416" width="80" height="28" rx="14"/><text x="116" y="435" text-anchor="middle"><tspan data-t="noel_bot">–</tspan> °C</text></g>
+  <text x="116" y="102" text-anchor="middle" class="sdl-cs">góra</text>
+  <text x="116" y="255" text-anchor="middle" class="sdl-cs">środek</text>
+  <text x="116" y="410" text-anchor="middle" class="sdl-cs">dół</text>
+</svg>
     </div>
     <div class="sdl-card sdl-chart-card">
       <div class="sdl-head">
