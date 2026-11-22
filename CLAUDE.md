@@ -18,4 +18,6 @@ Każda zmiana treści lub wyglądu podstrony urządzenia (np. /heiko/) wymaga ak
 - Mała zmiana (literówka, zdjęcie) → x.Y+1; duża (nowa sekcja, nowy wykres) → X+1.0.
 - Zmiana wtyczki, która widocznie zmienia podstronę (np. nowy wykres), też liczy się jako zmiana tej podstrony.
 
-Historia: Heiko (/heiko/, page_id 369) – 1.0 z 21.11.2026.
+Historia:
+- Heiko (/heiko/, page_id 369) – 1.0 z 21.11.2026, 1.1 i 1.2 tego samego dnia.
+- Dom na żywo (/live/, page_id 383, shortcode [sdl_dom]) – 1.0 z 22.11.2026. Link z kafelka „Dashboard Live” na stronie głównej.
