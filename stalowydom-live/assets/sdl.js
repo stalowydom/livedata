@@ -128,6 +128,10 @@
         r[1].forEach(function (x) { out[x[0]] = { avg: x[1], min: x[2], max: x[3] }; });
         var sum = kwh.reduce(function (a, x) { return a + x[1]; }, 0);
         setK('d30', kwh.length ? nf(sum, 0) : '–');
+        var yd = new Date(); yd.setDate(yd.getDate() - 1);
+        var ykey = yd.getFullYear() + '-' + String(yd.getMonth() + 1).padStart(2, '0') + '-' + String(yd.getDate()).padStart(2, '0');
+        var yrow = kwh.filter(function (x) { return x[0] === ykey; })[0];
+        setK('yesterday', yrow ? nf(yrow[1], 1) : '–');
         var days = kwh.map(function (x) { return x[0]; });
         var labels = days.map(function (d) { var p = d.split('-'); return p[2] + '.' + p[1]; });
         var tempLines = function (i) {

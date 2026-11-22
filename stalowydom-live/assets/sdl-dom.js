@@ -67,7 +67,13 @@
     function loadDaily() {
       var sum = function (rows) { return rows.length ? rows.reduce(function (a, x) { return a + x[1]; }, 0) : null; };
       get('daily?device=dom&metric=energy_total&days=30').then(function (r) { setD('dom_30', nf(sum(r), 0)); }).catch(function () {});
-      get('daily?device=heiko&metric=energy_total&days=30').then(function (r) { setD('heiko_30', nf(sum(r), 0)); }).catch(function () {});
+      get('daily?device=heiko&metric=energy_total&days=30').then(function (r) {
+        setD('heiko_30', nf(sum(r), 0));
+        var yd = new Date(); yd.setDate(yd.getDate() - 1);
+        var ykey = yd.getFullYear() + '-' + String(yd.getMonth() + 1).padStart(2, '0') + '-' + String(yd.getDate()).padStart(2, '0');
+        var y = r.filter(function (x) { return x[0] === ykey; })[0];
+        setD('heiko_yday', y ? nf(y[1], 1) : '–');
+      }).catch(function () {});
       ['pompa_cwu', 'serwer', 'reqnet'].forEach(function (d) {
         get('daily?device=' + d + '&metric=energy_total&days=30').then(function (r) {
           var v = sum(r); root.querySelectorAll('[data-e="' + d + '_30"]').forEach(function (el) { el.textContent = en(v); });
