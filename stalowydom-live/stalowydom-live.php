@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.7.1
+Version: 1.7.2
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.7.1');
+define('SDL_VER', '1.7.2');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -482,6 +482,7 @@ add_action('wp_head', function () {
 .et_mobile_menu li a{color:#ffffff !important;border-bottom-color:#334150 !important}
 .et_mobile_menu li a:hover,.et_mobile_menu li.current-menu-item>a{background:#1a222a !important;color:#f97316 !important;opacity:1 !important}
 .mobile_menu_bar:before{color:#f97316 !important}
+img.wp-image-21{height:auto !important;object-fit:contain}
 </style>\n";
 }, 99);
 
