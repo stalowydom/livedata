@@ -59,3 +59,32 @@
 .sdl-foot{display:flex;gap:10px;align-items:flex-start;border-top:1px solid #334150;margin-top:6px;padding-top:14px}
 .sdl-foot p{margin:0;padding:0;font-size:12.5px;line-height:1.55;color:#9aa5b1}
 .sdl-foot-dot{flex:0 0 8px;width:8px;height:8px;border-radius:50%;background:#22c55e;margin-top:6px}
+.sdl-sec{color:#fff;font-size:18px;text-transform:uppercase;letter-spacing:.03em;margin:26px 0 12px;padding:0}
+.sdl-dom .sdl-status{margin-bottom:6px}
+.sdl-kpi-sub{font-size:13px;color:var(--sdl-muted);margin-top:4px}
+.sdl-share{display:flex;gap:2px;height:44px;border-radius:8px;overflow:hidden;background:#1a222a;margin:6px 0 12px}
+.sdl-share-legend{display:flex;flex-wrap:wrap;gap:8px 20px;font-size:14px;color:#ddd}
+.sdl-share-legend span{display:flex;align-items:center;gap:8px}
+.sdl-share-legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
+.sdl-share-legend strong{color:#fff}
+.sdl-devs{display:flex;flex-direction:column;gap:12px;margin-bottom:14px}
+.sdl-dev{background:var(--sdl-card);border-radius:10px;padding:20px 24px;display:flex;flex-wrap:wrap;gap:18px 32px;align-items:center}
+.sdl-dev-main{flex:1 1 240px;min-width:0}
+.sdl-dev-name{margin:0;padding:0;font-size:24px;font-weight:800;color:#fff;letter-spacing:.02em}
+.sdl-dev-name.sdl-n-noel{color:#f97316}.sdl-dev-name.sdl-n-small{font-size:21px}
+.sdl-dev h3{color:#fff;font-size:17px;margin:4px 0 2px;padding:0}
+.sdl-dev-desc{margin:0;padding:0;color:var(--sdl-muted);font-size:14px;line-height:1.5}
+.sdl-dev-kpis{flex:2 1 380px;display:flex;flex-wrap:wrap;gap:14px 28px}
+.sdl-dev-kpi{min-width:110px}
+.sdl-dev-l{margin:0;padding:0;color:var(--sdl-muted);font-size:12px}
+.sdl-dev-v{margin:2px 0 0;padding:0;color:#fff;font-size:21px;font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}
+.sdl-dev-act{flex:0 0 auto}
+.sdl-btn{display:inline-block;border:1px solid #f97316;color:#fff !important;text-decoration:none;padding:10px 18px;border-radius:4px;font-size:15px}
+.sdl-btn:hover{background:#f97316}
+.sdl-btn-soon{border:1px dashed #4b5563;color:var(--sdl-muted) !important}
+.sdl-btn-soon:hover{background:none}
+.sdl-pv{border:2px dashed #3a4654;background:transparent}
+.sdl-pv-soon{color:#f97316;font-size:13px;font-weight:600}
+.sdl-pv-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:10px}
+.sdl-pv-grid>div{background:var(--sdl-card);border-radius:10px;padding:16px;text-align:center}
+.sdl-pv-t{margin:0;padding:0;color:#fff;font-weight:700}

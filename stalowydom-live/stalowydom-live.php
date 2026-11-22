@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.6.0
+Version: 1.7.0
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.6.0');
+define('SDL_VER', '1.7.0');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -349,6 +349,92 @@ add_shortcode('sdl_heiko', function ($atts) {
     <div class="sdl-legend sdl-legend-temp"><span><i style="background:#f97316"></i>Temperatura zewnętrzna – maks. w ciągu dnia</span><span><i style="background:#3b82f6"></i>min. w ciągu dnia</span></div>
     <div class="sdl-canvas sdl-canvas-sm"><canvas data-chart="dailytemp" role="img" aria-label="Najniższa, średnia i najwyższa temperatura zewnętrzna w kolejnych dniach"></canvas></div>
     <p class="sdl-note">Po najechaniu na słupek widać zużycie oraz najniższą i najwyższą temperaturę zewnętrzną z tego dnia.</p>
+  </div>
+  <?php echo sdl_footer_note(); ?>
+</div>
+<?php
+    return ob_get_clean();
+});
+
+/* ---------- strona zbiorcza: [sdl_dom heiko="/heiko/"] ---------- */
+
+function sdl_dom_kpi($label, $key, $unit, $sub = '', $accent = '#f97316') {
+    return '<div class="sdl-kpi" style="border-top-color:' . esc_attr($accent) . '"><div class="sdl-kpi-label">' . esc_html($label) . '</div>'
+        . '<div class="sdl-kpi-val"><span data-d="' . esc_attr($key) . '">–</span> <small>' . esc_html($unit) . '</small></div>'
+        . ($sub !== '' ? '<div class="sdl-kpi-sub">' . $sub . '</div>' : '') . '</div>';
+}
+
+function sdl_dom_row($name, $nameClass, $title, $desc, $kpis, $link) {
+    $k = '';
+    foreach ($kpis as $kp) {
+        $k .= '<div class="sdl-dev-kpi"><p class="sdl-dev-l">' . esc_html($kp[0]) . '</p><p class="sdl-dev-v">' . $kp[1] . '</p></div>';
+    }
+    $btn = $link
+        ? '<a class="sdl-btn" href="' . esc_url($link) . '">zobacz więcej</a>'
+        : '<span class="sdl-btn sdl-btn-soon">podstrona wkrótce</span>';
+    return '<article class="sdl-dev"><div class="sdl-dev-main"><p class="sdl-dev-name ' . esc_attr($nameClass) . '">' . esc_html($name) . '</p>'
+        . '<h3>' . esc_html($title) . '</h3><p class="sdl-dev-desc">' . esc_html($desc) . '</p></div>'
+        . '<div class="sdl-dev-kpis">' . $k . '</div><div class="sdl-dev-act">' . $btn . '</div></article>';
+}
+
+function sdl_v($dev, $key, $unit = '', $dec = 1) {
+    return '<span data-v="' . esc_attr($dev . '.' . $key) . '" data-dec="' . (int) $dec . '">–</span>' . ($unit !== '' ? ' ' . esc_html($unit) : '');
+}
+
+add_shortcode('sdl_dom', function ($atts) {
+    $a = shortcode_atts(['heiko' => '/heiko/'], $atts);
+    wp_enqueue_style('sdl', SDL_URL . 'assets/sdl.css', [], SDL_VER);
+    wp_enqueue_script('sdl-dom', SDL_URL . 'assets/sdl-dom.js', [], SDL_VER, true);
+    wp_localize_script('sdl-dom', 'SDL', ['api' => esc_url_raw(rest_url('sdl/v1/'))]);
+    $heiko = $a['heiko'] ? home_url($a['heiko']) : '';
+    ob_start(); ?>
+<div class="sdl-wrap sdl-dom" data-sdl-dom>
+  <div class="sdl-status"><span class="sdl-dot"></span><span class="sdl-status-text">Ładowanie danych…</span></div>
+
+  <h2 class="sdl-sec">Cały dom</h2>
+  <div class="sdl-kpis">
+    <?php
+    echo sdl_dom_kpi('Moc pobierana teraz', 'dom_power', 'kW', 'L1 ' . sdl_v('dom', 'l1', 'W', 0) . ' · L2 ' . sdl_v('dom', 'l2', 'W', 0) . ' · L3 ' . sdl_v('dom', 'l3', 'W', 0));
+    echo sdl_dom_kpi('Zużycie dziś', 'dom_today', 'kWh', 'z głównego licznika domu');
+    echo sdl_dom_kpi('Ostatnie 30 dni', 'dom_30', 'kWh', 'w tym pompa ciepła: <span data-d="heiko_30">–</span> kWh');
+    echo sdl_dom_kpi('Na zewnątrz', 'outdoor', '°C', '', '#3b82f6');
+    ?>
+  </div>
+
+  <div class="sdl-card">
+    <div class="sdl-head"><h3>Na co idzie prąd – teraz</h3></div>
+    <div class="sdl-share" role="img" aria-label="Podział mocy pobieranej przez dom"></div>
+    <div class="sdl-share-legend"></div>
+    <p class="sdl-note">Gdy pompa ciepła grzeje, jej pasek rośnie do 3–4 kW i zajmuje większość wykresu.</p>
+  </div>
+
+  <h2 class="sdl-sec">Urządzenia</h2>
+  <div class="sdl-devs">
+    <?php
+    echo sdl_dom_row('HEIKO', 'sdl-n-heiko', 'Pompa ciepła 15 kW', 'Powietrze–woda, sterowana lokalnie z Home Assistant.',
+        [['Moc teraz', sdl_v('heiko', 'power', 'W', 0)], ['Dziś', '<span data-d="heiko_today">–</span> kWh'], ['30 dni', '<span data-d="heiko_30">–</span> kWh'], ['Zasilanie z PC', sdl_v('heiko', 'supply', '°C')]], $heiko);
+    echo sdl_dom_row('NOEL', 'sdl-n-noel', 'Bufor 700 l z wężownicą CWU', 'Woda grzewcza z pompy, wężownica CWU i wężownica mat kapilarnych.',
+        [['Góra', sdl_v('heiko', 'noel_top', '°C')], ['Środek', sdl_v('heiko', 'noel_mid', '°C')], ['Dół', sdl_v('heiko', 'noel_bot', '°C')], ['Zasobnik CWU', sdl_v('heiko', 'cwu', '°C')]], $heiko);
+    echo sdl_dom_row('reQnet', '', 'Rekuperator entalpiczny', 'Wentylacja z odzyskiem ciepła i wilgoci.',
+        [['Czerpnia', sdl_v('reqnet', 'czerpnia', '°C')], ['Nawiew', sdl_v('reqnet', 'nawiew', '°C')], ['Wyciąg / wyrzutnia', sdl_v('reqnet', 'wyciag', '', 1) . ' / ' . sdl_v('reqnet', 'wyrzutnia', '°C')], ['Moc', sdl_v('reqnet', 'power', 'W', 0)]], '');
+    echo sdl_dom_row('Maty kapilarne', 'sdl-n-small', 'Ogrzewanie i chłodzenie sufitowe', 'Temperatury pomieszczeń z termostatów Sinum.',
+        [['Salon', sdl_v('maty', 'salon', '°C')], ['Sypialnia', sdl_v('maty', 'sypialnia', '°C')], ['Łazienka', sdl_v('maty', 'lazienka', '°C')], ['Punkt rosy', sdl_v('maty', 'rosa', '°C')]], '');
+    echo sdl_dom_row('Pompa CWU', 'sdl-n-small', 'Cyrkulacja ciepłej wody', 'Pompa cyrkulacyjna – ciepła woda od razu w kranie.',
+        [['Moc teraz', sdl_v('pompa_cwu', 'power', 'W', 1)], ['Dziś', '<span data-d="pompa_cwu_today">–</span> kWh']], '');
+    echo sdl_dom_row('atlas', '', 'Serwer domowy (TrueNAS)', 'Pliki, zdjęcia i multimedia całej rodziny.',
+        [['Moc teraz', sdl_v('atlas', 'power', 'W', 0)], ['Dziś', '<span data-d="atlas_today">–</span> kWh']], '');
+    ?>
+  </div>
+
+  <div class="sdl-card sdl-pv">
+    <div class="sdl-head"><h3>Przepływ energii</h3><span class="sdl-pv-soon">po montażu fotowoltaiki</span></div>
+    <div class="sdl-pv-grid">
+      <div><p class="sdl-pv-t" style="color:#fbbf24">Fotowoltaika</p><p class="sdl-dev-l">9,6 kWp</p><p class="sdl-dev-v">–</p></div>
+      <div><p class="sdl-pv-t" style="color:#1baf7a">Magazyn</p><p class="sdl-dev-l">20 kWh</p><p class="sdl-dev-v">–</p></div>
+      <div><p class="sdl-pv-t">Dom</p><p class="sdl-dev-l">zużycie</p><p class="sdl-dev-v"><span data-d="dom_power">–</span> kW</p></div>
+      <div><p class="sdl-pv-t" style="color:#60a5fa">Sieć</p><p class="sdl-dev-l">pobór / oddanie</p><p class="sdl-dev-v">–</p></div>
+    </div>
+    <p class="sdl-note">Tu pojawi się animowany schemat: skąd w danej chwili płynie prąd i dokąd trafia.</p>
   </div>
   <?php echo sdl_footer_note(); ?>
 </div>
