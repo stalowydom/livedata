@@ -28,3 +28,4 @@ Historia:
 ## Dane z Home Assistant
 - Automatyzacja HA `sdl_push_heiko` („WWW: dane domu na stalowydom.com”) co 5 min wysyła urządzenia: heiko, dom, reqnet, maty, pompa_cwu, atlas (lista sensorów w zmiennej `devices` automatyzacji).
 - Podział energii pompy CO/CWU: licznik z taryfami `select.pompa_ciepla_energia_co_cwu` przełączany automatyzacją `sdl_licznik_co_cwu` (temperatura zadana bieżącego trybu = temperatura CWU → cwu).
+- Odszranianie: surowa flaga `sensor.heiko_odszranianie` wisi do następnego startu sprężarki, więc liczymy `binary_sensor.heiko_odszranianie_faktyczne` (flaga = 1, sprężarka > 0 Hz, wentylator 1 < 50 obr/min) i z niego liczba/czas dziś (history_stats, czas w godzinach → na stronie minuty).
