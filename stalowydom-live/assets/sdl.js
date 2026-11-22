@@ -4,6 +4,15 @@
   var nf = function (v, d) { return v == null || isNaN(v) ? '–' : Number(v).toLocaleString('pl-PL', { minimumFractionDigits: d, maximumFractionDigits: d }); };
   var get = function (path) { return fetch(SDL.api + path, { credentials: 'omit' }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }); };
 
+  var MONTHS = ['styczeń', 'luty', 'marzec', 'kwiecień', 'maj', 'czerwiec', 'lipiec', 'sierpień', 'wrzesień', 'październik', 'listopad', 'grudzień'];
+  function monthSums(rows) {
+    var now = new Date(), cy = now.getFullYear(), cm = now.getMonth();
+    var py = cm === 0 ? cy - 1 : cy, pm = cm === 0 ? 11 : cm - 1;
+    var key = function (y, m) { return y + '-' + String(m + 1).padStart(2, '0'); };
+    var sum = function (k) { var f = rows.filter(function (x) { return x[0].slice(0, 7) === k; }); return f.length ? f.reduce(function (a, x) { return a + x[1]; }, 0) : null; };
+    return { cur: sum(key(cy, cm)), prev: sum(key(py, pm)), curName: MONTHS[cm], prevName: MONTHS[pm] };
+  }
+
   function tempColor(t) {
     if (t == null) return '#3a4654';
     var stops = [[20, [59, 130, 246]], [35, [234, 179, 8]], [45, [249, 115, 22]], [55, [239, 68, 68]]];
@@ -127,7 +136,11 @@
         while (kwh.length && !kwh[0][1]) kwh.shift(); /* bez pustych dni na początku historii */
         r[1].forEach(function (x) { out[x[0]] = { avg: x[1], min: x[2], max: x[3] }; });
         var sum = kwh.reduce(function (a, x) { return a + x[1]; }, 0);
-        setK('d30', kwh.length ? nf(sum, 0) : '–');
+        get('daily?device=' + device + '&metric=energy_total&days=62').then(function (rr) {
+          var m = monthSums(rr);
+          setK('m_cur', nf(m.cur, 0)); setK('m_prev', nf(m.prev, 0));
+          setK('m_cur_name', m.curName.charAt(0).toUpperCase() + m.curName.slice(1)); setK('m_prev_name', m.prevName.charAt(0).toUpperCase() + m.prevName.slice(1));
+        }).catch(function () {});
         var yd = new Date(); yd.setDate(yd.getDate() - 1);
         var ykey = yd.getFullYear() + '-' + String(yd.getMonth() + 1).padStart(2, '0') + '-' + String(yd.getDate()).padStart(2, '0');
         var yrow = kwh.filter(function (x) { return x[0] === ykey; })[0];

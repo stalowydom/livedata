@@ -22,8 +22,8 @@ Każda zmiana treści lub wyglądu podstrony urządzenia (np. /heiko/) wymaga ak
 - Zmiana wtyczki, która widocznie zmienia podstronę (np. nowy wykres), też liczy się jako zmiana tej podstrony.
 
 Historia:
-- Heiko (/heiko/, page_id 369) – 1.0 z 21.11.2026, 1.1 i 1.2 tego samego dnia; 2.0 z 22.11.2026 (sekcja odszraniania [sdl_odszranianie]), 2.1 tego samego dnia.
-- Dom na żywo (/live/, page_id 383, shortcode [sdl_dom]) – 1.0–1.7 z 22.11.2026. Link z kafelka „Dashboard Live” na stronie głównej.
+- Heiko (/heiko/, page_id 369) – 1.0 z 21.11.2026, 1.1 i 1.2 tego samego dnia; 2.0 z 22.11.2026 (sekcja odszraniania [sdl_odszranianie]), 2.1 i 2.2 tego samego dnia.
+- Dom na żywo (/live/, page_id 383, shortcode [sdl_dom]) – 1.0–1.8 z 22.11.2026. Link z kafelka „Dashboard Live” na stronie głównej.
 
 ## Dane z Home Assistant
 - Automatyzacja HA `sdl_push_heiko` („WWW: dane domu na stalowydom.com”) co 5 min wysyła urządzenia: heiko, dom, reqnet, maty, pompa_cwu, serwer (lista sensorów w zmiennej `devices` automatyzacji).

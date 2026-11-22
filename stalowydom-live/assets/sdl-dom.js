@@ -11,6 +11,15 @@
   var en = function (kwh) { if (kwh == null || isNaN(kwh)) return '–'; return kwh < 1 ? nf(kwh * 1000, 0) + ' Wh' : nf(kwh, kwh < 10 ? 2 : 1) + ' kWh'; };
   var get = function (path) { return fetch(SDL.api + path, { credentials: 'omit' }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }); };
 
+  var MONTHS = ['styczeń', 'luty', 'marzec', 'kwiecień', 'maj', 'czerwiec', 'lipiec', 'sierpień', 'wrzesień', 'październik', 'listopad', 'grudzień'];
+  function monthSums(rows) {
+    var now = new Date(), cy = now.getFullYear(), cm = now.getMonth();
+    var py = cm === 0 ? cy - 1 : cy, pm = cm === 0 ? 11 : cm - 1;
+    var key = function (y, m) { return y + '-' + String(m + 1).padStart(2, '0'); };
+    var sum = function (k) { var f = rows.filter(function (x) { return x[0].slice(0, 7) === k; }); return f.length ? f.reduce(function (a, x) { return a + x[1]; }, 0) : null; };
+    return { cur: sum(key(cy, cm)), prev: sum(key(py, pm)), curName: MONTHS[cm], prevName: MONTHS[pm] };
+  }
+
   function init(root) {
     var setD = function (k, v) { root.querySelectorAll('[data-d="' + k + '"]').forEach(function (el) { el.textContent = v; }); };
 
@@ -69,6 +78,11 @@
       get('daily?device=dom&metric=energy_total&days=30').then(function (r) { setD('dom_30', nf(sum(r), 0)); }).catch(function () {});
       get('daily?device=heiko&metric=energy_total&days=30').then(function (r) {
         setD('heiko_30', nf(sum(r), 0));
+      }).catch(function () {});
+      get('daily?device=heiko&metric=energy_total&days=62').then(function (r) {
+        var m = monthSums(r), cap = function (x) { return x.charAt(0).toUpperCase() + x.slice(1); };
+        setD('heiko_mcur', nf(m.cur, 0)); setD('heiko_mprev', nf(m.prev, 0));
+        setD('heiko_mcur_name', cap(m.curName) + ' (do dziś)'); setD('heiko_mprev_name', cap(m.prevName));
         var yd = new Date(); yd.setDate(yd.getDate() - 1);
         var ykey = yd.getFullYear() + '-' + String(yd.getMonth() + 1).padStart(2, '0') + '-' + String(yd.getDate()).padStart(2, '0');
         var y = r.filter(function (x) { return x[0] === ykey; })[0];

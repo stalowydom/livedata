@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.14.0
+Version: 1.15.0
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.14.0');
+define('SDL_VER', '1.15.0');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -285,7 +285,8 @@ add_shortcode('sdl_heiko', function ($atts) {
     <div class="sdl-kpi"><div class="sdl-kpi-label">Zużycie dziś</div><div class="sdl-kpi-val"><span data-k="today">–</span> <small>kWh</small></div></div>
     <div class="sdl-kpi"><div class="sdl-kpi-label">Wczoraj</div><div class="sdl-kpi-val"><span data-k="yesterday">–</span> <small>kWh</small></div></div>
     <div class="sdl-kpi"><div class="sdl-kpi-label">Moc teraz</div><div class="sdl-kpi-val"><span data-k="power">–</span> <small data-k="power_unit">W</small></div></div>
-    <div class="sdl-kpi"><div class="sdl-kpi-label">Ostatnie 30 dni</div><div class="sdl-kpi-val"><span data-k="d30">–</span> <small>kWh</small></div></div>
+    <div class="sdl-kpi"><div class="sdl-kpi-label"><span data-k="m_cur_name">Ten miesiąc</span> (do dziś)</div><div class="sdl-kpi-val"><span data-k="m_cur">–</span> <small>kWh</small></div></div>
+    <div class="sdl-kpi"><div class="sdl-kpi-label" data-k="m_prev_name">Poprzedni miesiąc</div><div class="sdl-kpi-val"><span data-k="m_prev">–</span> <small>kWh</small></div></div>
     <div class="sdl-kpi"><div class="sdl-kpi-label">Na zewnątrz</div><div class="sdl-kpi-val"><span data-k="outdoor">–</span> <small>°C</small></div></div>
   </div>
 
@@ -408,7 +409,7 @@ function sdl_dom_kpi($label, $key, $unit, $sub = '', $accent = '#f97316') {
 function sdl_dom_row($name, $nameClass, $title, $desc, $kpis, $link) {
     $k = '';
     foreach ($kpis as $kp) {
-        $k .= '<div class="sdl-dev-kpi"' . (!empty($kp[2]) ? ' data-only="' . esc_attr($kp[2]) . '" hidden' : '') . '><p class="sdl-dev-l">' . esc_html($kp[0]) . '</p><p class="sdl-dev-v">' . $kp[1] . '</p></div>';
+        $k .= '<div class="sdl-dev-kpi"' . (!empty($kp[2]) ? ' data-only="' . esc_attr($kp[2]) . '" hidden' : '') . '><p class="sdl-dev-l">' . wp_kses($kp[0], ['span' => ['data-d' => true]]) . '</p><p class="sdl-dev-v">' . $kp[1] . '</p></div>';
     }
     $btn = $link
         ? '<a class="sdl-btn" href="' . esc_url($link) . '">zobacz więcej</a>'
@@ -453,7 +454,7 @@ add_shortcode('sdl_dom', function ($atts) {
   <div class="sdl-devs">
     <?php
     echo sdl_dom_row('HEIKO', 'sdl-n-heiko', 'Pompa ciepła 15 kW', 'Powietrze–woda, sterowana lokalnie z Home Assistant.',
-        [['Moc teraz', sdl_v('heiko', 'power', 'W', 0)], ['Wczoraj', '<span data-d="heiko_yday">–</span> kWh'], ['Dziś: CO / CWU', '<span data-d="heiko_co">–</span> / <span data-d="heiko_cwu">–</span> kWh'], ['Odszranianie dziś', '<span data-d="heiko_defrost">–</span>'], ['30 dni', '<span data-d="heiko_30">–</span> kWh'], ['Starty dziś', sdl_v('heiko', 'starts', '', 0)], ['Zasilanie z PC', sdl_v('heiko', 'supply', '°C'), 'running']], $heiko);
+        [['Moc teraz', sdl_v('heiko', 'power', 'W', 0)], ['Wczoraj', '<span data-d="heiko_yday">–</span> kWh'], ['Dziś: CO / CWU', '<span data-d="heiko_co">–</span> / <span data-d="heiko_cwu">–</span> kWh'], ['Odszranianie dziś', '<span data-d="heiko_defrost">–</span>'], ['<span data-d="heiko_mcur_name">Ten miesiąc</span>', '<span data-d="heiko_mcur">–</span> kWh'], ['<span data-d="heiko_mprev_name">Poprzedni miesiąc</span>', '<span data-d="heiko_mprev">–</span> kWh'], ['Starty dziś', sdl_v('heiko', 'starts', '', 0)], ['Zasilanie z PC', sdl_v('heiko', 'supply', '°C'), 'running']], $heiko);
     echo sdl_dom_row('NOEL', 'sdl-n-noel', 'Bufor 700 l z wężownicą CWU', 'Woda grzewcza z pompy, wężownica CWU i wężownica mat kapilarnych.',
         [['Góra', sdl_v('heiko', 'noel_top', '°C')], ['Środek', sdl_v('heiko', 'noel_mid', '°C')], ['Dół', sdl_v('heiko', 'noel_bot', '°C')]], $heiko);
     echo sdl_dom_row('reQnet', '', 'Rekuperator entalpiczny', 'Wentylacja z odzyskiem ciepła i wilgoci. Wymiana powietrza: nawiew / wyciąg.',
