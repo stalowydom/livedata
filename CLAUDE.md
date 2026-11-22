@@ -23,4 +23,8 @@ Każda zmiana treści lub wyglądu podstrony urządzenia (np. /heiko/) wymaga ak
 
 Historia:
 - Heiko (/heiko/, page_id 369) – 1.0 z 21.11.2026, 1.1 i 1.2 tego samego dnia.
-- Dom na żywo (/live/, page_id 383, shortcode [sdl_dom]) – 1.0 z 22.11.2026. Link z kafelka „Dashboard Live” na stronie głównej.
+- Dom na żywo (/live/, page_id 383, shortcode [sdl_dom]) – 1.0 i 1.1 z 22.11.2026. Link z kafelka „Dashboard Live” na stronie głównej.
+
+## Dane z Home Assistant
+- Automatyzacja HA `sdl_push_heiko` („WWW: dane domu na stalowydom.com”) co 5 min wysyła urządzenia: heiko, dom, reqnet, maty, pompa_cwu, atlas (lista sensorów w zmiennej `devices` automatyzacji).
+- Podział energii pompy CO/CWU: licznik z taryfami `select.pompa_ciepla_energia_co_cwu` przełączany automatyzacją `sdl_licznik_co_cwu` (temperatura zadana bieżącego trybu = temperatura CWU → cwu).
