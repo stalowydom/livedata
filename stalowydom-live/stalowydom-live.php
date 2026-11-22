@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.8.2
+Version: 1.10.0
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.8.2');
+define('SDL_VER', '1.10.0');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -79,6 +79,7 @@ add_action('rest_api_init', function () {
     register_rest_route('sdl/v1', '/latest', ['methods' => 'GET', 'callback' => 'sdl_latest', 'permission_callback' => $public]);
     register_rest_route('sdl/v1', '/series', ['methods' => 'GET', 'callback' => 'sdl_series', 'permission_callback' => $public]);
     register_rest_route('sdl/v1', '/daily',  ['methods' => 'GET', 'callback' => 'sdl_daily',  'permission_callback' => $public]);
+    register_rest_route('sdl/v1', '/events', ['methods' => 'GET', 'callback' => 'sdl_events', 'permission_callback' => $public]);
 });
 
 function sdl_push(WP_REST_Request $r) {
@@ -138,6 +139,23 @@ function sdl_backfill(WP_REST_Request $r) {
     return ['ok' => true, 'saved' => $n];
 }
 
+function sdl_events(WP_REST_Request $r) {
+    $device = $r->get_param('device');
+    $limit  = min(50, max(1, (int) $r->get_param('limit') ?: 10));
+    if (!sdl_key_ok($device)) return new WP_Error('sdl_bad', 'device', ['status' => 400]);
+    return sdl_cached("events|$device|$limit", function () use ($device, $limit) {
+        global $wpdb;
+        $t = sdl_table();
+        $rows = $wpdb->get_results($wpdb->prepare("SELECT ts, metric, value FROM $t WHERE device=%s ORDER BY ts DESC, id DESC LIMIT %d", $device, $limit * 12));
+        $ev = [];
+        foreach ($rows as $row) {
+            if (!isset($ev[$row->ts])) { if (count($ev) >= $limit) break; $ev[$row->ts] = ['ts' => strtotime($row->ts . ' UTC'), 'values' => []]; }
+            $ev[$row->ts]['values'][$row->metric] = round((float) $row->value, 2);
+        }
+        return array_values($ev);
+    }, 120);
+}
+
 function sdl_cached($key, $fn, $ttl = 120) {
     $k = 'sdl_' . md5($key);
     $v = get_transient($k);
@@ -168,7 +186,7 @@ function sdl_latest(WP_REST_Request $r) {
              WHERE device=%s AND metric='energy_total'
              AND DATE(DATE_ADD(ts, INTERVAL %d SECOND)) = DATE(DATE_ADD(UTC_TIMESTAMP(), INTERVAL %d SECOND))",
             $device, $off, $off));
-        $out['today_kwh'] = $today && $today->kwh !== null ? round((float) $today->kwh, 2) : null;
+        $out['today_kwh'] = $today && $today->kwh !== null ? round((float) $today->kwh, 4) : null;
         /* zużycie dziś z liczników CO / CWU (licznik z taryfami w HA) */
         foreach (['energy_co' => 'today_co', 'energy_cwu' => 'today_cwu'] as $m => $k) {
             $v = $wpdb->get_var($wpdb->prepare(
@@ -225,7 +243,7 @@ function sdl_daily(WP_REST_Request $r) {
              WHERE device=%s AND metric=%s AND ts >= UTC_TIMESTAMP() - INTERVAL %d DAY
              GROUP BY d ORDER BY d", $off, $device, $metric, $days));
         return array_map(function ($row) use ($agg) {
-            $out = [$row->d, round((float) $row->v, 2)];
+            $out = [$row->d, round((float) $row->v, 4)];
             if ($agg === 'stats') { $out[] = round((float) $row->vmin, 1); $out[] = round((float) $row->vmax, 1); }
             return $out;
         }, $rows);
@@ -375,7 +393,7 @@ function sdl_dom_kpi($label, $key, $unit, $sub = '', $accent = '#f97316') {
 function sdl_dom_row($name, $nameClass, $title, $desc, $kpis, $link) {
     $k = '';
     foreach ($kpis as $kp) {
-        $k .= '<div class="sdl-dev-kpi"><p class="sdl-dev-l">' . esc_html($kp[0]) . '</p><p class="sdl-dev-v">' . $kp[1] . '</p></div>';
+        $k .= '<div class="sdl-dev-kpi"' . (!empty($kp[2]) ? ' data-only="' . esc_attr($kp[2]) . '" hidden' : '') . '><p class="sdl-dev-l">' . esc_html($kp[0]) . '</p><p class="sdl-dev-v">' . $kp[1] . '</p></div>';
     }
     $btn = $link
         ? '<a class="sdl-btn" href="' . esc_url($link) . '">zobacz więcej</a>'
@@ -420,17 +438,17 @@ add_shortcode('sdl_dom', function ($atts) {
   <div class="sdl-devs">
     <?php
     echo sdl_dom_row('HEIKO', 'sdl-n-heiko', 'Pompa ciepła 15 kW', 'Powietrze–woda, sterowana lokalnie z Home Assistant.',
-        [['Moc teraz', sdl_v('heiko', 'power', 'W', 0)], ['Dziś: CO / CWU', '<span data-d="heiko_co">–</span> / <span data-d="heiko_cwu">–</span> kWh'], ['Odszranianie dziś', '<span data-d="heiko_defrost">–</span>'], ['30 dni', '<span data-d="heiko_30">–</span> kWh'], ['Starty dziś', sdl_v('heiko', 'starts', '', 0)], ['Zasilanie z PC', sdl_v('heiko', 'supply', '°C')]], $heiko);
+        [['Moc teraz', sdl_v('heiko', 'power', 'W', 0)], ['Dziś: CO / CWU', '<span data-d="heiko_co">–</span> / <span data-d="heiko_cwu">–</span> kWh'], ['Odszranianie dziś', '<span data-d="heiko_defrost">–</span>'], ['30 dni', '<span data-d="heiko_30">–</span> kWh'], ['Starty dziś', sdl_v('heiko', 'starts', '', 0)], ['Zasilanie z PC', sdl_v('heiko', 'supply', '°C'), 'running']], $heiko);
     echo sdl_dom_row('NOEL', 'sdl-n-noel', 'Bufor 700 l z wężownicą CWU', 'Woda grzewcza z pompy, wężownica CWU i wężownica mat kapilarnych.',
-        [['Góra', sdl_v('heiko', 'noel_top', '°C')], ['Środek', sdl_v('heiko', 'noel_mid', '°C')], ['Dół', sdl_v('heiko', 'noel_bot', '°C')], ['Zasobnik CWU', sdl_v('heiko', 'cwu', '°C')]], $heiko);
+        [['Góra', sdl_v('heiko', 'noel_top', '°C')], ['Środek', sdl_v('heiko', 'noel_mid', '°C')], ['Dół', sdl_v('heiko', 'noel_bot', '°C')]], $heiko);
     echo sdl_dom_row('reQnet', '', 'Rekuperator entalpiczny', 'Wentylacja z odzyskiem ciepła i wilgoci.',
-        [['Czerpnia', sdl_v('reqnet', 'czerpnia', '°C')], ['Nawiew', sdl_v('reqnet', 'nawiew', '°C')], ['Wyciąg / wyrzutnia', sdl_v('reqnet', 'wyciag', '', 1) . ' / ' . sdl_v('reqnet', 'wyrzutnia', '°C')], ['Moc', sdl_v('reqnet', 'power', 'W', 0)]], '');
+        [['Czerpnia', sdl_v('reqnet', 'czerpnia', '°C')], ['Nawiew', sdl_v('reqnet', 'nawiew', '°C')], ['Wyciąg / wyrzutnia', sdl_v('reqnet', 'wyciag', '', 1) . ' / ' . sdl_v('reqnet', 'wyrzutnia', '°C')], ['Moc', sdl_v('reqnet', 'power', 'W', 0)], ['Dziś', '<span data-e="reqnet_today">–</span>'], ['30 dni', '<span data-e="reqnet_30">–</span>']], '');
     echo sdl_dom_row('Maty kapilarne', 'sdl-n-small', 'Ogrzewanie i chłodzenie sufitowe', 'Temperatury pomieszczeń z termostatów Sinum.',
         [['Salon', sdl_v('maty', 'salon', '°C')], ['Sypialnia', sdl_v('maty', 'sypialnia', '°C')], ['Łazienka', sdl_v('maty', 'lazienka', '°C')], ['Punkt rosy', sdl_v('maty', 'rosa', '°C')]], '');
     echo sdl_dom_row('Pompa CWU', 'sdl-n-small', 'Cyrkulacja ciepłej wody', 'Pompa cyrkulacyjna – ciepła woda od razu w kranie.',
-        [['Moc teraz', sdl_v('pompa_cwu', 'power', 'W', 1)], ['Dziś', '<span data-d="pompa_cwu_today">–</span> kWh']], '');
+        [['Moc teraz', sdl_v('pompa_cwu', 'power', 'W', 1)], ['Dziś', '<span data-e="pompa_cwu_today">–</span>'], ['30 dni', '<span data-e="pompa_cwu_30">–</span>'], ['Włączeń dziś', sdl_v('pompa_cwu', 'starts', '', 0)]], '');
     echo sdl_dom_row('atlas', '', 'Serwer domowy (TrueNAS)', 'Pliki, zdjęcia i multimedia całej rodziny.',
-        [['Moc teraz', sdl_v('atlas', 'power', 'W', 0)], ['Dziś', '<span data-d="atlas_today">–</span> kWh']], '');
+        [['Moc teraz', sdl_v('atlas', 'power', 'W', 0)], ['Dziś', '<span data-e="atlas_today">–</span>'], ['30 dni', '<span data-e="atlas_30">–</span>']], '');
     ?>
   </div>
 
@@ -445,6 +463,37 @@ add_shortcode('sdl_dom', function ($atts) {
     <p class="sdl-note">Tu pojawi się animowany schemat: skąd w danej chwili płynie prąd i dokąd trafia.</p>
   </div>
   <?php echo sdl_footer_note(); ?>
+</div>
+<?php
+    return ob_get_clean();
+});
+
+/* ---------- odszranianie: [sdl_odszranianie device="heiko_defrost"] ---------- */
+add_shortcode('sdl_odszranianie', function ($atts) {
+    $a = shortcode_atts(['device' => 'heiko_defrost'], $atts);
+    if (!sdl_key_ok($a['device'])) return '';
+    wp_enqueue_style('sdl', SDL_URL . 'assets/sdl.css', [], SDL_VER);
+    wp_enqueue_script('sdl-defrost', SDL_URL . 'assets/sdl-defrost.js', [], SDL_VER, true);
+    wp_localize_script('sdl-defrost', 'SDL', ['api' => esc_url_raw(rest_url('sdl/v1/'))]);
+    ob_start(); ?>
+<div class="sdl-wrap sdl-defrost" data-sdl-defrost="<?php echo esc_attr($a['device']); ?>">
+  <div class="sdl-kpis">
+    <div class="sdl-kpi"><div class="sdl-kpi-label">Odszronień dziś</div><div class="sdl-kpi-val"><span data-f="today">–</span></div></div>
+    <div class="sdl-kpi"><div class="sdl-kpi-label">Średni czas (ostatnie)</div><div class="sdl-kpi-val"><span data-f="avg">–</span> <small>min</small></div></div>
+    <div class="sdl-kpi" style="border-top-color:#3b82f6"><div class="sdl-kpi-label">Ostatnie</div><div class="sdl-kpi-val" style="font-size:24px"><span data-f="last">–</span></div></div>
+  </div>
+  <div class="sdl-card">
+    <div class="sdl-head"><h3>Ostatnie odszranianie – co się działo</h3></div>
+    <p class="sdl-defrost-text" data-f="story">Czekam na pierwsze odszranianie zarejestrowane przez Home Assistant.</p>
+  </div>
+  <div class="sdl-card">
+    <div class="sdl-head"><h3>Historia odszraniania</h3></div>
+    <div class="sdl-table-wrap"><table class="sdl-table">
+      <thead><tr><th scope="col">Kiedy</th><th scope="col">Czas</th><th scope="col">Parownik</th><th scope="col">Woda z pompy</th><th scope="col">Na zewnątrz</th></tr></thead>
+      <tbody data-f="rows"><tr><td colspan="5">–</td></tr></tbody>
+    </table></div>
+    <p class="sdl-note">Odszranianie liczymy tylko wtedy, gdy sprężarka pracuje, a wentylator jednostki zewnętrznej stoi – sama flaga z pompy potrafi „wisieć” dłużej.</p>
+  </div>
 </div>
 <?php
     return ob_get_clean();

@@ -8,6 +8,7 @@
     { dev: 'pompa_cwu', label: 'Pompa CWU', color: '#e87ba4' }
   ];
   var nf = function (v, d) { return v == null || isNaN(v) ? '–' : Number(v).toLocaleString('pl-PL', { minimumFractionDigits: d, maximumFractionDigits: d }); };
+  var en = function (kwh) { if (kwh == null || isNaN(kwh)) return '–'; return kwh < 1 ? nf(kwh * 1000, 0) + ' Wh' : nf(kwh, kwh < 10 ? 2 : 1) + ' kWh'; };
   var get = function (path) { return fetch(SDL.api + path, { credentials: 'omit' }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }); };
 
   function init(root) {
@@ -28,8 +29,12 @@
         setD('heiko_co', nf(data.heiko.today_co, 1));
         setD('heiko_cwu', nf(data.heiko.today_cwu, 1));
         setD('heiko_defrost', heiko.defrost_n == null ? '–' : nf(heiko.defrost_n, 0) + '× · ' + nf((heiko.defrost_h || 0) * 60, 1) + ' min');
-        setD('pompa_cwu_today', nf(data.pompa_cwu.today_kwh, 2));
-        setD('atlas_today', nf(data.atlas.today_kwh, 2));
+        var setE = function (k, v) { root.querySelectorAll('[data-e="' + k + '"]').forEach(function (el) { el.textContent = en(v); }); };
+        setE('pompa_cwu_today', data.pompa_cwu.today_kwh);
+        setE('atlas_today', data.atlas.today_kwh);
+        setE('reqnet_today', data.reqnet.today_kwh);
+        var running = heiko.power != null && heiko.power > 300;
+        root.querySelectorAll('[data-only="running"]').forEach(function (el) { el.hidden = !running; });
         setD('outdoor', nf(dom.outdoor != null ? dom.outdoor : heiko.outdoor, 1));
         drawShare(data);
         var txt = root.querySelector('.sdl-status-text');
@@ -63,6 +68,11 @@
       var sum = function (rows) { return rows.length ? rows.reduce(function (a, x) { return a + x[1]; }, 0) : null; };
       get('daily?device=dom&metric=energy_total&days=30').then(function (r) { setD('dom_30', nf(sum(r), 0)); }).catch(function () {});
       get('daily?device=heiko&metric=energy_total&days=30').then(function (r) { setD('heiko_30', nf(sum(r), 0)); }).catch(function () {});
+      ['pompa_cwu', 'atlas', 'reqnet'].forEach(function (d) {
+        get('daily?device=' + d + '&metric=energy_total&days=30').then(function (r) {
+          var v = sum(r); root.querySelectorAll('[data-e="' + d + '_30"]').forEach(function (el) { el.textContent = en(v); });
+        }).catch(function () {});
+      });
     }
 
     loadLatest().catch(function () { root.querySelector('.sdl-status-text').textContent = 'Nie udało się pobrać danych'; });

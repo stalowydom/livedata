@@ -88,3 +88,9 @@
 .sdl-pv-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:10px}
 .sdl-pv-grid>div{background:var(--sdl-card);border-radius:10px;padding:16px;text-align:center}
 .sdl-pv-t{margin:0;padding:0;color:#fff;font-weight:700}
+.sdl-dev-kpi[hidden]{display:none}
+.sdl-defrost-text{margin:0;padding:0;color:#ddd;font-size:15.5px;line-height:1.7}
+.sdl-table-wrap{overflow-x:auto}
+.sdl-table{width:100%;border-collapse:collapse;font-size:14px;color:#ddd;margin:0}
+.sdl-table th{text-align:left;color:var(--sdl-muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em;padding:8px 10px;border-bottom:1px solid #334150}
+.sdl-table td{padding:9px 10px;border-bottom:1px solid #2c3845;white-space:nowrap;font-variant-numeric:tabular-nums;border-top:0}
