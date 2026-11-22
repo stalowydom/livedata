@@ -25,6 +25,9 @@
         setD('dom_power', nf(dom.power != null ? dom.power / 1000 : null, 2));
         setD('dom_today', nf(data.dom.today_kwh, 1));
         setD('heiko_today', nf(data.heiko.today_kwh, 1));
+        setD('heiko_co', nf(data.heiko.today_co, 1));
+        setD('heiko_cwu', nf(data.heiko.today_cwu, 1));
+        setD('heiko_defrost', heiko.defrost_n == null ? '–' : nf(heiko.defrost_n, 0) + '× · ' + nf((heiko.defrost_h || 0) * 60, 0) + ' min');
         setD('pompa_cwu_today', nf(data.pompa_cwu.today_kwh, 2));
         setD('atlas_today', nf(data.atlas.today_kwh, 2));
         setD('outdoor', nf(dom.outdoor != null ? dom.outdoor : heiko.outdoor, 1));

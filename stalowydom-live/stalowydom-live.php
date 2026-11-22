@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.7.2
+Version: 1.8.0
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.7.2');
+define('SDL_VER', '1.8.0');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -169,6 +169,14 @@ function sdl_latest(WP_REST_Request $r) {
              AND DATE(DATE_ADD(ts, INTERVAL %d SECOND)) = DATE(DATE_ADD(UTC_TIMESTAMP(), INTERVAL %d SECOND))",
             $device, $off, $off));
         $out['today_kwh'] = $today && $today->kwh !== null ? round((float) $today->kwh, 2) : null;
+        /* zużycie dziś z liczników CO / CWU (licznik z taryfami w HA) */
+        foreach (['energy_co' => 'today_co', 'energy_cwu' => 'today_cwu'] as $m => $k) {
+            $v = $wpdb->get_var($wpdb->prepare(
+                "SELECT MAX(value) - MIN(value) FROM $t WHERE device=%s AND metric=%s
+                 AND DATE(DATE_ADD(ts, INTERVAL %d SECOND)) = DATE(DATE_ADD(UTC_TIMESTAMP(), INTERVAL %d SECOND))",
+                $device, $m, $off, $off));
+            $out[$k] = $v !== null ? round((float) $v, 2) : null;
+        }
         return $out;
     }, 60);
 }
@@ -412,7 +420,7 @@ add_shortcode('sdl_dom', function ($atts) {
   <div class="sdl-devs">
     <?php
     echo sdl_dom_row('HEIKO', 'sdl-n-heiko', 'Pompa ciepła 15 kW', 'Powietrze–woda, sterowana lokalnie z Home Assistant.',
-        [['Moc teraz', sdl_v('heiko', 'power', 'W', 0)], ['Dziś', '<span data-d="heiko_today">–</span> kWh'], ['30 dni', '<span data-d="heiko_30">–</span> kWh'], ['Zasilanie z PC', sdl_v('heiko', 'supply', '°C')]], $heiko);
+        [['Moc teraz', sdl_v('heiko', 'power', 'W', 0)], ['Dziś: CO / CWU', '<span data-d="heiko_co">–</span> / <span data-d="heiko_cwu">–</span> kWh'], ['Odszranianie dziś', '<span data-d="heiko_defrost">–</span>'], ['30 dni', '<span data-d="heiko_30">–</span> kWh'], ['Starty dziś', sdl_v('heiko', 'starts', '', 0)], ['Zasilanie z PC', sdl_v('heiko', 'supply', '°C')]], $heiko);
     echo sdl_dom_row('NOEL', 'sdl-n-noel', 'Bufor 700 l z wężownicą CWU', 'Woda grzewcza z pompy, wężownica CWU i wężownica mat kapilarnych.',
         [['Góra', sdl_v('heiko', 'noel_top', '°C')], ['Środek', sdl_v('heiko', 'noel_mid', '°C')], ['Dół', sdl_v('heiko', 'noel_bot', '°C')], ['Zasobnik CWU', sdl_v('heiko', 'cwu', '°C')]], $heiko);
     echo sdl_dom_row('reQnet', '', 'Rekuperator entalpiczny', 'Wentylacja z odzyskiem ciepła i wilgoci.',
