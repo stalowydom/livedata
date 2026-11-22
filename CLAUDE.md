@@ -23,10 +23,14 @@ Każda zmiana treści lub wyglądu podstrony urządzenia (np. /heiko/) wymaga ak
 
 Historia:
 - Heiko (/heiko/, page_id 369) – 1.0 z 21.11.2026, 1.1 i 1.2 tego samego dnia; 2.0 z 22.11.2026 (sekcja odszraniania [sdl_odszranianie]).
-- Dom na żywo (/live/, page_id 383, shortcode [sdl_dom]) – 1.0–1.3 z 22.11.2026. Link z kafelka „Dashboard Live” na stronie głównej.
+- Dom na żywo (/live/, page_id 383, shortcode [sdl_dom]) – 1.0–1.4 z 22.11.2026. Link z kafelka „Dashboard Live” na stronie głównej.
 
 ## Dane z Home Assistant
-- Automatyzacja HA `sdl_push_heiko` („WWW: dane domu na stalowydom.com”) co 5 min wysyła urządzenia: heiko, dom, reqnet, maty, pompa_cwu, atlas (lista sensorów w zmiennej `devices` automatyzacji).
+- Automatyzacja HA `sdl_push_heiko` („WWW: dane domu na stalowydom.com”) co 5 min wysyła urządzenia: heiko, dom, reqnet, maty, pompa_cwu, serwer (lista sensorów w zmiennej `devices` automatyzacji).
 - Podział energii pompy CO/CWU: licznik z taryfami `select.pompa_ciepla_energia_co_cwu` przełączany automatyzacją `sdl_licznik_co_cwu` (temperatura zadana bieżącego trybu = temperatura CWU → cwu).
 - Odszranianie: surowa flaga `sensor.heiko_odszranianie` wisi do następnego startu sprężarki, więc liczymy `binary_sensor.heiko_odszranianie_faktyczne` (flaga = 1, sprężarka > 0 Hz, wentylator 1 < 50 obr/min) i z niego liczba/czas dziś (history_stats, czas w godzinach → na stronie minuty).
 - Zdarzenia odszraniania: automatyzacja HA `sdl_odszranianie_zdarzenie` wysyła po każdym odszranianiu urządzenie `heiko_defrost` (duration_min, tp_start/end, tuo_start/end, outdoor); strona czyta je z `/sdl/v1/events`.
+
+## Prywatność (ustalone z właścicielem)
+- Nie publikujemy nazw hostów ani systemów serwerów (serwer = „Serwer domowy (NAS)”, urządzenie `serwer`).
+- Pompa CWU: tylko zużycie energii (dziś, 30 dni) – bez mocy chwilowej i liczby włączeń (zdradzają korzystanie z łazienki). Wtyczka odrzuca te pola przy zapisie.
