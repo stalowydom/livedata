@@ -41,20 +41,22 @@
     }
 
     function drawShare(data) {
-      var total = data.dom.values && data.dom.values.power;
+      var total = data.dom.today_kwh;
       var bar = root.querySelector('.sdl-share'), leg = root.querySelector('.sdl-share-legend');
-      var parts = SHARE.map(function (s) { var v = data[s.dev].values && data[s.dev].values.power; return { label: s.label, color: s.color, w: v == null ? null : Math.max(0, v) }; });
+      var parts = SHARE.map(function (s) { var v = data[s.dev].today_kwh; return { label: s.label, color: s.color, w: v == null ? null : Math.max(0, v) }; });
       var known = parts.reduce(function (a, p) { return a + (p.w || 0); }, 0);
       if (total != null) parts.push({ label: 'Reszta domu', color: '#4b5563', w: Math.max(0, total - known) });
       var sum = parts.reduce(function (a, p) { return a + (p.w || 0); }, 0);
+      var fmt = function (w) { return w == null ? '–' : nf(w, w < 10 ? 2 : 1) + ' kWh'; };
+      var pct = function (w) { return sum > 0 && w != null ? ' (' + nf(100 * w / sum, 0) + '%)' : ''; };
       bar.innerHTML = ''; leg.innerHTML = '';
       parts.forEach(function (p) {
-        if (sum > 0 && p.w > 0) { var seg = document.createElement('div'); seg.style.flex = p.w + ' 1 0'; seg.style.background = p.color; seg.title = p.label + ': ' + nf(p.w, 0) + ' W'; bar.appendChild(seg); }
+        if (sum > 0 && p.w > 0) { var seg = document.createElement('div'); seg.style.flex = p.w + ' 1 0'; seg.style.background = p.color; seg.title = p.label + ': ' + fmt(p.w) + pct(p.w); bar.appendChild(seg); }
         var li = document.createElement('span');
-        li.innerHTML = '<i style="background:' + p.color + '"></i>' + p.label + ' <strong>' + (p.w == null ? '–' : nf(p.w, 0) + ' W') + '</strong>';
+        li.innerHTML = '<i style="background:' + p.color + '"></i>' + p.label + ' <strong>' + fmt(p.w) + '</strong>' + pct(p.w);
         leg.appendChild(li);
       });
-      bar.setAttribute('aria-label', 'Podział mocy domu: ' + parts.map(function (p) { return p.label + ' ' + (p.w == null ? 'brak danych' : nf(p.w, 0) + ' W'); }).join(', '));
+      bar.setAttribute('aria-label', 'Zużycie energii dziś: ' + parts.map(function (p) { return p.label + ' ' + fmt(p.w) + pct(p.w); }).join(', '));
     }
 
     function loadDaily() {
