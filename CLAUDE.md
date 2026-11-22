@@ -8,6 +8,9 @@ Wtyczka WordPress `stalowydom-live` dla stalowydom.com (dane z Home Assistant na
 - WordPress wykrywa nową wersję sam (Wtyczki → Aktualizacje; auto-aktualizacje włączone).
 - Przed wydaniem: `php -l` i `node --check`. Zmiany wyglądu sprawdzaj na podglądzie (render), zanim wydasz.
 
+## Poprawki wyglądu witryny
+- Drobne poprawki motywu Divi dla całej strony (np. menu mobilne) są we wtyczce, w akcji `wp_head` (`#sdl-site-css`).
+
 ## Wersjonowanie podstron (obowiązkowe)
 Każda zmiana treści lub wyglądu podstrony urządzenia (np. /heiko/) wymaga aktualizacji shortcode'u na tej stronie:
 
