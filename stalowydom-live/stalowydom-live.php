@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.10.0
+Version: 1.11.0
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.10.0');
+define('SDL_VER', '1.11.0');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -40,6 +40,17 @@ add_action('sdl_cleanup', function () {
     global $wpdb;
     $t = sdl_table();
     $wpdb->query("DELETE FROM $t WHERE ts < UTC_TIMESTAMP() - INTERVAL 800 DAY");
+});
+
+/* jednorazowe porządki w bazie (prywatność) */
+add_action('init', function () {
+    if ((int) get_option('sdl_migr', 0) >= 1) return;
+    global $wpdb;
+    $t = sdl_table();
+    $wpdb->query("UPDATE $t SET device='serwer' WHERE device='atlas'");
+    $wpdb->query("DELETE FROM $t WHERE device='pompa_cwu' AND metric IN ('power','starts')");
+    $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '\\_transient\\_sdl\\_%' OR option_name LIKE '\\_transient\\_timeout\\_sdl\\_%'");
+    update_option('sdl_migr', 1, false);
 });
 
 /* przesunięcie strefy czasowej strony względem UTC (sekundy) */
@@ -90,6 +101,9 @@ function sdl_push(WP_REST_Request $r) {
     if (!sdl_key_ok($device) || !is_array($values) || count($values) > 40) {
         return new WP_Error('sdl_bad', 'Nieprawidłowe dane', ['status' => 400]);
     }
+    /* prywatność: dawna nazwa urządzenia i dane, których nie publikujemy */
+    if ($device === 'atlas') $device = 'serwer';
+    if ($device === 'pompa_cwu') unset($values['power'], $values['starts']);
     $now = current_time('mysql', true);
     $n = 0;
     foreach ($values as $metric => $v) {
@@ -446,9 +460,9 @@ add_shortcode('sdl_dom', function ($atts) {
     echo sdl_dom_row('Maty kapilarne', 'sdl-n-small', 'Ogrzewanie i chłodzenie sufitowe', 'Temperatury pomieszczeń z termostatów Sinum.',
         [['Salon', sdl_v('maty', 'salon', '°C')], ['Sypialnia', sdl_v('maty', 'sypialnia', '°C')], ['Łazienka', sdl_v('maty', 'lazienka', '°C')], ['Punkt rosy', sdl_v('maty', 'rosa', '°C')]], '');
     echo sdl_dom_row('Pompa CWU', 'sdl-n-small', 'Cyrkulacja ciepłej wody', 'Pompa cyrkulacyjna – ciepła woda od razu w kranie.',
-        [['Moc teraz', sdl_v('pompa_cwu', 'power', 'W', 1)], ['Dziś', '<span data-e="pompa_cwu_today">–</span>'], ['30 dni', '<span data-e="pompa_cwu_30">–</span>'], ['Włączeń dziś', sdl_v('pompa_cwu', 'starts', '', 0)]], '');
-    echo sdl_dom_row('atlas', '', 'Serwer domowy (TrueNAS)', 'Pliki, zdjęcia i multimedia całej rodziny.',
-        [['Moc teraz', sdl_v('atlas', 'power', 'W', 0)], ['Dziś', '<span data-e="atlas_today">–</span>'], ['30 dni', '<span data-e="atlas_30">–</span>']], '');
+        [['Dziś', '<span data-e="pompa_cwu_today">–</span>'], ['30 dni', '<span data-e="pompa_cwu_30">–</span>']], '');
+    echo sdl_dom_row('Serwer', '', 'Serwer domowy (NAS)', 'Pliki, zdjęcia i multimedia całej rodziny.',
+        [['Moc teraz', sdl_v('serwer', 'power', 'W', 0)], ['Dziś', '<span data-e="serwer_today">–</span>'], ['30 dni', '<span data-e="serwer_30">–</span>']], '');
     ?>
   </div>
 
