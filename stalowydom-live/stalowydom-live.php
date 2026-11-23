@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.15.0
+Version: 1.15.1
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.15.0');
+define('SDL_VER', '1.15.1');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -40,17 +40,6 @@ add_action('sdl_cleanup', function () {
     global $wpdb;
     $t = sdl_table();
     $wpdb->query("DELETE FROM $t WHERE ts < UTC_TIMESTAMP() - INTERVAL 800 DAY");
-});
-
-/* jednorazowe porządki w bazie (prywatność) */
-add_action('init', function () {
-    if ((int) get_option('sdl_migr', 0) >= 1) return;
-    global $wpdb;
-    $t = sdl_table();
-    $wpdb->query("UPDATE $t SET device='serwer' WHERE device='atlas'");
-    $wpdb->query("DELETE FROM $t WHERE device='pompa_cwu' AND metric IN ('power','starts')");
-    $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '\\_transient\\_sdl\\_%' OR option_name LIKE '\\_transient\\_timeout\\_sdl\\_%'");
-    update_option('sdl_migr', 1, false);
 });
 
 /* przesunięcie strefy czasowej strony względem UTC (sekundy) */
@@ -101,8 +90,7 @@ function sdl_push(WP_REST_Request $r) {
     if (!sdl_key_ok($device) || !is_array($values) || count($values) > 40) {
         return new WP_Error('sdl_bad', 'Nieprawidłowe dane', ['status' => 400]);
     }
-    /* prywatność: dawna nazwa urządzenia i dane, których nie publikujemy */
-    if ($device === 'atlas') $device = 'serwer';
+    /* prywatność: danych, których nie publikujemy, nie zapisujemy */
     if ($device === 'pompa_cwu') unset($values['power']);
     $now = current_time('mysql', true);
     $n = 0;

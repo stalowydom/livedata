@@ -26,11 +26,12 @@ Historia:
 - Dom na żywo (/live/, page_id 383, shortcode [sdl_dom]) – 1.0–1.8 z 22.11.2026. Link z kafelka „Dashboard Live” na stronie głównej.
 
 ## Dane z Home Assistant
-- Automatyzacja HA `sdl_push_heiko` („WWW: dane domu na stalowydom.com”) co 5 min wysyła urządzenia: heiko, dom, reqnet, maty, pompa_cwu, serwer (lista sensorów w zmiennej `devices` automatyzacji).
-- Podział energii pompy CO/CWU: licznik z taryfami `select.pompa_ciepla_energia_co_cwu` przełączany automatyzacją `sdl_licznik_co_cwu` (temperatura zadana bieżącego trybu = temperatura CWU → cwu).
-- Odszranianie: surowa flaga `sensor.heiko_odszranianie` wisi do następnego startu sprężarki, więc liczymy `binary_sensor.heiko_odszranianie_faktyczne` (flaga = 1, sprężarka > 0 Hz, wentylator 1 < 50 obr/min) i z niego liczba/czas dziś (history_stats, czas w godzinach → na stronie minuty).
-- Zdarzenia odszraniania: automatyzacja HA `sdl_odszranianie_zdarzenie` wysyła po każdym odszranianiu urządzenie `heiko_defrost` (duration_min, tp_start/end, tuo_start/end, outdoor); strona czyta je z `/sdl/v1/events`.
+- HA co 5 min wysyła odczyty urządzeń (heiko, dom, reqnet, maty, pompa_cwu, serwer) na `POST /wp-json/sdl/v1/push` z tokenem w nagłówku `X-SDL-Token`. Token jest tylko w bazie WordPressa i w sekretach HA – nigdy w tym repozytorium.
+- Pompa ciepła wysyła też zużycie z podziałem CO/CWU oraz liczbę i czas faktycznych odszronień.
+- Zdarzenia odszraniania (urządzenie `heiko_defrost`) strona czyta z `/sdl/v1/events`.
+- Szczegóły konfiguracji HA (nazwy sensorów i automatyzacji) trzymamy poza repozytorium.
 
-## Prywatność (ustalone z właścicielem)
-- Nie publikujemy nazw hostów ani systemów serwerów (serwer = „Serwer domowy (NAS)”, urządzenie `serwer`).
-- Pompa CWU: zużycie energii (dziś, 30 dni) i liczba włączeń dziś – bez mocy chwilowej. Wtyczka odrzuca moc przy zapisie.
+## Prywatność
+- Nie publikujemy nazw hostów, systemów ani szczegółów domowej sieci – ani na stronie, ani w tym repozytorium.
+- Nie zapisujemy w repozytorium tokenów, haseł, adresów IP ani danych kontaktowych.
+- Pompa CWU: tylko zużycie energii i liczba włączeń dziś (bez mocy chwilowej; wtyczka odrzuca moc przy zapisie).
