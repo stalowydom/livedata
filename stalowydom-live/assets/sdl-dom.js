@@ -83,6 +83,19 @@
       get('daily?device=heiko&metric=energy_total&days=30').then(function (r) {
         setD('heiko_30', nf(sum(r), 0));
       }).catch(function () {});
+      /* rekord miesiąca: dzień z najwyższym zużyciem całego domu */
+      Promise.all([get('daily?device=dom&metric=energy_total&days=31'), get('daily?device=heiko&metric=energy_total&days=31')]).then(function (rr) {
+        var now = new Date(), mk = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+        var best = null;
+        rr[0].forEach(function (x) { if (x[0].slice(0, 7) === mk && (!best || x[1] > best[1])) best = x; });
+        var el = root.querySelector('[data-d="share_max"]');
+        if (!best || !el || !(best[1] > 0)) return;
+        var hp = rr[1].filter(function (x) { return x[0] === best[0]; })[0];
+        var p = best[0].split('-');
+        el.innerHTML = 'Najwyższe dobowe zużycie w tym miesiącu: <strong>' + nf(best[1], 1) + ' kWh</strong> (' + p[2] + '.' + p[1] + ')'
+          + (hp ? ' – pompa ciepła ' + nf(hp[1], 1) + ' kWh, reszta domu ' + nf(Math.max(0, best[1] - hp[1]), 1) + ' kWh' : '');
+        el.hidden = false;
+      }).catch(function () {});
       get('daily?device=heiko&metric=energy_total&days=62').then(function (r) {
         var m = monthSums(r), cap = function (x) { return x.charAt(0).toUpperCase() + x.slice(1); };
         setD('heiko_mcur', nf(m.cur, 0)); setD('heiko_mprev', nf(m.prev, 0));

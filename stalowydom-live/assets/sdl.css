@@ -98,3 +98,5 @@
 .sdl-table td{padding:9px 10px;border-bottom:1px solid #2c3845;white-space:nowrap;font-variant-numeric:tabular-nums;border-top:0}
 
 .sdl-sr{position:absolute !important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);clip-path:inset(50%);border:0}
+.sdl-share-max{margin:12px 0 0;font-size:14px;color:var(--sdl-muted)}
+.sdl-share-max strong{color:#e6edf3}

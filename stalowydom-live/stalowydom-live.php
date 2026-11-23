@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.20.0
+Version: 1.20.1
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.20.0');
+define('SDL_VER', '1.20.1');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -587,6 +587,7 @@ add_shortcode('sdl_dom', function ($atts) {
     <div class="sdl-head"><h3>Na co idzie prąd – dziś</h3></div>
     <div class="sdl-share" role="img" aria-label="Podział mocy pobieranej przez dom"></div>
     <div class="sdl-share-legend"></div>
+    <p class="sdl-share-max" data-d="share_max" hidden></p>
     <p class="sdl-note">Zużycie energii od północy, w kWh i jako udział w zużyciu całego domu.</p>
   </div>
 
