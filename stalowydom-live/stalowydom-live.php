@@ -2,19 +2,19 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.16.1
+Version: 1.17.0
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.16.1');
+define('SDL_VER', '1.17.0');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
 
-/* ---------- Divi: szablony nagłówka/stopki edytowalne przez REST (tylko administrator) ---------- */
+/* ---------- Divi: szablony nagłówka/stopki i formularze WPForms edytowalne przez REST (tylko administrator) ---------- */
 
 add_action('rest_api_init', function () {
     register_rest_route('sdl/v1', '/layout/(?P<id>\d+)', [
@@ -22,8 +22,8 @@ add_action('rest_api_init', function () {
         'permission_callback' => function () { return current_user_can('edit_theme_options'); },
         'callback'            => function (WP_REST_Request $r) {
             $p = get_post((int) $r['id']);
-            if (!$p || !in_array($p->post_type, ['et_header_layout', 'et_footer_layout', 'et_body_layout'], true)) {
-                return new WP_Error('sdl_not_layout', 'To nie jest szablon Divi.', ['status' => 404]);
+            if (!$p || !in_array($p->post_type, ['et_header_layout', 'et_footer_layout', 'et_body_layout', 'wpforms'], true)) {
+                return new WP_Error('sdl_not_layout', 'To nie jest szablon Divi ani formularz.', ['status' => 404]);
             }
             if ($r->get_method() === 'POST') {
                 $c = $r->get_param('content');
@@ -537,6 +537,19 @@ function sdl_footer_note() {
 }
 
 /* ---------- wersja podstrony: [sdl_wersja v="1.0" data="21.11.2026"]1.0 – opis zmian (linia na wersję)[/sdl_wersja] ---------- */
+
+/* ---------- adres e-mail ukryty przed robotami: [sdl_email u="nazwa" d="domena.pl"] ---------- */
+
+add_shortcode('sdl_email', function ($atts) {
+    $a = shortcode_atts(['u' => '', 'd' => ''], $atts);
+    $u = preg_replace('/[^a-z0-9._+-]/i', '', $a['u']);
+    $d = preg_replace('/[^a-z0-9.-]/i', '', $a['d']);
+    if ($u === '' || $d === '') return '';
+    $fallback = esc_html($u . ' [małpa] ' . str_replace('.', ' [kropka] ', $d));
+    $id = 'sdl-mail-' . wp_unique_id();
+    return '<a id="' . $id . '" class="sdl-mail" href="#" data-u="' . esc_attr(strrev($u)) . '" data-d="' . esc_attr(strrev($d)) . '">' . $fallback . '</a>'
+        . '<script>(function(a){if(!a)return;var r=function(s){return s.split("").reverse().join("")},m=r(a.dataset.u)+String.fromCharCode(64)+r(a.dataset.d);a.href="mai"+"lto:"+m;a.textContent=m;})(document.getElementById("' . $id . '"));</script>';
+});
 
 add_shortcode('sdl_wersja', function ($atts, $content = '') {
     $a = shortcode_atts(['v' => '1.0', 'data' => '', 'id' => ''], $atts);
