@@ -2,34 +2,41 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.16.0
+Version: 1.16.1
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.16.0');
+define('SDL_VER', '1.16.1');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
 
-/* ---------- Divi: szablony nagłówka/stopki edytowalne przez REST (tylko dla administratora) ---------- */
+/* ---------- Divi: szablony nagłówka/stopki edytowalne przez REST (tylko administrator) ---------- */
 
-add_filter('register_post_type_args', function ($args, $type) {
-    if (in_array($type, ['et_header_layout', 'et_footer_layout', 'et_body_layout'], true)) {
-        $args['show_in_rest'] = true;
-        $args['rest_base']    = str_replace('_', '-', $type);
-    }
-    return $args;
-}, 10, 2);
-
-add_filter('rest_pre_dispatch', function ($result, $server, $request) {
-    if (preg_match('#^/wp/v2/et-(header|footer|body)-layout#', $request->get_route()) && !current_user_can('edit_theme_options')) {
-        return new WP_Error('rest_forbidden', 'Brak uprawnień.', ['status' => 403]);
-    }
-    return $result;
-}, 10, 3);
+add_action('rest_api_init', function () {
+    register_rest_route('sdl/v1', '/layout/(?P<id>\d+)', [
+        'methods'             => ['GET', 'POST'],
+        'permission_callback' => function () { return current_user_can('edit_theme_options'); },
+        'callback'            => function (WP_REST_Request $r) {
+            $p = get_post((int) $r['id']);
+            if (!$p || !in_array($p->post_type, ['et_header_layout', 'et_footer_layout', 'et_body_layout'], true)) {
+                return new WP_Error('sdl_not_layout', 'To nie jest szablon Divi.', ['status' => 404]);
+            }
+            if ($r->get_method() === 'POST') {
+                $c = $r->get_param('content');
+                if (!is_string($c) || $c === '') return new WP_Error('sdl_empty', 'Brak treści.', ['status' => 400]);
+                $res = wp_update_post(['ID' => $p->ID, 'post_content' => wp_slash($c)], true);
+                if (is_wp_error($res)) return $res;
+                clean_post_cache($p->ID);
+                $p = get_post($p->ID);
+            }
+            return ['id' => $p->ID, 'type' => $p->post_type, 'title' => $p->post_title, 'content' => $p->post_content];
+        },
+    ]);
+});
 
 /* ---------- instalacja ---------- */
 
