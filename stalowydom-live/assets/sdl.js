@@ -104,6 +104,11 @@
           if (v.power >= 1000) { setK('power', nf(v.power / 1000, 2)); setK('power_unit', 'kW'); }
           else { setK('power', nf(v.power, 0)); setK('power_unit', 'W'); }
         }
+        if (d.today_standby != null) {
+          if (d.today_standby >= 1) { setK('standby', nf(d.today_standby, 2)); setK('standby_unit', 'kWh'); }
+          else { setK('standby', nf(d.today_standby * 1000, 0)); setK('standby_unit', 'Wh'); }
+        }
+        setK('circ', nf(v.circ_starts, 0));
         setK('outdoor', nf(v.outdoor, 1));
         ['noel_top', 'noel_mid', 'noel_bot', 'supply'].forEach(function (m) {
           var t = root.querySelector('[data-t="' + m + '"]'); if (t) t.textContent = nf(v[m], 1);
