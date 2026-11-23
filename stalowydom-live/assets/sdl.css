@@ -89,6 +89,8 @@
 .sdl-pv-grid>div{background:var(--sdl-card);border-radius:10px;padding:16px;text-align:center}
 .sdl-pv-t{margin:0;padding:0;color:#fff;font-weight:700}
 .sdl-dev-kpi[hidden]{display:none}
+.sdl-dev-rows{flex-direction:column;flex-wrap:nowrap}
+.sdl-dev-grp{display:flex;flex-wrap:wrap;gap:14px 28px}
 .sdl-defrost-text{margin:0;padding:0;color:#ddd;font-size:15.5px;line-height:1.7}
 .sdl-table-wrap{overflow-x:auto}
 .sdl-table{width:100%;border-collapse:collapse;font-size:14px;color:#ddd;margin:0}
