@@ -2,17 +2,34 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.15.1
+Version: 1.16.0
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.15.1');
+define('SDL_VER', '1.16.0');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
+
+/* ---------- Divi: szablony nagłówka/stopki edytowalne przez REST (tylko dla administratora) ---------- */
+
+add_filter('register_post_type_args', function ($args, $type) {
+    if (in_array($type, ['et_header_layout', 'et_footer_layout', 'et_body_layout'], true)) {
+        $args['show_in_rest'] = true;
+        $args['rest_base']    = str_replace('_', '-', $type);
+    }
+    return $args;
+}, 10, 2);
+
+add_filter('rest_pre_dispatch', function ($result, $server, $request) {
+    if (preg_match('#^/wp/v2/et-(header|footer|body)-layout#', $request->get_route()) && !current_user_can('edit_theme_options')) {
+        return new WP_Error('rest_forbidden', 'Brak uprawnień.', ['status' => 403]);
+    }
+    return $result;
+}, 10, 3);
 
 /* ---------- instalacja ---------- */
 
