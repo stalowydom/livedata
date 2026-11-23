@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.18.2
+Version: 1.18.3
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.18.2');
+define('SDL_VER', '1.18.3');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -542,6 +542,29 @@ function sdl_footer_note() {
 }
 
 /* ---------- wersja podstrony: [sdl_wersja v="1.0" data="21.11.2026"]1.0 – opis zmian (linia na wersję)[/sdl_wersja] ---------- */
+
+/* ---------- diagnostyka poczty: POST /sdl/v1/mailtest (tylko administrator, wysyła na e-mail administratora) ---------- */
+
+add_action('rest_api_init', function () {
+    register_rest_route('sdl/v1', '/mailtest', [
+        'methods'             => 'POST',
+        'permission_callback' => function () { return current_user_can('manage_options'); },
+        'callback'            => function (WP_REST_Request $r) {
+            $err = null;
+            $fail = function ($e) use (&$err) { $err = $e->get_error_message(); };
+            add_action('wp_mail_failed', $fail);
+            $info = [];
+            $grab = function ($m) use (&$info) { $info = ['mailer' => $m->Mailer, 'from' => $m->From, 'sender' => $m->Sender, 'host' => $m->Host]; };
+            add_action('phpmailer_init', $grab);
+            $from = sanitize_email((string) $r->get_param('from'));
+            $headers = $from ? ['From: StalowyDOM <' . $from . '>'] : [];
+            $ok = wp_mail(get_option('admin_email'), 'StalowyDOM – test poczty ' . wp_date('H:i:s'), 'Wiadomość testowa z serwera strony.', $headers);
+            remove_action('wp_mail_failed', $fail);
+            remove_action('phpmailer_init', $grab);
+            return ['ok' => $ok, 'error' => $err, 'info' => $info, 'mail_fn' => function_exists('mail'), 'sendmail_path' => ini_get('sendmail_path')];
+        },
+    ]);
+});
 
 /* ---------- adres e-mail ukryty przed robotami: [sdl_email u="nazwa" d="domena.pl"] ---------- */
 
