@@ -8,8 +8,12 @@ Wtyczka WordPress `stalowydom-live` dla stalowydom.com (dane z Home Assistant na
 - WordPress wykrywa nową wersję sam (Wtyczki → Aktualizacje; auto-aktualizacje włączone).
 - Przed wydaniem: `php -l` i `node --check`. Zmiany wyglądu sprawdzaj na podglądzie (render), zanim wydasz.
 
+- Po ręcznej aktualizacji przez `update.php` sprawdź, czy wtyczka jest nadal aktywna (Wtyczki) – aktualizacja wywołana w tle zostawia ją wyłączoną.
+
 ## Poprawki wyglądu witryny
 - Drobne poprawki motywu Divi dla całej strony (np. menu mobilne) są we wtyczce, w akcji `wp_head` (`#sdl-site-css`).
+- Szablony Divi (stopka, nagłówek) można czytać i zapisywać przez `GET/POST /wp-json/sdl/v1/layout/<id>` (tylko administrator). Stopki: 46 (podstrony), 313 (strona główna).
+- Stopka zawiera link „Polityka prywatności” (/polityka-prywatnosci/, page_id 397 – oficjalna polityka WordPressa i dokument w banerze Complianz).
 
 ## Wersjonowanie podstron (obowiązkowe)
 Każda zmiana treści lub wyglądu podstrony urządzenia (np. /heiko/) wymaga aktualizacji shortcode'u na tej stronie:
