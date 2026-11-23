@@ -40,6 +40,10 @@
         setD('heiko_defrost', heiko.defrost_n == null ? '–' : nf(heiko.defrost_n, 0) + '× · ' + nf((heiko.defrost_h || 0) * 60, 1) + ' min');
         var setE = function (k, v) { root.querySelectorAll('[data-e="' + k + '"]').forEach(function (el) { el.textContent = en(v); }); };
         setE('pompa_cwu_today', data.pompa_cwu.today_kwh);
+        var dur = function (h) { if (h == null || isNaN(h)) return '–'; var m = Math.round(h * 60); return m < 60 ? m + ' min' : Math.floor(m / 60) + ' h ' + (m % 60) + ' min'; };
+        var cwuV = data.pompa_cwu.values || {};
+        setD('cwu_run', dur(cwuV.run_h));
+        setD('cwu_run_y', dur(cwuV.run_h_yday));
         setE('serwer_today', data.serwer.today_kwh);
         setE('reqnet_today', data.reqnet.today_kwh);
         var running = heiko.power != null && heiko.power > 300;
