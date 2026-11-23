@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.19.1
+Version: 1.20.0
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.19.1');
+define('SDL_VER', '1.20.0');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -276,6 +276,128 @@ function sdl_daily(WP_REST_Request $r) {
     }, 600);
 }
 
+/* ---------- dane po stronie serwera: dla czytników ekranu, wyszukiwarek i agentów AI (wygląd bez zmian) ---------- */
+
+function sdl_now_latest($dev) {
+    static $c = [];
+    if (!isset($c[$dev])) {
+        $r = new WP_REST_Request('GET', '/sdl/v1/latest');
+        $r->set_param('device', $dev);
+        $res = sdl_latest($r);
+        $c[$dev] = is_array($res) ? $res : ['values' => [], 'ts' => null];
+    }
+    return $c[$dev];
+}
+
+function sdl_now_daily($dev, $metric, $days = 30, $agg = 'delta') {
+    $r = new WP_REST_Request('GET', '/sdl/v1/daily');
+    foreach (['device' => $dev, 'metric' => $metric, 'days' => $days, 'agg' => $agg] as $k => $v) $r->set_param($k, $v);
+    $res = sdl_daily($r);
+    return is_array($res) ? $res : [];
+}
+
+function sdl_num($v, $d = 1) {
+    if ($v === null || !is_numeric($v)) return '–';
+    return number_format((float) $v, $d, ',', abs((float) $v) >= 10000 ? "\u{00A0}" : '');
+}
+
+function sdl_kwh_txt($kwh) {
+    if ($kwh === null) return '–';
+    return $kwh < 1 ? sdl_num($kwh * 1000, 0) . ' Wh' : sdl_num($kwh, $kwh < 10 ? 2 : 1) . ' kWh';
+}
+
+function sdl_dur_txt($h) {
+    if ($h === null) return '–';
+    $m = (int) round($h * 60);
+    return $m < 60 ? $m . ' min' : intdiv($m, 60) . ' h ' . ($m % 60) . ' min';
+}
+
+function sdl_when($ts) {
+    return $ts ? wp_date('j.m.Y, H:i', $ts, sdl_tz()) : '–';
+}
+
+function sdl_month_sums($rows) {
+    $tz = sdl_tz();
+    $cur = wp_date('Y-m', null, $tz);
+    $prev = wp_date('Y-m', strtotime('first day of last month', current_time('timestamp')), $tz);
+    $sum = function ($k) use ($rows) { $f = array_filter($rows, function ($x) use ($k) { return substr($x[0], 0, 7) === $k; }); return $f ? array_sum(array_column($f, 1)) : null; };
+    return [$sum($cur), $sum($prev)];
+}
+
+function sdl_day_val($rows, $day) { foreach ($rows as $x) if ($x[0] === $day) return $x[1]; return null; }
+
+/* tekstowe podsumowanie pompy ciepła */
+function sdl_summary_heiko($dev = 'heiko') {
+    $L = sdl_now_latest($dev); $v = $L['values'];
+    $tz = sdl_tz();
+    $daily = sdl_now_daily($dev, 'energy_total', 62);
+    $co = sdl_now_daily($dev, 'energy_co', 30); $cwu = sdl_now_daily($dev, 'energy_cwu', 30);
+    $out = sdl_now_daily($dev, 'outdoor', 30, 'stats');
+    $yday = wp_date('Y-m-d', strtotime('-1 day', current_time('timestamp')), $tz);
+    [$mc, $mp] = sdl_month_sums($daily);
+    $t = [];
+    $t[] = 'Stan na ' . sdl_when($L['ts']) . ' (czas polski).';
+    $t[] = 'Moc pobierana teraz: ' . sdl_num($v['power'] ?? null, 0) . ' W. Temperatura na zewnątrz: ' . sdl_num($v['outdoor'] ?? null) . ' °C.';
+    $t[] = 'Zużycie energii dziś: ' . sdl_kwh_txt($L['today_kwh'] ?? null)
+        . (isset($L['today_co'], $L['today_cwu']) ? ' (ogrzewanie CO ' . sdl_num($L['today_co']) . ' kWh, ciepła woda CWU ' . sdl_num($L['today_cwu']) . ' kWh)' : '')
+        . '; wczoraj: ' . sdl_kwh_txt(sdl_day_val($daily, $yday)) . '.';
+    $t[] = 'Bieżący miesiąc (do dziś): ' . sdl_num($mc, 0) . ' kWh; poprzedni miesiąc: ' . sdl_num($mp, 0) . ' kWh.';
+    if (isset($v['noel_top'])) $t[] = 'Bufor NOEL 700 l – góra ' . sdl_num($v['noel_top']) . ' °C, środek ' . sdl_num($v['noel_mid'] ?? null) . ' °C, dół ' . sdl_num($v['noel_bot'] ?? null) . ' °C.';
+    $t[] = 'Starty sprężarki dziś: ' . sdl_num($v['starts'] ?? null, 0) . '. Odszraniania dziś: ' . sdl_num($v['defrost_n'] ?? null, 0) . ' (łącznie ' . sdl_num(isset($v['defrost_h']) ? $v['defrost_h'] * 60 : null) . ' min).';
+    if (isset($L['today_standby'])) $t[] = 'Czuwanie dziś (sprężarka stoi: elektronika i pompa obiegowa): ' . sdl_kwh_txt($L['today_standby']) . ', starty pompy obiegowej: ' . sdl_num($v['circ_starts'] ?? null, 0) . '.';
+    $o = [];
+    foreach ($out as $x) $o[$x[0]] = $x;
+    $cm = []; foreach ($co as $x) $cm[$x[0]] = $x[1];
+    $wm = []; foreach ($cwu as $x) $wm[$x[0]] = $x[1];
+    $rows = '';
+    foreach (array_slice(array_values(array_filter($daily, function ($x) { return $x[1] > 0; })), -14) as $x) {
+        $d = $x[0];
+        $rows .= '<tr><td>' . esc_html(wp_date('d.m', strtotime($d . ' 12:00'), $tz)) . '</td><td>' . sdl_num($x[1]) . '</td><td>'
+            . (isset($cm[$d], $wm[$d]) && ($cm[$d] + $wm[$d]) >= 0.95 * $x[1] ? sdl_num($cm[$d]) . ' / ' . sdl_num($wm[$d]) : '–') . '</td><td>'
+            . (isset($o[$d]) ? sdl_num($o[$d][2]) . ' … ' . sdl_num($o[$d][3]) : '–') . '</td></tr>';
+    }
+    $html = '<p>' . esc_html(implode(' ', $t)) . '</p>';
+    if ($rows) $html .= '<table><caption>Dobowe zużycie energii pompy ciepła – ostatnie dni</caption><thead><tr><th>Dzień</th><th>Zużycie [kWh]</th><th>CO / CWU [kWh]</th><th>Temp. zewn. min … maks. [°C]</th></tr></thead><tbody>' . $rows . '</tbody></table>';
+    return $html;
+}
+
+/* tekstowe podsumowanie całego domu */
+function sdl_summary_dom() {
+    $d = []; foreach (['dom', 'heiko', 'reqnet', 'maty', 'pompa_cwu', 'serwer'] as $k) $d[$k] = sdl_now_latest($k);
+    $s30 = function ($dev) { $r = sdl_now_daily($dev, 'energy_total', 30); return $r ? array_sum(array_column($r, 1)) : null; };
+    $ts = max(array_map(function ($x) { return (int) $x['ts']; }, $d));
+    $dv = $d['dom']['values']; $hv = $d['heiko']['values']; $rv = $d['reqnet']['values']; $mv = $d['maty']['values']; $cv = $d['pompa_cwu']['values']; $sv = $d['serwer']['values'];
+    $li = [];
+    $li[] = 'Cały dom: moc pobierana teraz ' . sdl_num(isset($dv['power']) ? $dv['power'] / 1000 : null, 2) . ' kW; zużycie dziś ' . sdl_num($d['dom']['today_kwh'] ?? null) . ' kWh; ostatnie 30 dni ' . sdl_num($s30('dom'), 0) . ' kWh. Na zewnątrz ' . sdl_num($dv['outdoor'] ?? ($hv['outdoor'] ?? null)) . ' °C.';
+    $li[] = 'Pompa ciepła Heiko 15 kW: moc teraz ' . sdl_num($hv['power'] ?? null, 0) . ' W; dziś ' . sdl_kwh_txt($d['heiko']['today_kwh'] ?? null)
+        . (isset($d['heiko']['today_co'], $d['heiko']['today_cwu']) ? ' (CO ' . sdl_num($d['heiko']['today_co']) . ' / CWU ' . sdl_num($d['heiko']['today_cwu']) . ' kWh)' : '') . '; starty dziś ' . sdl_num($hv['starts'] ?? null, 0) . '; odszraniania dziś ' . sdl_num($hv['defrost_n'] ?? null, 0) . '.';
+    $li[] = 'Bufor NOEL 700 l: góra ' . sdl_num($hv['noel_top'] ?? null) . ' °C, środek ' . sdl_num($hv['noel_mid'] ?? null) . ' °C, dół ' . sdl_num($hv['noel_bot'] ?? null) . ' °C.';
+    $li[] = 'Rekuperator reQnet: wymiana powietrza ' . sdl_num($rv['flow_in'] ?? null, 0) . ' / ' . sdl_num($rv['flow_out'] ?? null, 0) . ' m³/h (nawiew / wyciąg); czerpnia ' . sdl_num($rv['czerpnia'] ?? null) . ' °C, nawiew ' . sdl_num($rv['nawiew'] ?? null) . ' °C, wyciąg ' . sdl_num($rv['wyciag'] ?? null) . ' °C, wyrzutnia ' . sdl_num($rv['wyrzutnia'] ?? null) . ' °C; moc ' . sdl_num($rv['power'] ?? null, 0) . ' W; dziś ' . sdl_kwh_txt($d['reqnet']['today_kwh'] ?? null) . '.';
+    $li[] = 'Maty kapilarne (temperatury pomieszczeń): salon ' . sdl_num($mv['salon'] ?? null) . ' °C, sypialnia ' . sdl_num($mv['sypialnia'] ?? null) . ' °C, łazienka ' . sdl_num($mv['lazienka'] ?? null) . ' °C; punkt rosy ' . sdl_num($mv['rosa'] ?? null) . ' °C.';
+    $li[] = 'Pompa cyrkulacyjna CWU: dziś ' . sdl_kwh_txt($d['pompa_cwu']['today_kwh'] ?? null) . '; czas pracy dziś ' . sdl_dur_txt($cv['run_h'] ?? null) . ', wczoraj ' . sdl_dur_txt($cv['run_h_yday'] ?? null) . '; włączeń dziś ' . sdl_num($cv['starts'] ?? null, 0) . '.';
+    $li[] = 'Serwer domowy: moc ' . sdl_num($sv['power'] ?? null, 0) . ' W; dziś ' . sdl_kwh_txt($d['serwer']['today_kwh'] ?? null) . '.';
+    return '<p>Stan na ' . esc_html(sdl_when($ts ?: null)) . ' (czas polski).</p><ul><li>' . implode('</li><li>', array_map('esc_html', $li)) . '</li></ul>';
+}
+
+function sdl_sr_block($html) {
+    return '<section class="sdl-sr" aria-label="Dane w formie tekstu"><h2>Dane w formie tekstu</h2>' . $html
+        . '<p>Te same dane w formacie JSON: ' . esc_html(rest_url('sdl/v1/')) . ' (opis w ' . esc_html(home_url('/llms.txt')) . ').</p></section>';
+}
+
+function sdl_dataset_ld($name, $desc, $vars) {
+    $ld = [
+        '@context' => 'https://schema.org', '@type' => 'Dataset',
+        'name' => $name, 'description' => $desc, 'url' => get_permalink(),
+        'inLanguage' => 'pl-PL', 'isAccessibleForFree' => true,
+        'creator' => ['@type' => 'Organization', 'name' => 'StalowyDOM', 'url' => home_url('/')],
+        'spatialCoverage' => ['@type' => 'Place', 'name' => 'okolice Poznania, Polska'],
+        'temporalCoverage' => '2026-10-01/..',
+        'variableMeasured' => $vars,
+        'distribution' => [['@type' => 'DataDownload', 'encodingFormat' => 'application/json', 'contentUrl' => rest_url('sdl/v1/latest')]],
+    ];
+    return '<script type="application/ld+json">' . wp_json_encode($ld, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . '</script>';
+}
+
 /* ---------- shortcode ---------- */
 
 function sdl_enqueue() {
@@ -405,6 +527,7 @@ add_shortcode('sdl_heiko', function ($atts) {
     <div class="sdl-canvas sdl-canvas-sm"><canvas data-chart="dailytemp" role="img" aria-label="Najniższa, średnia i najwyższa temperatura zewnętrzna w kolejnych dniach"></canvas></div>
     <p class="sdl-note">Pomarańczowy – ogrzewanie domu (CO), niebieski – podgrzewanie ciepłej wody (CWU); podział liczymy od 22.11.2026. Po najechaniu na słupek widać zużycie oraz najniższą i najwyższą temperaturę zewnętrzną z tego dnia.</p>
   </div>
+  <?php echo sdl_sr_block(sdl_summary_heiko($a['device'])); echo sdl_dataset_ld('Pompa ciepła Heiko Thermal 15 kW – dane na żywo', 'Moc, zużycie energii (z podziałem na ogrzewanie CO i ciepłą wodę CWU), temperatury bufora NOEL 700 l, starty i odszraniania pompy ciepła powietrze–woda w domu z kontenerów pod Poznaniem. Odczyty co 5 minut.', ['moc [W]', 'zużycie energii [kWh]', 'zużycie CO i CWU [kWh]', 'temperatura zewnętrzna [°C]', 'temperatury bufora [°C]', 'starty sprężarki', 'odszraniania', 'energia w czuwaniu [kWh]']); ?>
   <?php echo sdl_footer_note(); ?>
 </div>
 <?php
@@ -435,7 +558,9 @@ function sdl_dom_row($name, $nameClass, $title, $desc, $kpis, $link) {
 }
 
 function sdl_v($dev, $key, $unit = '', $dec = 1) {
-    return '<span data-v="' . esc_attr($dev . '.' . $key) . '" data-dec="' . (int) $dec . '">–</span>' . ($unit !== '' ? ' ' . esc_html($unit) : '');
+    $L = sdl_now_latest($dev);
+    $v = $L['values'][$key] ?? null;
+    return '<span data-v="' . esc_attr($dev . '.' . $key) . '" data-dec="' . (int) $dec . '">' . sdl_num($v, $dec) . '</span>' . ($unit !== '' ? ' ' . esc_html($unit) : '');
 }
 
 add_shortcode('sdl_dom', function ($atts) {
@@ -496,6 +621,7 @@ add_shortcode('sdl_dom', function ($atts) {
     </div>
     <p class="sdl-note">Tu pojawi się animowany schemat: skąd w danej chwili płynie prąd i dokąd trafia.</p>
   </div>
+  <?php echo sdl_sr_block(sdl_summary_dom()); echo sdl_dataset_ld('Dom z kontenerów na żywo – zużycie energii i parametry urządzeń', 'Zużycie energii całego domu i urządzeń (pompa ciepła, rekuperator, pompa cyrkulacyjna CWU, serwer), temperatury pomieszczeń i parametry wentylacji w domu z kontenerów pod Poznaniem. Odczyty co 5 minut.', ['moc całego domu [W]', 'zużycie energii [kWh]', 'wymiana powietrza [m³/h]', 'temperatury pomieszczeń [°C]', 'czas pracy pompy CWU [h]']); ?>
   <?php echo sdl_footer_note(); ?>
 </div>
 <?php
@@ -567,6 +693,76 @@ add_action('rest_api_init', function () {
     ]);
 });
 
+/* ---------- język strony: treść jest po polsku ---------- */
+
+add_filter('language_attributes', function ($out) { return is_admin() ? $out : preg_replace('/lang="[^"]*"/', 'lang="pl-PL"', $out); }, 20);
+add_filter('rank_math/opengraph/facebook/og_locale', function () { return 'pl_PL'; });
+
+/* ---------- /llms.txt – przewodnik po stronie dla agentów AI (generowany na żywo) ---------- */
+
+add_action('init', function () {
+    $path = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
+    if ($path !== '/llms.txt') return;
+    $u = function ($p) { return home_url($p); };
+    $api = rest_url('sdl/v1/');
+    $L = sdl_now_latest('dom'); $H = sdl_now_latest('heiko');
+    $txt = "# StalowyDOM\n\n"
+        . "> Parterowy dom z czterech kontenerów morskich 40ft HC pod Poznaniem (budowa 5 lat, mieszkamy od połowy 2025). Dom jest też laboratorium: pompa ciepła, rekuperator, maty kapilarne i inne urządzenia pracują na co dzień, a ich dane są publikowane na żywo. Strona prywatna, uzupełnienie kanału YouTube; język: polski.\n\n"
+        . "## Strony\n\n"
+        . "- [Projekt domu](" . $u('/projekt/') . "): układ (prostokąt ok. 10 × 12 m, podział na strefę dzienną i odpoczynku), ocieplenie pianą PUR, instalacje.\n"
+        . "- [Dom na żywo](" . $u('/live/') . "): zużycie energii całego domu i urządzeń, temperatury, wentylacja – dane co 5 minut.\n"
+        . "- [Pompa ciepła Heiko Thermal 15 kW](" . $u('/heiko/') . "): moc, zużycie dobowe i miesięczne z podziałem CO/CWU, bufor NOEL 700 l, odszranianie, czuwanie.\n"
+        . "- [Zastosowany sprzęt](" . $u('/sprzet/') . "): urządzenia pracujące w domu.\n"
+        . "- [Aquilo WiFi](" . $u('/aquilo/') . "): bezprzewodowy czujnik poziomu szamba.\n"
+        . "- [Kontakt](" . $u('/kontakt/') . "): formularz kontaktowy (współpraca, testy sprzętu).\n"
+        . "- [Polityka prywatności](" . $u('/polityka-prywatnosci/') . ")\n\n"
+        . "## Dane na żywo – API JSON (publiczne, bez klucza, tylko odczyt)\n\n"
+        . "- `GET {$api}latest?device=DEVICE` – ostatnie odczyty (`values`), czas odczytu (`ts`, Unix), zużycie dziś (`today_kwh`; dla heiko także `today_co`, `today_cwu`, `today_standby`).\n"
+        . "- `GET {$api}daily?device=DEVICE&metric=energy_total&days=30` – zużycie dobowe [kWh] jako `[[\"RRRR-MM-DD\", kWh], …]`. `metric=outdoor&agg=stats` zwraca `[dzień, średnia, min, maks]` temperatury.\n"
+        . "- `GET {$api}series?device=heiko&range=24h|7d|30d&metrics=power,noel_top` – przebieg w czasie.\n"
+        . "- `GET {$api}events?device=heiko_defrost` – zdarzenia odszraniania.\n\n"
+        . "Urządzenia (DEVICE) i metryki:\n"
+        . "- `dom` – cały dom: `power` [W], `l1` `l2` `l3` [W], `energy_total` [kWh, licznik narastający], `outdoor` [°C].\n"
+        . "- `heiko` – pompa ciepła: `power` [W], `energy_total` `energy_co` `energy_cwu` `energy_standby` [kWh, narastająco], `noel_top` `noel_mid` `noel_bot` `supply` `outdoor` [°C], `starts`, `defrost_n`, `defrost_h` [h], `circ_starts` (dzisiejsze).\n"
+        . "- `reqnet` – rekuperator: `flow_in` `flow_out` [m³/h], `czerpnia` `nawiew` `wyciag` `wyrzutnia` [°C], `power` [W], `energy_total` [kWh].\n"
+        . "- `maty` – temperatury pomieszczeń: `salon` `sypialnia` `lazienka` [°C], `rosa` (punkt rosy) [°C].\n"
+        . "- `pompa_cwu` – pompa cyrkulacyjna: `energy_total` [kWh], `starts` (dziś), `run_h` `run_h_yday` [h].\n"
+        . "- `serwer` – serwer domowy: `power` [W], `energy_total` [kWh].\n\n"
+        . "Odczyty co 5 minut; doby według czasu polskiego (Europe/Warsaw).\n\n"
+        . "## Stan teraz\n\n"
+        . "- Odczyt: " . sdl_when($L['ts'] ?: $H['ts']) . " (czas polski)\n"
+        . "- Cały dom: " . sdl_num(isset($L['values']['power']) ? $L['values']['power'] / 1000 : null, 2) . " kW teraz, " . sdl_num($L['today_kwh'] ?? null) . " kWh dziś\n"
+        . "- Pompa ciepła: " . sdl_num($H['values']['power'] ?? null, 0) . " W teraz, " . sdl_num($H['today_kwh'] ?? null) . " kWh dziś\n"
+        . "- Na zewnątrz: " . sdl_num($L['values']['outdoor'] ?? ($H['values']['outdoor'] ?? null)) . " °C\n";
+    status_header(200);
+    header('Content-Type: text/plain; charset=utf-8');
+    header('Cache-Control: public, max-age=300');
+    header('X-Robots-Tag: noindex');
+    echo $txt;
+    exit;
+}, 0);
+
+/* ---------- opisy SEO i noindex: POST /sdl/v1/meta/<id> (tylko administrator) ---------- */
+
+add_action('rest_api_init', function () {
+    register_rest_route('sdl/v1', '/meta/(?P<id>\d+)', [
+        'methods'             => 'POST',
+        'permission_callback' => function () { return current_user_can('edit_pages'); },
+        'callback'            => function (WP_REST_Request $r) {
+            $id = (int) $r['id'];
+            if (!get_post($id)) return new WP_Error('sdl_nopost', 'Brak strony.', ['status' => 404]);
+            $done = [];
+            foreach (['rank_math_description', 'rank_math_title', 'rank_math_robots'] as $k) {
+                $v = $r->get_param($k);
+                if ($v === null) continue;
+                update_post_meta($id, $k, is_array($v) ? array_map('sanitize_text_field', $v) : sanitize_text_field($v));
+                $done[] = $k;
+            }
+            return ['id' => $id, 'updated' => $done];
+        },
+    ]);
+});
+
 /* ---------- adres e-mail ukryty przed robotami: [sdl_email u="nazwa" d="domena.pl"] ---------- */
 
 add_shortcode('sdl_email', function ($atts) {
@@ -610,6 +806,8 @@ add_action('wp_head', function () {
 .et_mobile_menu li a:hover,.et_mobile_menu li.current-menu-item>a{background:#1a222a !important;color:#f97316 !important;opacity:1 !important}
 .mobile_menu_bar:before{color:#f97316 !important}
 img.wp-image-21{height:auto !important;object-fit:contain}
+.et-l--footer .et_pb_text:has(a[href="/polityka-prywatnosci/"]),.et-l--footer .et_pb_text:has(a[href="/polityka-prywatnosci/"]) p{text-align:center;justify-content:center}
+.et-l--footer .et_pb_image{text-align:center;justify-content:center}
 .wpforms-container .wpforms-field-label,.wpforms-container .wpforms-field-sublabel{color:#e6edf3 !important}
 .wpforms-container input[type=text],.wpforms-container input[type=email],.wpforms-container input[type=tel],.wpforms-container input[type=number],.wpforms-container textarea,.wpforms-container select{color:#ffffff !important;background:#242f3a !important;border-color:#4a5a6b !important}
 .wpforms-container input:focus,.wpforms-container textarea:focus{border-color:#f97316 !important;box-shadow:0 0 0 1px #f97316 !important}
