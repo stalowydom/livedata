@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.18.1
+Version: 1.18.2
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.18.1');
+define('SDL_VER', '1.18.2');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -478,7 +478,8 @@ add_shortcode('sdl_dom', function ($atts) {
     echo sdl_dom_row('Maty kapilarne', 'sdl-n-small', 'Ogrzewanie i chłodzenie sufitowe', 'Temperatury pomieszczeń z termostatów Sinum.',
         [['Salon', sdl_v('maty', 'salon', '°C')], ['Sypialnia', sdl_v('maty', 'sypialnia', '°C')], ['Łazienka', sdl_v('maty', 'lazienka', '°C')], ['Punkt rosy', sdl_v('maty', 'rosa', '°C')]], '');
     echo sdl_dom_row('Pompa CWU', 'sdl-n-small', 'Cyrkulacja ciepłej wody', 'Pompa cyrkulacyjna – ciepła woda od razu w kranie.',
-        [['Dziś', '<span data-e="pompa_cwu_today">–</span>'], ['30 dni', '<span data-e="pompa_cwu_30">–</span>'], ['Włączeń dziś', sdl_v('pompa_cwu', 'starts', '', 0)], ['Czas pracy dziś', '<span data-d="cwu_run">–</span>'], ['Czas pracy wczoraj', '<span data-d="cwu_run_y">–</span>']], '');
+        [['Dziś', '<span data-e="pompa_cwu_today">–</span>'], ['30 dni', '<span data-e="pompa_cwu_30">–</span>'], 'br',
+         ['Czas pracy dziś', '<span data-d="cwu_run">–</span>'], ['Czas pracy wczoraj', '<span data-d="cwu_run_y">–</span>'], ['Włączeń dziś', sdl_v('pompa_cwu', 'starts', '', 0)]], '');
     echo sdl_dom_row('Serwer', '', 'Serwer domowy (NAS)', 'Pliki, zdjęcia i multimedia całej rodziny.',
         [['Moc teraz', sdl_v('serwer', 'power', 'W', 0)], ['Dziś', '<span data-e="serwer_today">–</span>'], ['30 dni', '<span data-e="serwer_30">–</span>']], '');
     ?>
