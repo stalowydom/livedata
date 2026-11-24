@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.20.1
+Version: 1.20.2
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.20.1');
+define('SDL_VER', '1.20.2');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -801,13 +801,15 @@ add_shortcode('sdl_wersja', function ($atts, $content = '') {
 
 /* ---------- poprawki wyglądu całej witryny (motyw Divi) ---------- */
 add_action('wp_head', function () {
-    echo "<style id=\"sdl-site-css\">
+    /* nowdoc: cudzysłowy w CSS nie przerywają łańcucha PHP */
+    echo <<<'SDLCSS'
+<style id="sdl-site-css">
 .et_mobile_menu{background:#242f3a !important;border-top-color:#f97316 !important}
 .et_mobile_menu li a{color:#ffffff !important;border-bottom-color:#334150 !important}
 .et_mobile_menu li a:hover,.et_mobile_menu li.current-menu-item>a{background:#1a222a !important;color:#f97316 !important;opacity:1 !important}
 .mobile_menu_bar:before{color:#f97316 !important}
 img.wp-image-21{height:auto !important;object-fit:contain}
-.et-l--footer .et_pb_text:has(a[href="/polityka-prywatnosci/"]),.et-l--footer .et_pb_text:has(a[href="/polityka-prywatnosci/"]) p{text-align:center;justify-content:center}
+.et-l--footer .et_pb_text:has(a[href='/polityka-prywatnosci/']),.et-l--footer .et_pb_text:has(a[href='/polityka-prywatnosci/']) p{text-align:center;justify-content:center}
 .et-l--footer .et_pb_image{text-align:center;justify-content:center}
 .wpforms-container .wpforms-field-label,.wpforms-container .wpforms-field-sublabel{color:#e6edf3 !important}
 .wpforms-container input[type=text],.wpforms-container input[type=email],.wpforms-container input[type=tel],.wpforms-container input[type=number],.wpforms-container textarea,.wpforms-container select{color:#ffffff !important;background:#242f3a !important;border-color:#4a5a6b !important}
@@ -816,7 +818,9 @@ img.wp-image-21{height:auto !important;object-fit:contain}
 .wpforms-container .wpforms-required-label{color:#f97316 !important}
 .wpforms-container label.wpforms-error,.wpforms-container em.wpforms-error{color:#ff8a80 !important}
 .wpforms-confirmation-container-full{background:#242f3a !important;border-color:#f97316 !important;color:#e6edf3 !important}
-</style>\n";
+</style>
+
+SDLCSS;
 }, 99);
 
 /* ---------- aktualizacje z GitHuba (Releases) ---------- */

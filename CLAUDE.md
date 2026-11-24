@@ -6,7 +6,7 @@ Wtyczka WordPress `stalowydom-live` dla stalowydom.com (dane z Home Assistant na
 - Każda zmiana w `stalowydom-live/` = podbicie `Version:` i `SDL_VER` w `stalowydom-live/stalowydom-live.php`.
 - Push na `main` → GitHub Actions sam buduje `stalowydom-live.zip` i publikuje wydanie `vX.Y.Z`.
 - WordPress wykrywa nową wersję sam (Wtyczki → Aktualizacje; auto-aktualizacje włączone).
-- Przed wydaniem: `php -l` i `node --check`. Zmiany wyglądu sprawdzaj na podglądzie (render), zanim wydasz.
+- Przed wydaniem: `php -l`, `node --check` i `php tools/test-wp-head.php` (sprawdza, czy blok `#sdl-site-css` faktycznie się wypisuje – `php -l` nie wyłapie np. cudzysłowu w CSS). Zmiany wyglądu sprawdzaj na podglądzie (render), zanim wydasz.
 
 - Po ręcznej aktualizacji przez `update.php` sprawdź, czy wtyczka jest nadal aktywna (Wtyczki) – aktualizacja wywołana w tle zostawia ją wyłączoną.
 
@@ -14,6 +14,7 @@ Wtyczka WordPress `stalowydom-live` dla stalowydom.com (dane z Home Assistant na
 - Drobne poprawki motywu Divi dla całej strony (np. menu mobilne) są we wtyczce, w akcji `wp_head` (`#sdl-site-css`).
 - Szablony Divi (stopka, nagłówek) i formularze WPForms można czytać i zapisywać przez `GET/POST /wp-json/sdl/v1/layout/<id>` (tylko administrator). Stopki: 46 (podstrony), 313 (strona główna).
 - Stopka zawiera link „Polityka prywatności” (/polityka-prywatnosci/, page_id 397 – oficjalna polityka WordPressa i dokument w banerze Complianz).
+- Po każdej zmianie sprawdź całą stronę – także nagłówek, logo i menu mobilne (widok telefonu, rozwinięte menu), nie tylko treść podstron.
 - Po zapisaniu treści strony przez REST sprawdź wygląd. Gdy zniknie ciemne tło (style Divi z błędną numeracją sekcji), wyczyść CSS Divi: admin-ajax `et_core_page_resource_clear` (nonce `clear_page_resources_nonce` z Divi → Theme Options) i odwiedź strony anonimowo.
 - Adres e-mail na stronach podajemy tylko przez `[sdl_email u="…" d="…"]` (zakodowany przed robotami), nigdy zwykłym tekstem.
 
