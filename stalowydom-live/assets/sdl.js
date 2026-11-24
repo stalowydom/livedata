@@ -2,7 +2,27 @@
   'use strict';
   var C = { accent: '#f97316', grid: '#334150', tick: '#9aa5b1', top: '#ef4444', mid: '#f97316', bot: '#3b82f6', supply: '#e5e7eb', cwu: '#38bdf8', rest: '#7c8794' };
   var nf = function (v, d) { return v == null || isNaN(v) ? '–' : Number(v).toLocaleString('pl-PL', { minimumFractionDigits: d, maximumFractionDigits: d }); };
-  var get = function (path) { return fetch(SDL.api + path, { credentials: 'omit' }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }); };
+  /* Hosting odrzuca (500/403) wiele równoczesnych zapytań – najwyżej 2 naraz i do 3 prób z odstępem. */
+  var queue = [], active = 0;
+  var pump = function () {
+    while (active < 2 && queue.length) {
+      var job = queue.shift(); active++;
+      job().then(function () { active--; pump(); }, function () { active--; pump(); });
+    }
+  };
+  var once = function (path) { return fetch(SDL.api + path, { credentials: 'omit' }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }); };
+  var get = function (path) {
+    return new Promise(function (resolve, reject) {
+      var tries = 0;
+      var run = function () {
+        return once(path).then(resolve, function (e) {
+          if (++tries >= 3) { reject(e); return; }
+          setTimeout(function () { queue.push(run); pump(); }, 600 * tries);
+        });
+      };
+      queue.push(run); pump();
+    });
+  };
 
   var MONTHS = ['styczeń', 'luty', 'marzec', 'kwiecień', 'maj', 'czerwiec', 'lipiec', 'sierpień', 'wrzesień', 'październik', 'listopad', 'grudzień'];
   function monthSums(rows) {

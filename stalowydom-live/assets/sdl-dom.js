@@ -9,7 +9,27 @@
   ];
   var nf = function (v, d) { return v == null || isNaN(v) ? '–' : Number(v).toLocaleString('pl-PL', { minimumFractionDigits: d, maximumFractionDigits: d }); };
   var en = function (kwh) { if (kwh == null || isNaN(kwh)) return '–'; return kwh < 1 ? nf(kwh * 1000, 0) + ' Wh' : nf(kwh, kwh < 10 ? 2 : 1) + ' kWh'; };
-  var get = function (path) { return fetch(SDL.api + path, { credentials: 'omit' }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }); };
+  /* Hosting odrzuca (500/403) wiele równoczesnych zapytań – najwyżej 2 naraz i do 3 prób z odstępem. */
+  var queue = [], active = 0;
+  var pump = function () {
+    while (active < 2 && queue.length) {
+      var job = queue.shift(); active++;
+      job().then(function () { active--; pump(); }, function () { active--; pump(); });
+    }
+  };
+  var once = function (path) { return fetch(SDL.api + path, { credentials: 'omit' }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }); };
+  var get = function (path) {
+    return new Promise(function (resolve, reject) {
+      var tries = 0;
+      var run = function () {
+        return once(path).then(resolve, function (e) {
+          if (++tries >= 3) { reject(e); return; }
+          setTimeout(function () { queue.push(run); pump(); }, 600 * tries);
+        });
+      };
+      queue.push(run); pump();
+    });
+  };
 
   var MONTHS = ['styczeń', 'luty', 'marzec', 'kwiecień', 'maj', 'czerwiec', 'lipiec', 'sierpień', 'wrzesień', 'październik', 'listopad', 'grudzień'];
   function monthSums(rows) {
@@ -24,7 +44,7 @@
     var setD = function (k, v) { root.querySelectorAll('[data-d="' + k + '"]').forEach(function (el) { el.textContent = v; }); };
 
     function loadLatest() {
-      return Promise.all(DEVICES.map(function (d) { return get('latest?device=' + d).catch(function () { return get('latest?device=' + d); }).catch(function () { return { values: {}, failed: true }; }); })).then(function (res) {
+      return Promise.all(DEVICES.map(function (d) { return get('latest?device=' + d).catch(function () { return { values: {}, failed: true }; }); })).then(function (res) {
         var data = {}, newest = null;
         DEVICES.forEach(function (d, i) { data[d] = res[i]; if (res[i].ts && (!newest || res[i].ts > newest)) newest = res[i].ts; });
         root.querySelectorAll('[data-v]').forEach(function (el) {
