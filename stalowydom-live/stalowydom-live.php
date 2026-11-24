@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.24.0
+Version: 1.24.1
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.24.0');
+define('SDL_VER', '1.24.1');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -396,11 +396,12 @@ function sdl_rotate_hint() {
         . '<svg class="sdl-rot-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="18.3" r="1" fill="currentColor"/></svg>'
         . '<span>Obróć telefon poziomo – wykresy i kafelki będą czytelniejsze.</span>'
         . '<button type="button" class="sdl-rot-x" aria-label="Zamknij podpowiedź">✕</button></div>'
-        . '<script>(function(){var el=document.currentScript.previousElementSibling,K="sdl_rot",q;'
-        . 'try{if(sessionStorage.getItem(K))return}catch(e){}'
+        /* raz na wizytę: po zamknięciu lub obróceniu telefonu wraca dopiero po 30 min przerwy (sessionStorage w mobilnym Chrome żyje tyle co karta, czyli dniami) */
+        . '<script>(function(){var el=document.currentScript.previousElementSibling,K="sdl_rot_ts",q;'
+        . 'try{var t=+localStorage.getItem(K);if(t&&Date.now()-t<18e5){localStorage.setItem(K,Date.now());return}}catch(e){}'
         . 'q=window.matchMedia("(orientation: portrait) and (max-width: 600px)");'
         . 'function upd(){el.hidden=!q.matches}'
-        . 'function off(){el.hidden=true;try{sessionStorage.setItem(K,"1")}catch(e){}q.removeEventListener?q.removeEventListener("change",upd):q.removeListener(upd)}'
+        . 'function off(){el.hidden=true;try{localStorage.setItem(K,Date.now())}catch(e){}q.removeEventListener?q.removeEventListener("change",upd):q.removeListener(upd)}'
         . 'el.querySelector(".sdl-rot-x").addEventListener("click",off);'
         . 'q.addEventListener?q.addEventListener("change",function(){if(!q.matches)off();else upd()}):q.addListener(upd);'
         . 'setTimeout(upd,1200);})();</script>';
