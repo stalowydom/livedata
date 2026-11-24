@@ -44,6 +44,9 @@
         var cwuV = data.pompa_cwu.values || {};
         setD('cwu_run', dur(cwuV.run_h));
         setD('cwu_run_y', dur(cwuV.run_h_yday));
+        var mv = data.maty.values || {}, num = function (x) { return x != null && !isNaN(x); };
+        setD('maty_loss', num(heiko.noel_bot) && num(mv.zawor_przed) ? nf(heiko.noel_bot - mv.zawor_przed, 1) : '–');
+        setD('maty_dt', num(mv.zawor_temp) && num(mv.zawor_powrot) ? nf(mv.zawor_temp - mv.zawor_powrot, 1) : '–');
         setE('serwer_today', data.serwer.today_kwh);
         setE('reqnet_today', data.reqnet.today_kwh);
         var running = heiko.power != null && heiko.power > 300;
