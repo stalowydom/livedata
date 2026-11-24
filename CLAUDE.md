@@ -45,6 +45,10 @@ Historia:
 - Zdarzenia odszraniania (urządzenie `heiko_defrost`) strona czyta z `/sdl/v1/events`.
 - Szczegóły konfiguracji HA (nazwy sensorów i automatyzacji) trzymamy poza repozytorium.
 
+## Kod QR
+- Kody QR wskazują na `https://stalowydom.com/qr` (lub `/qr/<nazwa>` dla osobnych kodów, np. ulotka, baner) – nasza domena, więc kod nie wygasa. Wtyczka liczy skany (łącznie, osoby, dziś), przekierowuje na stronę główną z `utm_source=qr&utm_medium=<nazwa>`.
+- Statystyki: `GET /sdl/v1/qr` z nagłówkiem `X-SDL-Token` (HA, pakiet REST) lub jako administrator. Adresów IP nie zapisujemy – tylko dobowy skrót do liczenia osób.
+
 ## Prywatność
 - Nie publikujemy nazw hostów, systemów ani szczegółów domowej sieci – ani na stronie, ani w tym repozytorium.
 - Nie zapisujemy w repozytorium tokenów, haseł, adresów IP ani danych kontaktowych.
