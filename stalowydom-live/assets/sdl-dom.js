@@ -24,11 +24,12 @@
     var setD = function (k, v) { root.querySelectorAll('[data-d="' + k + '"]').forEach(function (el) { el.textContent = v; }); };
 
     function loadLatest() {
-      return Promise.all(DEVICES.map(function (d) { return get('latest?device=' + d).catch(function () { return { values: {} }; }); })).then(function (res) {
+      return Promise.all(DEVICES.map(function (d) { return get('latest?device=' + d).catch(function () { return get('latest?device=' + d); }).catch(function () { return { values: {}, failed: true }; }); })).then(function (res) {
         var data = {}, newest = null;
         DEVICES.forEach(function (d, i) { data[d] = res[i]; if (res[i].ts && (!newest || res[i].ts > newest)) newest = res[i].ts; });
         root.querySelectorAll('[data-v]').forEach(function (el) {
           var p = el.getAttribute('data-v').split('.'), dv = data[p[0]] && data[p[0]].values;
+          if (data[p[0]] && data[p[0]].failed) return; /* błąd odczytu: zostaw poprzednią wartość */
           el.textContent = nf(dv && dv[p[1]], +el.getAttribute('data-dec'));
         });
         var dom = data.dom.values || {}, heiko = data.heiko.values || {};
