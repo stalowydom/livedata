@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.24.1
+Version: 1.25.0
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.24.1');
+define('SDL_VER', '1.25.0');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -97,6 +97,17 @@ add_action('rest_api_init', function () {
         'methods'  => 'POST',
         'callback' => 'sdl_backfill',
         'permission_callback' => function () { return current_user_can('manage_options'); },
+    ]);
+
+    /* statystyki kodów QR – dla Home Assistant (ten sam token co przy wysyłaniu odczytów) */
+    register_rest_route('sdl/v1', '/qr', [
+        'methods'  => 'GET',
+        'callback' => function () { return ['codes' => (object) get_option('sdl_qr', [])]; },
+        'permission_callback' => function (WP_REST_Request $r) {
+            $token = (string) get_option('sdl_token');
+            $given = (string) $r->get_header('x-sdl-token');
+            return current_user_can('manage_options') || ($token !== '' && $given !== '' && hash_equals($token, $given));
+        },
     ]);
 
     $public = function () { return true; };
@@ -792,6 +803,36 @@ add_action('rest_api_init', function () {
 
 add_filter('language_attributes', function ($out) { return is_admin() ? $out : preg_replace('/lang="[^"]*"/', 'lang="pl-PL"', $out); }, 20);
 add_filter('rank_math/opengraph/facebook/og_locale', function () { return 'pl_PL'; });
+
+/* ---------- kod QR: /qr lub /qr/<nazwa> → licznik skanów i przekierowanie na stronę główną ----------
+   Kod wskazuje na naszą domenę, więc nie wygaśnie. Nie zapisujemy adresów IP: unikalność liczymy po skrócie
+   (IP + przeglądarka + sól zmieniana codziennie), trzymanym tylko do końca doby. */
+add_action('init', function () {
+    $path = rtrim((string) parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH), '/');
+    if (!preg_match('~^/qr(?:/([a-z0-9-]{1,32}))?$~', $path, $m)) return;
+    $code = $m[1] ?? 'strona';
+    $ua = (string) ($_SERVER['HTTP_USER_AGENT'] ?? '');
+    if (!preg_match('/bot|crawl|spider|preview|facebookexternalhit|whatsapp|slurp|curl|wget|python/i', $ua)) {
+        $day = wp_date('Y-m-d', null, sdl_tz());
+        $all = get_option('sdl_qr', []);
+        $c = $all[$code] ?? ['total' => 0, 'unique' => 0, 'today' => 0, 'day' => $day, 'last' => 0];
+        if ($c['day'] !== $day) { $c['today'] = 0; $c['day'] = $day; }
+        $hash = substr(hash('sha256', wp_salt('nonce') . $day . ($_SERVER['REMOTE_ADDR'] ?? '') . $ua), 0, 16);
+        $seen = get_transient('sdl_qr_seen_' . $code) ?: [];
+        if (($seen['day'] ?? '') !== $day) $seen = ['day' => $day, 'h' => []];
+        if (!in_array($hash, $seen['h'], true)) {
+            $seen['h'][] = $hash; $c['unique']++;
+            set_transient('sdl_qr_seen_' . $code, $seen, DAY_IN_SECONDS);
+        }
+        $c['total']++; $c['today']++; $c['last'] = time();
+        $all[$code] = $c;
+        update_option('sdl_qr', $all, false);
+    }
+    nocache_headers();
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+    wp_redirect(add_query_arg(['utm_source' => 'qr', 'utm_medium' => $code], home_url('/')), 302);
+    exit;
+}, 1);
 
 /* ---------- /llms.txt – przewodnik po stronie dla agentów AI (generowany na żywo) ---------- */
 
