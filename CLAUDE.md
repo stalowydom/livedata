@@ -16,6 +16,7 @@ Wtyczka WordPress `stalowydom-live` dla stalowydom.com (dane z Home Assistant na
 - Stopka zawiera link „Polityka prywatności” (/polityka-prywatnosci/, page_id 397 – oficjalna polityka WordPressa i dokument w banerze Complianz).
 - Po każdej zmianie sprawdź całą stronę – także nagłówek, logo i menu mobilne (widok telefonu, rozwinięte menu), nie tylko treść podstron.
 - Po zapisaniu treści strony przez REST sprawdź wygląd. Gdy zniknie ciemne tło (style Divi z błędną numeracją sekcji), wyczyść CSS Divi: admin-ajax `et_core_page_resource_clear` (nonce `clear_page_resources_nonce` z Divi → Theme Options) i odwiedź strony anonimowo.
+- Znalezione literówki na stronach poprawiamy od razu, bez pytania (z podbiciem wersji podstrony urządzenia). Treść merytoryczną zmieniamy tylko po uzgodnieniu.
 - Adres e-mail na stronach podajemy tylko przez `[sdl_email u="…" d="…"]` (zakodowany przed robotami), nigdy zwykłym tekstem.
 
 ## Wersjonowanie podstron (obowiązkowe)
@@ -29,7 +30,7 @@ Każda zmiana treści lub wyglądu podstrony urządzenia (np. /heiko/) wymaga ak
 - Zmiana wtyczki, która widocznie zmienia podstronę (np. nowy wykres), też liczy się jako zmiana tej podstrony.
 
 Historia:
-- Heiko (/heiko/, page_id 369) – 1.0 z 21.11.2026, 1.1 i 1.2 tego samego dnia; 2.0 z 22.11.2026 (sekcja odszraniania [sdl_odszranianie]), 2.1 i 2.2 tego samego dnia.
+- Heiko (/heiko/, page_id 369) – 1.0 z 21.11.2026, 1.1 i 1.2 tego samego dnia; 2.0 z 22.11.2026 (sekcja odszraniania [sdl_odszranianie]), 2.1 i 2.2 tego samego dnia; 2.3–2.8 z 23–24.11.2026.
 - Dom na żywo (/live/, page_id 383, shortcode [sdl_dom]) – 1.0–1.8 z 22.11.2026. Link z kafelka „Dashboard Live” na stronie głównej.
 
 ## Agenci AI i SEO
