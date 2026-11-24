@@ -30,7 +30,7 @@ Każda zmiana treści lub wyglądu podstrony urządzenia (np. /heiko/) wymaga ak
 - Zmiana wtyczki, która widocznie zmienia podstronę (np. nowy wykres), też liczy się jako zmiana tej podstrony.
 
 Historia:
-- Heiko (/heiko/, page_id 369) – 1.0 z 21.11.2026, 1.1 i 1.2 tego samego dnia; 2.0 z 22.11.2026 (sekcja odszraniania [sdl_odszranianie]), 2.1 i 2.2 tego samego dnia; 2.3–2.9 z 23–24.11.2026.
+- Heiko (/heiko/, page_id 369) – 1.0 z 21.11.2026, 1.1 i 1.2 tego samego dnia; 2.0 z 22.11.2026 (sekcja odszraniania [sdl_odszranianie]), 2.1 i 2.2 tego samego dnia; 2.3–2.9 z 23–24.11.2026; 3.0 z 24.11.2026 (sekcja „Warunki szronienia” w [sdl_odszranianie]).
 - Dom na żywo (/live/, page_id 383, shortcode [sdl_dom]) – 1.0–1.8 z 22.11.2026, 1.9–1.15 z 23–24.11.2026. Link z kafelka „Dashboard Live” na stronie głównej.
 
 ## Agenci AI i SEO
@@ -41,7 +41,7 @@ Historia:
 ## Dane z Home Assistant
 - HA co 5 min wysyła odczyty urządzeń (heiko, dom, reqnet, maty, pompa_cwu, serwer) na `POST /wp-json/sdl/v1/push` z tokenem w nagłówku `X-SDL-Token`. Token jest tylko w bazie WordPressa i w sekretach HA – nigdy w tym repozytorium.
 - Maty (`maty`) wysyłają też odczyty zaworu mieszającego z Sinum (`zawor_zadana`, `zawor_temp`, `zawor_powrot`, `zawor_przed`, `zawor_co`, `zawor_otwarcie`); strata wężownicy = `heiko.noel_bot` − `zawor_przed`. `zawor_co` nie jest pokazywany (czujnik do poprawy).
-- Pompa ciepła wysyła też zużycie z podziałem CO/CWU oraz liczbę i czas faktycznych odszronień.
+- Pompa ciepła wysyła też zużycie z podziałem CO/CWU, liczbę i czas faktycznych odszronień oraz `rh_out` (wilgotność na zewnątrz), `tp` (parownik), `fan`. Szronienie liczy `sdl_frost()` (PHP) i `frost()` w sdl-defrost.js – te same wzory Magnusa.
 - Zdarzenia odszraniania (urządzenie `heiko_defrost`) strona czyta z `/sdl/v1/events`.
 - Szczegóły konfiguracji HA (nazwy sensorów i automatyzacji) trzymamy poza repozytorium.
 
