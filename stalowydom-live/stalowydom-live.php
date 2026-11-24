@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.20.2
+Version: 1.21.0
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.20.2');
+define('SDL_VER', '1.21.0');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -379,6 +379,25 @@ function sdl_summary_dom() {
     return '<p>Stan na ' . esc_html(sdl_when($ts ?: null)) . ' (czas polski).</p><ul><li>' . implode('</li><li>', array_map('esc_html', $li)) . '</li></ul>';
 }
 
+/* podpowiedź „obróć telefon” – tylko na stronach z danymi, tylko telefon w pionie, raz na wizytę */
+function sdl_rotate_hint() {
+    static $done = false;
+    if ($done) return '';
+    $done = true;
+    return '<div class="sdl-rot" role="status" hidden>'
+        . '<svg class="sdl-rot-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="18.3" r="1" fill="currentColor"/></svg>'
+        . '<span>Obróć telefon poziomo – wykresy i kafelki będą czytelniejsze.</span>'
+        . '<button type="button" class="sdl-rot-x" aria-label="Zamknij podpowiedź">✕</button></div>'
+        . '<script>(function(){var el=document.currentScript.previousElementSibling,K="sdl_rot",q;'
+        . 'try{if(sessionStorage.getItem(K))return}catch(e){}'
+        . 'q=window.matchMedia("(orientation: portrait) and (max-width: 600px)");'
+        . 'function upd(){el.hidden=!q.matches}'
+        . 'function off(){el.hidden=true;try{sessionStorage.setItem(K,"1")}catch(e){}q.removeEventListener?q.removeEventListener("change",upd):q.removeListener(upd)}'
+        . 'el.querySelector(".sdl-rot-x").addEventListener("click",off);'
+        . 'q.addEventListener?q.addEventListener("change",function(){if(!q.matches)off();else upd()}):q.addListener(upd);'
+        . 'setTimeout(upd,1200);})();</script>';
+}
+
 function sdl_sr_block($html) {
     return '<section class="sdl-sr" aria-label="Dane w formie tekstu"><h2>Dane w formie tekstu</h2>' . $html
         . '<p>Te same dane w formacie JSON: ' . esc_html(rest_url('sdl/v1/')) . ' (opis w ' . esc_html(home_url('/llms.txt')) . ').</p></section>';
@@ -527,7 +546,7 @@ add_shortcode('sdl_heiko', function ($atts) {
     <div class="sdl-canvas sdl-canvas-sm"><canvas data-chart="dailytemp" role="img" aria-label="Najniższa, średnia i najwyższa temperatura zewnętrzna w kolejnych dniach"></canvas></div>
     <p class="sdl-note">Pomarańczowy – ogrzewanie domu (CO), niebieski – podgrzewanie ciepłej wody (CWU); podział liczymy od 22.11.2026. Po najechaniu na słupek widać zużycie oraz najniższą i najwyższą temperaturę zewnętrzną z tego dnia.</p>
   </div>
-  <?php echo sdl_sr_block(sdl_summary_heiko($a['device'])); echo sdl_dataset_ld('Pompa ciepła Heiko Thermal 15 kW – dane na żywo', 'Moc, zużycie energii (z podziałem na ogrzewanie CO i ciepłą wodę CWU), temperatury bufora NOEL 700 l, starty i odszraniania pompy ciepła powietrze–woda w domu z kontenerów pod Poznaniem. Odczyty co 5 minut.', ['moc [W]', 'zużycie energii [kWh]', 'zużycie CO i CWU [kWh]', 'temperatura zewnętrzna [°C]', 'temperatury bufora [°C]', 'starty sprężarki', 'odszraniania', 'energia w czuwaniu [kWh]']); ?>
+  <?php echo sdl_rotate_hint(); echo sdl_sr_block(sdl_summary_heiko($a['device'])); echo sdl_dataset_ld('Pompa ciepła Heiko Thermal 15 kW – dane na żywo', 'Moc, zużycie energii (z podziałem na ogrzewanie CO i ciepłą wodę CWU), temperatury bufora NOEL 700 l, starty i odszraniania pompy ciepła powietrze–woda w domu z kontenerów pod Poznaniem. Odczyty co 5 minut.', ['moc [W]', 'zużycie energii [kWh]', 'zużycie CO i CWU [kWh]', 'temperatura zewnętrzna [°C]', 'temperatury bufora [°C]', 'starty sprężarki', 'odszraniania', 'energia w czuwaniu [kWh]']); ?>
   <?php echo sdl_footer_note(); ?>
 </div>
 <?php
@@ -622,7 +641,7 @@ add_shortcode('sdl_dom', function ($atts) {
     </div>
     <p class="sdl-note">Tu pojawi się animowany schemat: skąd w danej chwili płynie prąd i dokąd trafia.</p>
   </div>
-  <?php echo sdl_sr_block(sdl_summary_dom()); echo sdl_dataset_ld('Dom z kontenerów na żywo – zużycie energii i parametry urządzeń', 'Zużycie energii całego domu i urządzeń (pompa ciepła, rekuperator, pompa cyrkulacyjna CWU, serwer), temperatury pomieszczeń i parametry wentylacji w domu z kontenerów pod Poznaniem. Odczyty co 5 minut.', ['moc całego domu [W]', 'zużycie energii [kWh]', 'wymiana powietrza [m³/h]', 'temperatury pomieszczeń [°C]', 'czas pracy pompy CWU [h]']); ?>
+  <?php echo sdl_rotate_hint(); echo sdl_sr_block(sdl_summary_dom()); echo sdl_dataset_ld('Dom z kontenerów na żywo – zużycie energii i parametry urządzeń', 'Zużycie energii całego domu i urządzeń (pompa ciepła, rekuperator, pompa cyrkulacyjna CWU, serwer), temperatury pomieszczeń i parametry wentylacji w domu z kontenerów pod Poznaniem. Odczyty co 5 minut.', ['moc całego domu [W]', 'zużycie energii [kWh]', 'wymiana powietrza [m³/h]', 'temperatury pomieszczeń [°C]', 'czas pracy pompy CWU [h]']); ?>
   <?php echo sdl_footer_note(); ?>
 </div>
 <?php
