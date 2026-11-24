@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.23.1
+Version: 1.24.0
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.23.1');
+define('SDL_VER', '1.24.0');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -349,6 +349,8 @@ function sdl_summary_heiko($dev = 'heiko') {
         . '; wczoraj: ' . sdl_kwh_txt(sdl_day_val($daily, $yday)) . '.';
     $t[] = 'Bieżący miesiąc (do dziś): ' . sdl_num($mc, 0) . ' kWh; poprzedni miesiąc: ' . sdl_num($mp, 0) . ' kWh.';
     if (isset($v['noel_top'])) $t[] = 'Bufor NOEL 700 l – góra ' . sdl_num($v['noel_top']) . ' °C, środek ' . sdl_num($v['noel_mid'] ?? null) . ' °C, dół ' . sdl_num($v['noel_bot'] ?? null) . ' °C.';
+    $F = sdl_frost($v['outdoor'] ?? null, $v['rh_out'] ?? null, $v['tp'] ?? null, ($v['power'] ?? 0) > 300);
+    if ($F) $t[] = 'Warunki szronienia: wilgotność na zewnątrz ' . sdl_num($F['rh'], 0) . ' %, woda w powietrzu ' . sdl_num($F['ah']) . ' g/m³, punkt rosy ' . sdl_num($F['dew']) . ' °C, punkt szronu ' . sdl_num($F['frost']) . ' °C, parownik ' . sdl_num($F['ts']) . ' °C' . ($F['est'] ? ' (szacunek)' : '') . ', potencjał szronienia ' . sdl_num($F['pot']) . ' g/m³ (' . sdl_frost_level($F['pot']) . ').';
     $t[] = 'Starty sprężarki dziś: ' . sdl_num($v['starts'] ?? null, 0) . '. Odszraniania dziś: ' . sdl_num($v['defrost_n'] ?? null, 0) . ' (łącznie ' . sdl_num(isset($v['defrost_h']) ? $v['defrost_h'] * 60 : null) . ' min).';
     if (isset($L['today_standby'])) $t[] = 'Czuwanie dziś (sprężarka stoi: elektronika i pompa obiegowa): ' . sdl_kwh_txt($L['today_standby']) . ', starty pompy obiegowej: ' . sdl_num($v['circ_starts'] ?? null, 0) . '.';
     $o = [];
@@ -658,6 +660,52 @@ add_shortcode('sdl_dom', function ($atts) {
     return ob_get_clean();
 });
 
+/* ---------- szronienie parownika: punkt rosy, punkt szronu, woda w powietrzu (wzory Magnusa) ---------- */
+function sdl_frost($t, $rh, $tp = null, $running = true) {
+    if (!is_numeric($t) || !is_numeric($rh) || $rh <= 0) return null;
+    $t = (float) $t; $rh = min(100.0, (float) $rh);
+    $es = function ($x) { return 6.112 * exp(17.62 * $x / (243.12 + $x)); };   /* nad wodą, hPa */
+    $ei = function ($x) { return 6.112 * exp(22.46 * $x / (272.62 + $x)); };   /* nad lodem, hPa */
+    $e = $rh / 100 * $es($t);
+    $l = log($e / 6.112);
+    $ah = function ($p, $x) { return 216.7 * $p / (273.15 + $x); };           /* g/m³ */
+    $est = !is_numeric($tp) || !$running;   /* sprężarka stoi: parownik ma temperaturę otoczenia, liczymy dla pracy */
+    $ts = $est ? $t - 7 : (float) $tp;                                          /* bez odczytu: parownik ok. 7 K zimniejszy */
+    $sat = $ah($ts < 0 ? $ei($ts) : $es($ts), $ts);
+    $air = $ah($e, $t);
+    $pot = $ts < 0 ? max(0, $air - $sat) : 0;
+    return ['t' => $t, 'rh' => $rh, 'dew' => 243.12 * $l / (17.62 - $l), 'frost' => 272.62 * $l / (22.46 - $l),
+            'ah' => $air, 'ts' => $ts, 'est' => $est, 'pot' => $pot];
+}
+
+function sdl_frost_level($pot) {
+    if ($pot < 0.3) return 'minimalny';
+    if ($pot < 1) return 'mały';
+    if ($pot < 2) return 'umiarkowany';
+    return 'duży';
+}
+
+function sdl_frost_story($f) {
+    if (!$f) return 'Czekam na odczyt temperatury i wilgotności powietrza zewnętrznego.';
+    $sg = function ($v) { return ($v > 0.05 ? '+' : ($v < -0.05 ? '−' : '')) . sdl_num(abs($v)); };
+    $s = 'Na zewnątrz jest ' . $sg($f['t']) . ' °C przy wilgotności ' . sdl_num($f['rh'], 0) . ' %. W każdym metrze sześciennym powietrza jest '
+       . sdl_num($f['ah']) . ' g wody. Punkt rosy wypada przy ' . $sg($f['dew']) . ' °C, a punkt szronu przy ' . $sg($f['frost']) . ' °C – '
+       . 'każda powierzchnia zimniejsza od tej temperatury zbiera z powietrza lód. ';
+    $s .= ($f['est'] ? 'Sprężarka teraz stoi. Gdy pracuje, parownik jest zwykle ok. 7 K zimniejszy od powietrza, czyli ma ok. ' . $sg($f['ts']) . ' °C. '
+                     : 'Parownik ma teraz ' . $sg($f['ts']) . ' °C. ');
+    if ($f['pot'] < 0.05) {
+        $s .= $f['ts'] >= 0 ? 'Jest cieplejszy niż 0 °C, więc szron się nie tworzy – wilgoć najwyżej skrapla się i spływa.'
+                            : 'Mimo mrozu na lamelach nie ma z czego osiąść lodu – powietrze jest tak suche, że parownik nie schodzi poniżej jego punktu szronu.';
+    } else {
+        $s .= 'Z każdego metra sześciennego przepływającego powietrza może na nim osiąść do ' . sdl_num($f['pot']) . ' g lodu – potencjał szronienia jest '
+            . sdl_frost_level($f['pot']) . '. ';
+        $s .= $f['pot'] >= 1 ? 'Wentylator przetłacza tysiące metrów sześciennych na godzinę, więc lamele zarastają szybko i pompa musi się często odszraniać.'
+                             : 'Lód przybywa powoli, więc odszraniania powinny być rzadkie.';
+    }
+    $s .= ' Najgorsze dla pompy są temperatury w okolicy zera przy dużej wilgotności: ciepłe powietrze niesie dużo wody. W siarczysty mróz powietrze jest suche i szronu przybywa kilka razy wolniej.';
+    return $s;
+}
+
 /* ---------- odszranianie: [sdl_odszranianie device="heiko_defrost"] ---------- */
 add_shortcode('sdl_odszranianie', function ($atts) {
     $a = shortcode_atts(['device' => 'heiko_defrost'], $atts);
@@ -667,6 +715,22 @@ add_shortcode('sdl_odszranianie', function ($atts) {
     wp_localize_script('sdl-defrost', 'SDL', ['api' => esc_url_raw(rest_url('sdl/v1/'))]);
     ob_start(); ?>
 <div class="sdl-wrap sdl-defrost" data-sdl-defrost="<?php echo esc_attr($a['device']); ?>">
+  <?php $H = sdl_now_latest('heiko'); $hv = $H['values']; $F = sdl_frost($hv['outdoor'] ?? null, $hv['rh_out'] ?? null, $hv['tp'] ?? null, ($hv['power'] ?? 0) > 300);
+        $fv = function ($k, $d = 1) use ($F) { return $F ? sdl_num($F[$k], $d) : '–'; }; ?>
+  <h3 class="sdl-sec">Warunki szronienia</h3>
+  <div class="sdl-kpis" data-frost>
+    <div class="sdl-kpi" style="border-top-color:#3b82f6"><div class="sdl-kpi-label">Wilgotność na zewnątrz</div><div class="sdl-kpi-val"><span data-fr="rh"><?php echo $fv('rh', 0); ?></span> <small>%</small></div><div class="sdl-kpi-sub">przy <span data-fr="t"><?php echo $fv('t'); ?></span> °C</div></div>
+    <div class="sdl-kpi" style="border-top-color:#3b82f6"><div class="sdl-kpi-label">Woda w powietrzu</div><div class="sdl-kpi-val"><span data-fr="ah"><?php echo $fv('ah'); ?></span> <small>g/m³</small></div><div class="sdl-kpi-sub">wilgotność bezwzględna</div></div>
+    <div class="sdl-kpi" style="border-top-color:#3b82f6"><div class="sdl-kpi-label">Punkt rosy / szronu</div><div class="sdl-kpi-val"><span data-fr="dew"><?php echo $fv('dew'); ?></span> / <span data-fr="frost"><?php echo $fv('frost'); ?></span> <small>°C</small></div></div>
+    <div class="sdl-kpi"><div class="sdl-kpi-label">Parownik</div><div class="sdl-kpi-val"><span data-fr="ts"><?php echo $fv('ts'); ?></span> <small>°C</small></div><div class="sdl-kpi-sub" data-fr="ts_note"><?php echo $F && $F['est'] ? 'szacunek przy pracy sprężarki' : 'odczyt z pompy'; ?></div></div>
+    <div class="sdl-kpi"><div class="sdl-kpi-label">Potencjał szronienia</div><div class="sdl-kpi-val"><span data-fr="pot"><?php echo $fv('pot'); ?></span> <small>g/m³</small></div><div class="sdl-kpi-sub" data-fr="lvl"><?php echo $F ? esc_html(sdl_frost_level($F['pot'])) : ''; ?></div></div>
+  </div>
+  <div class="sdl-card">
+    <div class="sdl-head"><h3>Czy parownik teraz szronieje?</h3></div>
+    <p class="sdl-defrost-text" data-fr="story"><?php echo esc_html(sdl_frost_story($F)); ?></p>
+    <p class="sdl-note">Potencjał szronienia to ilość wody, która może osiąść jako lód z każdego m³ powietrza przechodzącego przez parownik: różnica między wodą w powietrzu a nasyceniem nad lodem przy temperaturze parownika. Wzory Magnusa; wilgotność z czujnika zewnętrznego.</p>
+  </div>
+  <h3 class="sdl-sec">Odszranianie</h3>
   <div class="sdl-kpis">
     <div class="sdl-kpi"><div class="sdl-kpi-label">Odszronień dziś</div><div class="sdl-kpi-val"><span data-f="today">–</span></div></div>
     <div class="sdl-kpi"><div class="sdl-kpi-label">Średni czas (ostatnie)</div><div class="sdl-kpi-val"><span data-f="avg">–</span> <small>min</small></div></div>
@@ -753,7 +817,7 @@ add_action('init', function () {
         . "- `GET {$api}events?device=heiko_defrost` – zdarzenia odszraniania.\n\n"
         . "Urządzenia (DEVICE) i metryki:\n"
         . "- `dom` – cały dom: `power` [W], `l1` `l2` `l3` [W], `energy_total` [kWh, licznik narastający], `outdoor` [°C].\n"
-        . "- `heiko` – pompa ciepła: `power` [W], `energy_total` `energy_co` `energy_cwu` `energy_standby` [kWh, narastająco], `noel_top` `noel_mid` `noel_bot` `supply` `outdoor` [°C], `starts`, `defrost_n`, `defrost_h` [h], `circ_starts` (dzisiejsze).\n"
+        . "- `heiko` – pompa ciepła: `power` [W], `energy_total` `energy_co` `energy_cwu` `energy_standby` [kWh, narastająco], `noel_top` `noel_mid` `noel_bot` `supply` `outdoor` [°C], `starts`, `defrost_n`, `defrost_h` [h], `circ_starts` (dzisiejsze), `rh_out` (wilgotność na zewnątrz) [%], `tp` (temperatura parownika) [°C], `fan` (obroty wentylatora).\n"
         . "- `reqnet` – rekuperator: `flow_in` `flow_out` [m³/h], `czerpnia` `nawiew` `wyciag` `wyrzutnia` [°C], `power` [W], `energy_total` [kWh].\n"
         . "- `maty` – temperatury pomieszczeń: `salon` `sypialnia` `lazienka` [°C], `rosa` (punkt rosy) [°C]; zawór mieszający: `zawor_zadana` (temperatura zadana), `zawor_temp` (zasilanie mat), `zawor_powrot` (powrót z mat), `zawor_przed` (woda z wężownicy w buforze przed zaworem) [°C], `zawor_otwarcie` [%].\n"
         . "- `pompa_cwu` – pompa cyrkulacyjna: `energy_total` [kWh], `starts` (dziś), `run_h` `run_h_yday` [h].\n"
