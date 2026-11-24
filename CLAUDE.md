@@ -8,7 +8,7 @@ Wtyczka WordPress `stalowydom-live` dla stalowydom.com (dane z Home Assistant na
 - WordPress wykrywa nową wersję sam (Wtyczki → Aktualizacje; auto-aktualizacje włączone).
 - Przed wydaniem: `php -l`, `node --check` i `php tools/test-wp-head.php` (sprawdza, czy blok `#sdl-site-css` faktycznie się wypisuje – `php -l` nie wyłapie np. cudzysłowu w CSS). Zmiany wyglądu sprawdzaj na podglądzie (render), zanim wydasz.
 
-- Po ręcznej aktualizacji przez `update.php` sprawdź, czy wtyczka jest nadal aktywna (Wtyczki) – aktualizacja wywołana w tle zostawia ją wyłączoną.
+- Po ręcznej aktualizacji przez `update.php` sprawdź, czy wtyczka jest nadal aktywna (Wtyczki) – aktualizacja wywołana w tle zostawia ją wyłączoną. Link „Włącz” z listy wtyczek jest względny – wywołuj go jako `/wp-admin/plugins.php?…`, inaczej (spoza wp-admin) trafi w 404 i wtyczka zostanie wyłączona.
 
 ## Poprawki wyglądu witryny
 - Drobne poprawki motywu Divi dla całej strony (np. menu mobilne) są we wtyczce, w akcji `wp_head` (`#sdl-site-css`).
