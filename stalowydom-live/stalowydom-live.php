@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.22.1
+Version: 1.23.0
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.22.1');
+define('SDL_VER', '1.23.0');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -221,6 +221,12 @@ function sdl_latest(WP_REST_Request $r) {
                 $device, $m, $off, $off));
             $out[$k] = $v !== null ? round((float) $v, $m === 'energy_standby' ? 4 : 2) : null;
         }
+        /* liczba startów wczoraj = najwyższy stan dziennego licznika 'starts' z poprzedniej doby */
+        $y = $wpdb->get_var($wpdb->prepare(
+            "SELECT MAX(value) FROM $t WHERE device=%s AND metric='starts'
+             AND DATE(DATE_ADD(ts, INTERVAL %d SECOND)) = DATE(DATE_ADD(UTC_TIMESTAMP(), INTERVAL %d SECOND)) - INTERVAL 1 DAY",
+            $device, $off, $off));
+        $out['starts_yday'] = $y !== null ? (int) round((float) $y) : null;
         return $out;
     }, 60);
 }
@@ -374,7 +380,7 @@ function sdl_summary_dom() {
     $li[] = 'Bufor NOEL 700 l: góra ' . sdl_num($hv['noel_top'] ?? null) . ' °C, środek ' . sdl_num($hv['noel_mid'] ?? null) . ' °C, dół ' . sdl_num($hv['noel_bot'] ?? null) . ' °C.';
     $li[] = 'Rekuperator reQnet: wymiana powietrza ' . sdl_num($rv['flow_in'] ?? null, 0) . ' / ' . sdl_num($rv['flow_out'] ?? null, 0) . ' m³/h (nawiew / wyciąg); czerpnia ' . sdl_num($rv['czerpnia'] ?? null) . ' °C, nawiew ' . sdl_num($rv['nawiew'] ?? null) . ' °C, wyciąg ' . sdl_num($rv['wyciag'] ?? null) . ' °C, wyrzutnia ' . sdl_num($rv['wyrzutnia'] ?? null) . ' °C; moc ' . sdl_num($rv['power'] ?? null, 0) . ' W; dziś ' . sdl_kwh_txt($d['reqnet']['today_kwh'] ?? null) . '.';
     $li[] = 'Maty kapilarne (temperatury pomieszczeń): salon ' . sdl_num($mv['salon'] ?? null) . ' °C, sypialnia ' . sdl_num($mv['sypialnia'] ?? null) . ' °C, łazienka ' . sdl_num($mv['lazienka'] ?? null) . ' °C; punkt rosy ' . sdl_num($mv['rosa'] ?? null) . ' °C. Zawór mieszający: temperatura zadana ' . sdl_num($mv['zawor_zadana'] ?? null, 0) . ' °C, zasilanie mat ' . sdl_num($mv['zawor_temp'] ?? null) . ' °C, powrót z mat ' . sdl_num($mv['zawor_powrot'] ?? null) . ' °C, woda z wężownicy przed zaworem ' . sdl_num($mv['zawor_przed'] ?? null) . ' °C, otwarcie zaworu ' . sdl_num($mv['zawor_otwarcie'] ?? null, 0) . ' %.';
-    $li[] = 'Pompa cyrkulacyjna CWU: dziś ' . sdl_kwh_txt($d['pompa_cwu']['today_kwh'] ?? null) . '; czas pracy dziś ' . sdl_dur_txt($cv['run_h'] ?? null) . ', wczoraj ' . sdl_dur_txt($cv['run_h_yday'] ?? null) . '; włączeń dziś ' . sdl_num($cv['starts'] ?? null, 0) . '.';
+    $li[] = 'Pompa cyrkulacyjna CWU: dziś ' . sdl_kwh_txt($d['pompa_cwu']['today_kwh'] ?? null) . '; czas pracy dziś ' . sdl_dur_txt($cv['run_h'] ?? null) . ', wczoraj ' . sdl_dur_txt($cv['run_h_yday'] ?? null) . '; włączeń dziś ' . sdl_num($cv['starts'] ?? null, 0) . ', wczoraj ' . sdl_num($d['pompa_cwu']['starts_yday'] ?? null, 0) . '.';
     $li[] = 'Serwer domowy: moc ' . sdl_num($sv['power'] ?? null, 0) . ' W; dziś ' . sdl_kwh_txt($d['serwer']['today_kwh'] ?? null) . '.';
     return '<p>Stan na ' . esc_html(sdl_when($ts ?: null)) . ' (czas polski).</p><ul><li>' . implode('</li><li>', array_map('esc_html', $li)) . '</li></ul>';
 }
@@ -628,7 +634,8 @@ add_shortcode('sdl_dom', function ($atts) {
          ['Strata wężownicy (dół bufora – przed zaworem)', '<span data-d="maty_loss">–</span> K'], ['Zasilanie – powrót mat', '<span data-d="maty_dt">–</span> K']], '');
     echo sdl_dom_row('Pompa CWU', 'sdl-n-small', 'Cyrkulacja ciepłej wody', 'Pompa cyrkulacyjna – ciepła woda od razu w kranie.',
         [['Dziś', '<span data-e="pompa_cwu_today">–</span>'], ['30 dni', '<span data-e="pompa_cwu_30">–</span>'], 'br',
-         ['Czas pracy dziś', '<span data-d="cwu_run">–</span>'], ['Czas pracy wczoraj', '<span data-d="cwu_run_y">–</span>'], ['Włączeń dziś', sdl_v('pompa_cwu', 'starts', '', 0)]], '');
+         ['Czas pracy dziś', '<span data-d="cwu_run">–</span>'], ['Włączeń dziś', sdl_v('pompa_cwu', 'starts', '', 0)], 'br',
+         ['Czas pracy wczoraj', '<span data-d="cwu_run_y">–</span>'], ['Włączeń wczoraj', '<span data-d="cwu_starts_y">' . sdl_num(sdl_now_latest('pompa_cwu')['starts_yday'] ?? null, 0) . '</span>']], '');
     echo sdl_dom_row('Serwer', '', 'Serwer domowy (NAS)', 'Pliki, zdjęcia i multimedia całej rodziny.',
         [['Moc teraz', sdl_v('serwer', 'power', 'W', 0)], ['Dziś', '<span data-e="serwer_today">–</span>'], ['30 dni', '<span data-e="serwer_30">–</span>']], '');
     ?>
@@ -740,7 +747,7 @@ add_action('init', function () {
         . "- [Kontakt](" . $u('/kontakt/') . "): formularz kontaktowy (współpraca, testy sprzętu).\n"
         . "- [Polityka prywatności](" . $u('/polityka-prywatnosci/') . ")\n\n"
         . "## Dane na żywo – API JSON (publiczne, bez klucza, tylko odczyt)\n\n"
-        . "- `GET {$api}latest?device=DEVICE` – ostatnie odczyty (`values`), czas odczytu (`ts`, Unix), zużycie dziś (`today_kwh`; dla heiko także `today_co`, `today_cwu`, `today_standby`).\n"
+        . "- `GET {$api}latest?device=DEVICE` – ostatnie odczyty (`values`), czas odczytu (`ts`, Unix), zużycie dziś (`today_kwh`; dla heiko także `today_co`, `today_cwu`, `today_standby`), liczba startów wczoraj (`starts_yday`).\n"
         . "- `GET {$api}daily?device=DEVICE&metric=energy_total&days=30` – zużycie dobowe [kWh] jako `[[\"RRRR-MM-DD\", kWh], …]`. `metric=outdoor&agg=stats` zwraca `[dzień, średnia, min, maks]` temperatury.\n"
         . "- `GET {$api}series?device=heiko&range=24h|7d|30d&metrics=power,noel_top` – przebieg w czasie.\n"
         . "- `GET {$api}events?device=heiko_defrost` – zdarzenia odszraniania.\n\n"
