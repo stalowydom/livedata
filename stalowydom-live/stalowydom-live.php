@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.25.0
+Version: 1.25.1
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.25.0');
+define('SDL_VER', '1.25.1');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -108,6 +108,20 @@ add_action('rest_api_init', function () {
             $given = (string) $r->get_header('x-sdl-token');
             return current_user_can('manage_options') || ($token !== '' && $given !== '' && hash_equals($token, $given));
         },
+    ]);
+
+    /* zerowanie liczników QR – tylko administrator; bez parametru "code" zeruje wszystkie */
+    register_rest_route('sdl/v1', '/qr/reset', [
+        'methods'  => 'POST',
+        'callback' => function (WP_REST_Request $r) {
+            $all = get_option('sdl_qr', []);
+            $code = sanitize_key((string) $r->get_param('code'));
+            $codes = $code !== '' ? [$code] : array_keys($all);
+            foreach ($codes as $c) { unset($all[$c]); delete_transient('sdl_qr_seen_' . $c); }
+            update_option('sdl_qr', $all, false);
+            return ['reset' => $codes, 'codes' => (object) $all];
+        },
+        'permission_callback' => function () { return current_user_can('manage_options'); },
     ]);
 
     $public = function () { return true; };
