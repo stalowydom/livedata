@@ -148,6 +148,9 @@
           var nm = new Date(m[0] + '-15T12:00:00').toLocaleDateString('pl-PL', { month: 'long' });
           setK('m' + j + '_name', nm.charAt(0).toUpperCase() + nm.slice(1) + (j === 0 ? ' (do dziś)' : ''));
           setK('m' + j, nf(m[1], 0));
+          var yy = +m[0].slice(0, 4), mo = +m[0].slice(5, 7), now = new Date();
+          var nd = j === 0 ? now.getDate() : new Date(yy, mo, 0).getDate();
+          setK('m' + j + '_sub', m[1] != null ? 'średnio ' + nf(m[1] / nd, 1) + ' kWh na dzień' : '');
         });
         setK('y_kwh', nf(d.year_kwh, 0));
         setK('y_starts', nf(d.year_starts, 0));
