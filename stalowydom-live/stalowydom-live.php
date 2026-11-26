@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.31.1
+Version: 1.31.2
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.31.1');
+define('SDL_VER', '1.31.2');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -901,8 +901,8 @@ add_shortcode('sdl_bilans', function () {
   <div class="sdl-bil-split">
     <div><?php echo sdl_donut($o['split']); ?><ul class="sdl-legend"><?php echo $legend; ?></ul></div>
     <div>
-      <p>Najwięcej ciepła – ponad jedna czwarta – ucieka przez podłogę. Sama stal ścian, której wszyscy się boją w domach z kontenerów, wcale nie jest największym problemem.</p>
-      <p>Pierwszej zimy było jeszcze gorzej, niż pokazują obliczenia. Grunt pod kontenerami osiadł i pod podłogą zrobiła się pustka, przez którą hulał mroźny wiatr. Podłoga była zimna, a pompa zużywała dużo prądu. W tym roku obmurowaliśmy dom dookoła bloczkami betonowymi – podłoga jest teraz wyraźnie cieplejsza. Ile to dało, pokazuje wykres niżej.</p>
+      <p>Według obliczeń najwięcej ciepła – ponad jedna czwarta – ucieka przez podłogę. Sama stal ścian, której wszyscy się boją w domach z kontenerów, wcale nie jest największym problemem.</p>
+      <p>Obliczenia zakładają podłogę szczelnie przylegającą do gruntu. Pierwszej zimy było gorzej. Grunt pod kontenerami osiadł i pod podłogą zrobiła się pustka, przez którą hulał mroźny wiatr. Podłoga była chłodniejsza, więc trzeba było mocniej dogrzewać: wyższa temperatura wody w matach i więcej prądu zużytego przez pompę. W tym roku obmurowaliśmy dom dookoła bloczkami betonowymi – podłoga jest teraz wyraźnie cieplejsza. Ile to dało, pokazuje wykres niżej.</p>
       <figure class="sdl-bil-photo"><img src="<?php echo esc_url(SDL_URL . 'assets/img/murek-fundament.webp'); ?>" width="730" height="800" loading="lazy" alt="Murek z bloczków betonowych zamykający przestrzeń pod kontenerami domu"><figcaption>Murek z bloczków zamknął przestrzeń pod kontenerami.</figcaption></figure>
     </div>
   </div>
