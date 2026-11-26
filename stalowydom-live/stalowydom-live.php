@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.37.0
+Version: 1.38.0
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.37.0');
+define('SDL_VER', '1.38.0');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -1082,6 +1082,63 @@ add_shortcode('sdl_grzalki', function () {
   <h3 class="sdl-bil-h">Prognoza do sprawdzenia: styczeń 2027</h3>
   <p>W styczniu 2026 część ciepła uciekała przez podłogę – ziemia pod kontenerami siadła i pod domem hulał mróz. Szacowałem, że to 25–30% zużycia i że po naprawie styczeń powinien zamknąć się w <b>ok. 700 kWh zamiast 1 059</b>. <?php echo sdl_yt($B, 872, 'prognoza w filmie'); ?> Murek jest już zrobiony – w styczniu 2027 sprawdzimy to tutaj na żywo. Pierwszy sygnał już jest: na wykresie „zużycie na każdy stopień” wyżej ta jesień wychodzi wyraźnie poniżej średniej z zeszłej zimy.</p>
   <p class="sdl-note">Filmy: „Pompa ciepła zimą – czy działa i ile bierze prądu?” oraz „I mnie dopadło… Pompa ciepła stanęła przy mrozach”. Szczegółowe dane dobowe z grzałek (ze sterownika bufora) dołączymy do wykresów, gdy tylko go podłączymy – wtedy porównamy grzałki i pompę dzień po dniu przy tych samych temperaturach.</p>
+</div>
+<?php
+    return ob_get_clean();
+});
+
+/* ---------- [sdl_cop] – co naprawdę mówi COP: laboratorium kontra prawdziwa instalacja ---------- */
+add_shortcode('sdl_cop', function () {
+    wp_enqueue_style('sdl', SDL_URL . 'assets/sdl.css', [], SDL_VER);
+    $A = 'rKTyAxtBmX8'; $B = 'CftcsQWNF08';
+    ob_start(); ?>
+<div class="sdl-wrap sdl-bilans sdl-cop">
+  <p class="sdl-bil-lead">Producenci chwalą się COP 4,5 i więcej. U nas zimą wychodzi ok. 2–3. Czy to znaczy, że pompa jest słaba? Nie – to znaczy, że porównujemy dwie zupełnie różne rzeczy. Poniżej porządkujemy, co i jak mierzymy, z czym to porównujemy i dlaczego na prawdziwej instalacji łatwo się rozczarować.</p>
+
+  <h3 class="sdl-bil-h">Uczciwe zastrzeżenie: COP na razie szacujemy</h3>
+  <p>COP to stosunek ciepła oddanego przez pompę do zużytego prądu. Prąd mierzymy dokładnie, ale ciepła – jeszcze nie, bo nie mamy ciepłomierza. Dlatego wszystkie liczby poniżej to szacunki z dwóch niezależnych metod, a nie pomiar.</p>
+
+  <h3 class="sdl-bil-h">Co już wiemy z naszych danych</h3>
+  <div class="sdl-kpis">
+    <div class="sdl-kpi"><div class="sdl-kpi-label">Przy ok. −10…−12 °C</div><div class="sdl-kpi-val">≈ 1,9–2</div><div class="sdl-kpi-sub">porównanie zużycia grzałek i pompy przy podobnych mrozach</div><div class="sdl-kpi-sub"><?php echo sdl_yt($B, 1384, 'film'); ?></div></div>
+    <div class="sdl-kpi" style="border-top-color:#3b82f6"><div class="sdl-kpi-label">Punkt biwalentny, ok. −7 °C</div><div class="sdl-kpi-val">≈ 2,3–2,6</div><div class="sdl-kpi-sub">szacunek – wartość pośrednia między dwoma pomiarami obok, nie pomiar</div></div>
+    <div class="sdl-kpi"><div class="sdl-kpi-label">Przy ok. 0 °C</div><div class="sdl-kpi-val">≈ 3</div><div class="sdl-kpi-sub">bufor 700 l ogrzany o 8 °C: 6,5 kWh ciepła za 2 kWh prądu</div><div class="sdl-kpi-sub"><?php echo sdl_yt($A, 2088, 'film'); ?></div></div>
+  </div>
+  <p>Punkt biwalentny to temperatura zewnętrzna, poniżej której sama pompa przestaje wystarczać i trzeba ją wspierać (np. grzałką). W naszym klimacie przyjmuje się go zwykle w okolicach −7 °C – i to jest też jeden ze standardowych punktów, w których bada się pompy (A-7/W35). Nasza pompa 15 kW przy tej temperaturze ma jeszcze ogromny zapas mocy, więc w praktyce pracuje bez grzałki nawet w największe mrozy.</p>
+
+  <h3 class="sdl-bil-h">Skąd u producentów COP 4,5 i więcej</h3>
+  <p>Te liczby są prawdziwe – ale zmierzone w zupełnie innych warunkach niż u nas zimą. Najczęściej podaje się punkt <b>A7/W35</b>: +7 °C powietrza na zewnątrz i woda 35 °C, w laboratorium, w stanie ustalonym. Bez odszraniania, bez strat bufora i wężownicy, bez podgrzewania ciepłej wody do 48 °C.</p>
+  <div class="sdl-table-wrap"><table class="sdl-table">
+    <thead><tr><th scope="col">Warunki badania</th><th scope="col">Na zewnątrz</th><th scope="col">Woda</th><th scope="col">Typowy COP nowoczesnej pompy inwerterowej</th></tr></thead>
+    <tbody>
+      <tr><td>A7/W35 – „katalogowy”</td><td>+7 °C</td><td>35 °C</td><td>4–5</td></tr>
+      <tr><td>A2/W35</td><td>+2 °C</td><td>35 °C</td><td>3,5–4</td></tr>
+      <tr><td>A-7/W35 – okolice punktu biwalentnego</td><td>−7 °C</td><td>35 °C</td><td>2,5–3</td></tr>
+    </tbody>
+  </table></div>
+  <p>W warunkach A7/W35 COP 4–5 osiąga większość nowoczesnych pomp inwerterowych – także te tańsze. O wyniku decyduje przede wszystkim różnica między temperaturą powietrza a temperaturą wody, a dopiero potem marka. Każdy stopień niższej temperatury wody to mniej więcej 2–3% lepszy COP.</p>
+
+  <h3 class="sdl-bil-h">Dlaczego u nas zimą wychodzi mniej</h3>
+  <ul>
+    <li><b>Bufor grzejemy do 41–44 °C</b>, a nie do 35 °C.</li>
+    <li><b>Wężownica w buforze zabiera 2–3 stopnie.</b> Ciepło na maty odbieramy miedzianą wężownicą w dolnej części zbiornika. Żeby wymiana w ogóle zaszła, woda w zbiorniku musi być cieplejsza od wody w wężownicy – u nas o co najmniej 2–3 K. <?php echo sdl_yt($B, 632, 'pokazuję to w filmie'); ?></li>
+    <li><b>Maty dostają ok. 35–38 °C</b> zamiast ok. 30 °C – przez wychłodzoną podłogę (zanim powstał murek) i za małą powierzchnię mat (88 m² na 102 m² domu).</li>
+    <li><b>W zużyciu jest też ciepła woda 48 °C i odszranianie</b> – a tego w teście katalogowym nie ma.</li>
+  </ul>
+  <p>W sumie pompa pracuje na wodzie o 8–10 stopni cieplejszej niż w teście A/W35. Samo to obniża COP o 20–25% – niezależnie od tego, jaka to pompa.</p>
+  <p class="sdl-bil-calc">Przykład z dziś: jeśli na zaworze mieszającym potrzebuję 31 °C na maty, nie mogę trzymać w zbiorniku 30–35 °C ani 31–36 °C. Muszę mieć więcej, bo co najmniej 3 K tracę na wężownicy – i pompa musi grzać wodę do wyższej temperatury, czyli z gorszym COP. Gdyby zamiast wężownicy pracował wymiennik płytowy dobrany do układu pompa – bufor – wymiennik – maty, strata na wymianie spadłaby do ok. 0,6–1 K. To 2–2,5 stopnia niższa temperatura w zbiorniku, czyli ok. 5–7% lepszy COP tylko z tego jednego powodu.</p>
+
+  <h3 class="sdl-bil-h">Jakość instalacji też ma znaczenie</h3>
+  <p>Na wynik pompy wpływa nie tylko temperatura wody, ale cała hydraulika. Za małe przekroje rur, źle dobrane przepływy, a nawet kształtki i zawory – w tym samym nominalnym wymiarze dwóch producentów potrafi mieć wyraźnie inny przekrój wewnętrzny, a więc inne opory i inny przepływ w l/min. Każdy taki opór to większa różnica temperatur na wymienniku pompy, wyższa temperatura zasilania potrzebna do oddania tego samego ciepła i więcej pracy pompy obiegowej. Na papierze dwie instalacje z tą samą pompą wyglądają identycznie, w praktyce mogą różnić się COP o kilkadziesiąt procent. <?php echo sdl_yt($A, 686, 'mówię o tym w filmie'); ?></p>
+
+  <h3 class="sdl-bil-h">Czy nasze Heiko osiągnie COP 4–5?</h3>
+  <p>Spodziewam się, że tak – w ciepłe dni jesieni i wiosny, przy +7…+12 °C na zewnątrz i buforze ok. 35 °C. A po naprawie podłogi (murek już jest) i z większym buforem w garażu, czyli z niższą temperaturą wody, także częściej zimą. Sprawdzimy to na prawdziwych danych, na trzy sposoby:</p>
+  <ol>
+    <li><b>Z cykli bufora w Home Assistant</b> – wybierzemy cykle grzania, w których maty prawie nie odbierały ciepła, policzymy ciepło z przyrostu temperatur w buforze i prąd z licznika, a wyniki pogrupujemy według temperatury na zewnątrz. Zobaczymy COP przy 0, +5 i +10 °C.</li>
+    <li><b>Z danych z grzałek</b> – to najlepsza metoda dla całego sezonu. Grzałka ma COP równy 1, więc stosunek „kWh na stopień” na grzałkach i na pompie to prawdziwy sezonowy COP.</li>
+    <li><b>Z ciepłomierza</b> – dokładny pomiar w każdej chwili, bez szacowania.</li>
+  </ol>
+  <p class="sdl-note">Typowe wartości COP w tabeli to orientacyjne zakresy dla nowoczesnych pomp powietrze–woda w warunkach badań według norm (woda 35 °C); konkretne modele różnią się między sobą. Nasze wartości to szacunki do czasu montażu ciepłomierza.</p>
 </div>
 <?php
     return ob_get_clean();
