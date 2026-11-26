@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.32.2
+Version: 1.33.0
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.32.2');
+define('SDL_VER', '1.33.0');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -321,21 +321,21 @@ function sdl_daily(WP_REST_Request $r) {
    Źródła: bieżące odczyty (energy_total – przyrost w dobie, starts i run_h – największy stan licznika w dobie)
    oraz jednorazowo zaimportowane z historii HA wartości dobowe (kwh_day, starts_day, run_day), które mają pierwszeństwo. */
 function sdl_heiko_days($since) {
-    return sdl_cached("heiko_days2|$since", function () use ($since) {
+    return sdl_cached("heiko_days3|$since", function () use ($since) {
         global $wpdb;
         $t = sdl_table(); $off = sdl_offset();
-        $q = function ($metric, $expr) use ($wpdb, $t, $off, $since) {
+        $q = function ($metric, $expr, $dev = 'heiko') use ($wpdb, $t, $off, $since) {
             $rows = $wpdb->get_results($wpdb->prepare(
                 "SELECT DATE(DATE_ADD(ts, INTERVAL %d SECOND)) AS d, $expr AS v FROM $t
-                 WHERE device='heiko' AND metric=%s AND ts >= %s - INTERVAL 1 DAY GROUP BY d", $off, $metric, $since));
+                 WHERE device=%s AND metric=%s AND ts >= %s - INTERVAL 1 DAY GROUP BY d", $off, $dev, $metric, $since));
             $o = [];
             foreach ($rows as $r) if ($r->d >= $since && $r->v !== null) $o[$r->d] = (float) $r->v;
             return $o;
         };
-        $live = ['kwh' => $q('energy_total', 'MAX(value) - MIN(value)'), 'starts' => $q('starts', 'MAX(value)'), 'run' => $q('run_h', 'MAX(value)'), 'tout' => $q('outdoor', 'AVG(value)')];
-        $imp  = ['kwh' => $q('kwh_day', 'MAX(value)'), 'starts' => $q('starts_day', 'MAX(value)'), 'run' => $q('run_day', 'MAX(value)'), 'tout' => $q('tout_day', 'MAX(value)')];
+        $live = ['kwh' => $q('energy_total', 'MAX(value) - MIN(value)'), 'starts' => $q('starts', 'MAX(value)'), 'run' => $q('run_h', 'MAX(value)'), 'tout' => $q('outdoor', 'AVG(value)'), 'mat' => $q('zawor_temp', 'AVG(value)', 'maty')];
+        $imp  = ['kwh' => $q('kwh_day', 'MAX(value)'), 'starts' => $q('starts_day', 'MAX(value)'), 'run' => $q('run_day', 'MAX(value)'), 'tout' => $q('tout_day', 'MAX(value)'), 'mat' => $q('mat_day', 'MAX(value)')];
         $days = [];
-        foreach (['kwh', 'starts', 'run', 'tout'] as $k) {
+        foreach (['kwh', 'starts', 'run', 'tout', 'mat'] as $k) {
             foreach ($live[$k] + [] as $d => $v) $days[$d][$k] = $v;
             foreach ($imp[$k] as $d => $v) $days[$d][$k] = $v;      /* import z HA ma pierwszeństwo */
         }
@@ -832,34 +832,41 @@ function sdl_ozc() {
 
 function sdl_season_of($d) { $y = (int) substr($d, 0, 4); $m = (int) substr($d, 5, 2); return $m >= 8 ? $y . '/' . substr($y + 1, 2) : ($y - 1) . '/' . substr($y, 2); }
 
+function sdl_fit_seasons($by) {
+    $fits = [];
+    foreach ($by as $se => $xy) {
+        $n = count($xy); if ($n < 10) continue;
+        $mx = array_sum(array_column($xy, 0)) / $n; $my = array_sum(array_column($xy, 1)) / $n;
+        $sxx = 0; $sxy = 0; foreach ($xy as [$x, $y]) { $sxx += ($x - $mx) ** 2; $sxy += ($x - $mx) * ($y - $my); }
+        if ($sxx <= 0) continue;
+        $b = $sxy / $sxx; $a = $my - $b * $mx;
+        $fits[$se] = ['a' => round($a, 3), 'b' => round($b, 3), 'n' => $n, 'tmin' => round(min(array_column($xy, 0)), 1), 'tmax' => round(max(array_column($xy, 0)), 1), 'tmean' => round($mx, 1)];
+    }
+    ksort($fits);
+    $cmp = null; $keys = array_keys($fits);
+    if (count($keys) >= 2) {
+        $new = $fits[end($keys)]; $old = $fits[$keys[count($keys) - 2]];
+        $t = $new['tmean'];
+        $yo = $old['a'] + $old['b'] * $t; $yn = $new['a'] + $new['b'] * $t;
+        if ($yo > 0) $cmp = ['old' => $keys[count($keys) - 2], 'new' => end($keys), 't' => $t, 'old_v' => round($yo, 1), 'new_v' => round($yn, 1), 'diff' => round($yn - $yo, 1), 'pct' => round(($yn - $yo) / $yo * 100)];
+    }
+    return [(object) $fits, $cmp];
+}
+
 function sdl_seasons() {
-    return sdl_cached('seasons1', function () {
+    return sdl_cached('seasons2', function () {
         $today = (new DateTime('now', sdl_tz()))->format('Y-m-d');
-        $pts = []; $by = [];
+        $pts = []; $mpts = []; $by = []; $mby = [];
         foreach (sdl_heiko_days('2025-08-01') as $d => $v) {
-            if ($d >= $today || !isset($v['kwh'], $v['tout'])) continue;
+            if ($d >= $today || !isset($v['tout'])) continue;
             $se = sdl_season_of($d);
-            $pts[] = [$d, round($v['tout'], 1), round($v['kwh'], 2), $se];
-            if ($v['tout'] <= 14) $by[$se][] = [$v['tout'], $v['kwh']];
+            if (isset($v['kwh'])) { $pts[] = [$d, round($v['tout'], 1), round($v['kwh'], 2), $se]; if ($v['tout'] <= 14) $by[$se][] = [$v['tout'], $v['kwh']]; }
+            if (isset($v['mat']) && $v['tout'] <= 12 && $v['mat'] > 20) { $mpts[] = [$d, round($v['tout'], 1), round($v['mat'], 1), $se]; $mby[$se][] = [$v['tout'], $v['mat']]; }
         }
-        $fits = [];
-        foreach ($by as $se => $xy) {
-            $n = count($xy); if ($n < 10) continue;
-            $mx = array_sum(array_column($xy, 0)) / $n; $my = array_sum(array_column($xy, 1)) / $n;
-            $sxx = 0; $sxy = 0; foreach ($xy as [$x, $y]) { $sxx += ($x - $mx) ** 2; $sxy += ($x - $mx) * ($y - $my); }
-            if ($sxx <= 0) continue;
-            $b = $sxy / $sxx; $a = $my - $b * $mx;
-            $fits[$se] = ['a' => round($a, 3), 'b' => round($b, 3), 'n' => $n, 'tmin' => round(min(array_column($xy, 0)), 1), 'tmax' => round(max(array_column($xy, 0)), 1), 'tmean' => round($mx, 1)];
-        }
-        ksort($fits);
-        $cmp = null; $keys = array_keys($fits);
-        if (count($keys) >= 2) {
-            $new = $fits[end($keys)]; $old = $fits[$keys[count($keys) - 2]];
-            $t = $new['tmean'];                       /* porównanie przy typowej temperaturze bieżącego sezonu */
-            $yo = $old['a'] + $old['b'] * $t; $yn = $new['a'] + $new['b'] * $t;
-            if ($yo > 0) $cmp = ['old' => $keys[count($keys) - 2], 'new' => end($keys), 't' => $t, 'kwh_old' => round($yo, 1), 'kwh_new' => round($yn, 1), 'pct' => round(($yn - $yo) / $yo * 100)];
-        }
-        return ['points' => $pts, 'fits' => (object) $fits, 'compare' => $cmp];
+        [$fits, $cmp] = sdl_fit_seasons($by);
+        [$mfits, $mcmp] = sdl_fit_seasons($mby);
+        if ($cmp) { $cmp['kwh_old'] = $cmp['old_v']; $cmp['kwh_new'] = $cmp['new_v']; }
+        return ['points' => $pts, 'fits' => $fits, 'compare' => $cmp, 'mat_points' => $mpts, 'mat_fits' => $mfits, 'mat_compare' => $mcmp];
     }, 600);
 }
 
@@ -948,6 +955,16 @@ add_shortcode('sdl_bilans', function () {
   ?></p>
   <div class="sdl-card"><div class="sdl-canvas sdl-chart-tall"><canvas data-b="chart" role="img" aria-label="Dobowe zużycie prądu pompy w funkcji temperatury zewnętrznej – sezon przed i po murku"></canvas></div>
   <p class="sdl-note">Każdy punkt to jedna doba: średnia temperatura zewnętrzna i zużycie prądu przez pompę (ogrzewanie razem z ciepłą wodą, ok. 2–3 kWh na dobę przez cały rok). Linie pokazują trend dla dni do 14 °C. Porównujemy zużycie przy tej samej temperaturze, więc łagodniejsza czy ostrzejsza zima nie zafałszowuje wyniku. Dane z pomiarów od stycznia 2026; wykres uzupełnia się sam każdego dnia.</p></div>
+
+  <h3 class="sdl-bil-h">Temperatura wody w matach: zeszła zima i teraz</h3>
+  <?php $mc = $S['mat_compare']; ?>
+  <p class="sdl-bil-lead"><?php
+    if ($mc) echo esc_html('Przy średniej ' . sdl_num($mc['t']) . ' °C na zewnątrz woda do mat sufitowych ma teraz ok. ' . sdl_num($mc['new_v']) . ' °C, a zeszłej zimy przy tej samej temperaturze potrzebowała ok. ' . sdl_num($mc['old_v']) . ' °C – o ' . sdl_num(abs($mc['diff'])) . ' °C ' . ($mc['diff'] <= 0 ? 'mniej' : 'więcej') . '.');
+    else echo 'Porównanie pojawi się, gdy w nowym sezonie zbierze się co najmniej 10 dni grzewczych.';
+  ?></p>
+  <p>To drugi, niezależny dowód. Nie zależy od wydajności pompy: im mniej ciepła ucieka, tym chłodniejsza woda wystarcza, żeby w domu było tak samo ciepło. W mrozy zeszłej zimy trzeba było ustawiać na zaworze mieszającym nawet 37 °C.</p>
+  <div class="sdl-card"><div class="sdl-canvas sdl-chart-tall"><canvas data-b="chart-mat" role="img" aria-label="Średnia dobowa temperatura wody zasilającej maty w funkcji temperatury zewnętrznej – sezon przed i po murku"></canvas></div>
+  <p class="sdl-note">Średnia dobowa temperatura wody za zaworem mieszającym (zasilanie mat sufitowych) – dane z historii sterownika Sinum i z Home Assistant, dla dni grzewczych do 12 °C. Temperatura zewnętrzna z tego samego czujnika co na wykresie wyżej.</p></div>
 </div>
 <?php
     return ob_get_clean();
