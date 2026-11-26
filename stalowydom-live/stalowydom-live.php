@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.33.1
+Version: 1.34.0
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.33.1');
+define('SDL_VER', '1.34.0');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -970,6 +970,62 @@ add_shortcode('sdl_bilans', function () {
     return ob_get_clean();
 });
 
+/* ---------- łączność: [sdl_starlink] – sprzęt, dlaczego satelita i ile danych dom wysyła na tę stronę ---------- */
+function sdl_stream_stats() {
+    return sdl_cached('stream1', function () {
+        global $wpdb; $t = sdl_table();
+        $rows = $wpdb->get_results("SELECT device, COUNT(*) AS n, COUNT(DISTINCT metric) AS m FROM $t WHERE ts >= UTC_TIMESTAMP() - INTERVAL 1 DAY GROUP BY device ORDER BY n DESC");
+        $total = (int) $wpdb->get_var("SELECT COUNT(*) FROM $t");
+        $first = $wpdb->get_var("SELECT MIN(ts) FROM $t WHERE metric NOT IN ('kwh_day','starts_day','run_day','tout_day','mat_day')");
+        $dev = []; $day = 0;
+        foreach ($rows as $r) { if (in_array($r->device, ['heiko_defrost'], true)) continue; $dev[] = [$r->device, (int) $r->n, (int) $r->m]; $day += (int) $r->n; }
+        return ['devices' => $dev, 'day' => $day, 'total' => $total, 'first' => $first];
+    }, 600);
+}
+
+add_shortcode('sdl_starlink', function () {
+    wp_enqueue_style('sdl', SDL_URL . 'assets/sdl.css', [], SDL_VER);
+    $st = sdl_stream_stats();
+    $names = ['heiko' => 'Pompa ciepła', 'dom' => 'Cały dom (licznik)', 'reqnet' => 'Rekuperator', 'maty' => 'Maty i zawór mieszający', 'pompa_cwu' => 'Pompa cyrkulacyjna CWU', 'serwer' => 'Serwer domowy'];
+    $pushes = 288; $bytes_push = 1200;                         /* jedna wysyłka: wszystkie urządzenia, ok. 1,2 KB danych */
+    $mb_day = $pushes * $bytes_push / 1e6; $mb_https = 3.5;
+    $sec = $mb_https * 8 / 200;                                 /* przy 200 Mbit/s */
+    $nf = function ($v) { return number_format((float) $v, 0, ',', ' '); };
+    ob_start(); ?>
+<div class="sdl-wrap sdl-bilans sdl-starlink">
+  <h3 class="sdl-bil-h">Dlaczego internet z kosmosu</h3>
+  <p>Zasięg komórkowy na naszej działce jest beznadziejny. Od najbliższych nadajników skutecznie odcinają nas dwie ściany lasu, a jedyny maszt z dobrą, niczym nieprzesłoniętą widocznością stoi ok. 12 km dalej w linii prostej.</p>
+  <p>Do tego sam dom działa jak klatka Faradaya – cztery stalowe kontenery tłumią sygnał komórkowy prawie do zera. Ratuje nas stabilne i szybkie Wi-Fi z satelity: dziś ok. <b>200 Mbit/s</b>. Rozmowy telefoniczne idą przez internet (VoIP i połączenia przez Wi-Fi – Wi-Fi Calling), więc w domu dzwonimy normalnie, mimo że telefon „nie widzi” sieci.</p>
+
+  <h3 class="sdl-bil-h">Sprzęt</h3>
+  <div class="sdl-kpis sdl-starlink-hw">
+    <div class="sdl-kpi"><div class="sdl-kpi-label">Antena</div><div class="sdl-kpi-val sdl-kpi-txt">Starlink Mini</div><div class="sdl-kpi-sub">terminal satelitarny</div></div>
+    <div class="sdl-kpi"><div class="sdl-kpi-label">Router główny</div><div class="sdl-kpi-val sdl-kpi-txt">Router Gen3</div><div class="sdl-kpi-sub">serce sieci w domu</div></div>
+    <div class="sdl-kpi"><div class="sdl-kpi-label">Sieć mesh</div><div class="sdl-kpi-val sdl-kpi-txt">2 × Router Mini</div><div class="sdl-kpi-sub">Wi-Fi w całym domu i gniazda LAN dla komputerów stacjonarnych</div></div>
+  </div>
+  <p>Stalowe ściany zatrzymują nie tylko sygnał z zewnątrz, ale też Wi-Fi między kontenerami. Dlatego oprócz głównego routera pracują dwa routery Mini w sieci mesh – rozprowadzają Wi-Fi po całym domu, a komputery stacjonarne są podłączone do nich przewodem LAN.</p>
+
+  <h3 class="sdl-bil-h">Ciekawostka: ile danych dom wysyła na tę stronę</h3>
+  <p>Wszystkie liczby, wykresy i kafelki na tej stronie przychodzą prosto z naszego domu – przez to samo łącze satelitarne. Co 5 minut Home Assistant zbiera odczyty ze wszystkich urządzeń i wysyła je tutaj: to <?php echo (int) $pushes; ?> wysyłek na dobę, za każdym razem ok. 56 wartości (temperatury, moce, liczniki energii, przepływy powietrza).</p>
+  <div class="sdl-kpis">
+    <div class="sdl-kpi"><div class="sdl-kpi-label">Odczytów w ostatniej dobie</div><div class="sdl-kpi-val"><?php echo $nf($st['day']); ?></div><div class="sdl-kpi-sub">zapisanych w bazie strony</div></div>
+    <div class="sdl-kpi"><div class="sdl-kpi-label">Dane na dobę</div><div class="sdl-kpi-val">ok. <?php echo sdl_num($mb_day, 2); ?> <small>MB</small></div><div class="sdl-kpi-sub">z szyfrowaniem i nagłówkami ok. <?php echo sdl_num($mb_https, 1); ?> MB</div></div>
+    <div class="sdl-kpi"><div class="sdl-kpi-label">Przy 200 Mbit/s to</div><div class="sdl-kpi-val"><?php echo sdl_num($sec, 2); ?> <small>s</small></div><div class="sdl-kpi-sub">tyle trwałoby wysłanie danych z całej doby naraz</div></div>
+    <div class="sdl-kpi"><div class="sdl-kpi-label">Odczytów w bazie łącznie</div><div class="sdl-kpi-val"><?php echo $nf($st['total']); ?></div><div class="sdl-kpi-sub"><?php echo $st['first'] ? 'pomiary od ' . esc_html(wp_date('j.m.Y', strtotime($st['first'] . ' UTC'), sdl_tz())) . ' + historia z Home Assistant' : ''; ?></div></div>
+  </div>
+  <div class="sdl-card">
+    <div class="sdl-head"><h3>Kto ile „mówi” – ostatnia doba</h3></div>
+    <div class="sdl-table-wrap"><table class="sdl-table">
+      <thead><tr><th scope="col">Urządzenie</th><th scope="col">Rodzajów odczytów</th><th scope="col">Odczytów na dobę</th></tr></thead>
+      <tbody><?php foreach ($st['devices'] as [$d, $n, $m]) { echo '<tr><td>' . esc_html($names[$d] ?? $d) . '</td><td>' . (int) $m . '</td><td>' . $nf($n) . '</td></tr>'; } ?></tbody>
+    </table></div>
+    <p class="sdl-note">Wysyłane są tylko odczyty urządzeń – bez adresów, nazw komputerów czy innych informacji o domowej sieci. Gdy łącze na chwilę zniknie (np. w nocy, gdy Starlink instaluje aktualizacje), na stronie pojawi się przerwa w danych, a odczyty popłyną dalej po powrocie sieci.</p>
+  </div>
+</div>
+<?php
+    return ob_get_clean();
+});
+
 /* ---------- odszranianie: [sdl_odszranianie device="heiko_defrost"] ---------- */
 add_shortcode('sdl_odszranianie', function ($atts) {
     $a = shortcode_atts(['device' => 'heiko_defrost'], $atts);
@@ -1113,6 +1169,7 @@ add_action('init', function () {
         . "- `GET {$api}daily?device=DEVICE&metric=energy_total&days=30` – zużycie dobowe [kWh] jako `[[\"RRRR-MM-DD\", kWh], …]`. `metric=outdoor&agg=stats` zwraca `[dzień, średnia, min, maks]` temperatury.\n"
         . "- `GET {$api}series?device=heiko&range=24h|7d|30d&metrics=power,noel_top` – przebieg w czasie.\n"
         . "- `GET {$api}events?device=heiko_defrost` – zdarzenia odszraniania.\n"
+        . "- Łączność: " . $u('/starlink/') . " – internet satelitarny Starlink (antena Mini, router Gen3, 2 routery Mini w sieci mesh) i statystyki przesyłu danych z domu na stronę.\n"
         . "- `GET {$api}seasons` – dobowe zużycie prądu pompy i średnia temperatura zewnętrzna (od 01.2026), trendy dla sezonów grzewczych i porównanie przy tej samej temperaturze (efekt obmurowania podłogi). Obliczenia strat ciepła (OZC) są opisane na stronie projektu.\n\n"
         . "Urządzenia (DEVICE) i metryki:\n"
         . "- `dom` – cały dom: `power` [W], `l1` `l2` `l3` [W], `energy_total` [kWh, licznik narastający], `outdoor` [°C].\n"
