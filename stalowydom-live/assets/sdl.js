@@ -140,12 +140,13 @@
         setK('st_month', nf(d.starts_month_avg, 1));
         setK('y_kwh', nf(d.year_kwh, 0));
         setK('y_starts', nf(d.year_starts, 0));
+        setK('y_starts_avg', nf(d.year_starts_avg, 1));
         var yr = $('[data-k="y_run"]');
         if (yr && d.year_run_h != null) yr.innerHTML = nf(Math.round(d.year_run_h), 0) + ' <small>h</small>';
         setK('y_run_sub', d.year_run_h != null ? 'to ok. ' + nf(d.year_run_h / 24, 0) + ' pełnych dób pracy' : '');
         if (d.year_since && d.year_since.slice(5) !== '01-01') {
           var ylab = 'Od ' + new Date(d.year_since + 'T12:00:00').toLocaleDateString('pl-PL', { day: 'numeric', month: 'numeric' });
-          ['y_label', 'y_label2', 'y_label3'].forEach(function (k) { setK(k, ylab); });
+          ['y_label', 'y_label2', 'y_label3', 'y_label4'].forEach(function (k) { setK(k, ylab); });
         }
         setK('outdoor', nf(v.outdoor, 1));
         ['noel_top', 'noel_mid', 'noel_bot', 'supply'].forEach(function (m) {

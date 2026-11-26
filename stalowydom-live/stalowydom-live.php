@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.27.1
+Version: 1.28.0
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.27.1');
+define('SDL_VER', '1.28.0');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -353,6 +353,7 @@ function sdl_heiko_totals() {
         'starts_month_avg' => round($ms / $daysIn($month), 1),
         'year_kwh'   => round($yk, 1),
         'year_starts'=> (int) round($ys),
+        'year_starts_avg' => $days ? round($ys / $daysIn(array_key_first($days)), 1) : null,
         'year_run_h' => round($yr, 1),
         'year_since' => $days ? array_key_first($days) : null,
     ];
@@ -427,7 +428,7 @@ function sdl_summary_heiko($dev = 'heiko') {
     if (isset($v['noel_top'])) $t[] = 'Bufor NOEL 700 l – góra ' . sdl_num($v['noel_top']) . ' °C, środek ' . sdl_num($v['noel_mid'] ?? null) . ' °C, dół ' . sdl_num($v['noel_bot'] ?? null) . ' °C.';
     $F = sdl_frost($v['outdoor'] ?? null, $v['rh_out'] ?? null, $v['tp'] ?? null, ($v['power'] ?? 0) > 300);
     if ($F) $t[] = 'Warunki szronienia: wilgotność na zewnątrz ' . sdl_num($F['rh'], 0) . ' %, woda w powietrzu ' . sdl_num($F['ah']) . ' g/m³, punkt rosy ' . sdl_num($F['dew']) . ' °C, punkt szronu ' . sdl_num($F['frost']) . ' °C, parownik ' . sdl_num($F['ts']) . ' °C' . ($F['est'] ? ' (szacunek)' : '') . ', potencjał szronienia ' . sdl_num($F['pot']) . ' g/m³ (' . sdl_frost_level($F['pot']) . ').';
-    if (isset($L['year_kwh'])) $t[] = 'Starty na dobę: średnio ' . sdl_num($L['starts_week_avg'] ?? null) . ' w tym tygodniu i ' . sdl_num($L['starts_month_avg'] ?? null) . ' w tym miesiącu; wczoraj ' . sdl_num($L['starts_yday'] ?? null, 0) . '. Od ' . esc_html($L['year_since'] ?? '') . ': zużycie ' . sdl_num($L['year_kwh'], 0) . ' kWh, ' . sdl_num($L['year_starts'] ?? null, 0) . ' startów, czas pracy sprężarki ' . sdl_num($L['year_run_h'] ?? null, 0) . ' h.';
+    if (isset($L['year_kwh'])) $t[] = 'Starty na dobę: średnio ' . sdl_num($L['starts_week_avg'] ?? null) . ' w tym tygodniu i ' . sdl_num($L['starts_month_avg'] ?? null) . ' w tym miesiącu; wczoraj ' . sdl_num($L['starts_yday'] ?? null, 0) . '. Od ' . esc_html($L['year_since'] ?? '') . ': zużycie ' . sdl_num($L['year_kwh'], 0) . ' kWh, ' . sdl_num($L['year_starts'] ?? null, 0) . ' startów (średnio ' . sdl_num($L['year_starts_avg'] ?? null) . ' na dobę), czas pracy sprężarki ' . sdl_num($L['year_run_h'] ?? null, 0) . ' h.';
     $t[] = 'Starty sprężarki dziś: ' . sdl_num($v['starts'] ?? null, 0) . '. Odszraniania dziś: ' . sdl_num($v['defrost_n'] ?? null, 0) . ' (łącznie ' . sdl_num(isset($v['defrost_h']) ? $v['defrost_h'] * 60 : null) . ' min).';
     if (isset($L['today_standby'])) $t[] = 'Czuwanie dziś (sprężarka stoi: elektronika i pompa obiegowa): ' . sdl_kwh_txt($L['today_standby']) . ', starty pompy obiegowej: ' . sdl_num($v['circ_starts'] ?? null, 0) . '.';
     $o = [];
@@ -542,6 +543,7 @@ add_shortcode('sdl_heiko', function ($atts) {
     <div class="sdl-kpi sdl-kpi-year"><div class="sdl-kpi-label"><span data-k="y_label">Od początku roku</span>: zużycie</div><div class="sdl-kpi-val"><span data-k="y_kwh">–</span> <small>kWh</small></div></div>
     <div class="sdl-kpi sdl-kpi-year"><div class="sdl-kpi-label"><span data-k="y_label2">Od początku roku</span>: starty</div><div class="sdl-kpi-val"><span data-k="y_starts">–</span></div></div>
     <div class="sdl-kpi sdl-kpi-year"><div class="sdl-kpi-label"><span data-k="y_label3">Od początku roku</span>: czas pracy</div><div class="sdl-kpi-val" data-k="y_run">–</div><div class="sdl-kpi-sub" data-k="y_run_sub"></div></div>
+    <div class="sdl-kpi sdl-kpi-year"><div class="sdl-kpi-label"><span data-k="y_label4">Od początku roku</span>: starty na dobę</div><div class="sdl-kpi-val"><span data-k="y_starts_avg">–</span> <small>/ dobę</small></div><div class="sdl-kpi-sub">średnia dobowa</div></div>
   </div>
 
   <div class="sdl-row">
@@ -943,7 +945,7 @@ add_action('init', function () {
         . "- `GET {$api}events?device=heiko_defrost` – zdarzenia odszraniania.\n\n"
         . "Urządzenia (DEVICE) i metryki:\n"
         . "- `dom` – cały dom: `power` [W], `l1` `l2` `l3` [W], `energy_total` [kWh, licznik narastający], `outdoor` [°C].\n"
-        . "- `heiko` – pompa ciepła: `power` [W], `energy_total` `energy_co` `energy_cwu` `energy_standby` [kWh, narastająco], `noel_top` `noel_mid` `noel_bot` `supply` `outdoor` [°C], `starts`, `defrost_n`, `defrost_h` [h], `circ_starts` (dzisiejsze), `rh_out` (wilgotność na zewnątrz) [%], `tp` (temperatura parownika) [°C], `fan` (obroty wentylatora), `run_h` (czas pracy sprężarki dziś) [h]. Odpowiedź `latest?device=heiko` zawiera też `starts_week_avg`, `starts_month_avg` (średnio startów na dobę), `year_kwh`, `year_starts`, `year_run_h` (od początku roku) i `year_since`.\n"
+        . "- `heiko` – pompa ciepła: `power` [W], `energy_total` `energy_co` `energy_cwu` `energy_standby` [kWh, narastająco], `noel_top` `noel_mid` `noel_bot` `supply` `outdoor` [°C], `starts`, `defrost_n`, `defrost_h` [h], `circ_starts` (dzisiejsze), `rh_out` (wilgotność na zewnątrz) [%], `tp` (temperatura parownika) [°C], `fan` (obroty wentylatora), `run_h` (czas pracy sprężarki dziś) [h]. Odpowiedź `latest?device=heiko` zawiera też `starts_week_avg`, `starts_month_avg` (średnio startów na dobę), `year_kwh`, `year_starts`, `year_run_h`, `year_starts_avg` (od początku roku) i `year_since`.\n"
         . "- `reqnet` – rekuperator: `flow_in` `flow_out` [m³/h], `czerpnia` `nawiew` `wyciag` `wyrzutnia` [°C], `power` [W], `energy_total` [kWh].\n"
         . "- `maty` – temperatury pomieszczeń: `salon` `sypialnia` `lazienka` [°C], `rosa` (punkt rosy) [°C]; zawór mieszający: `zawor_zadana` (temperatura zadana), `zawor_temp` (zasilanie mat), `zawor_powrot` (powrót z mat), `zawor_przed` (woda z wężownicy w buforze przed zaworem) [°C], `zawor_otwarcie` [%].\n"
         . "- `pompa_cwu` – pompa cyrkulacyjna: `energy_total` [kWh], `starts` (dziś), `run_h` `run_h_yday` [h].\n"
