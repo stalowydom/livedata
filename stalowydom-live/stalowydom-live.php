@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.26.1
+Version: 1.27.0
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.26.1');
+define('SDL_VER', '1.27.0');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -254,6 +254,7 @@ function sdl_latest(WP_REST_Request $r) {
              AND DATE(DATE_ADD(ts, INTERVAL %d SECOND)) = DATE(DATE_ADD(UTC_TIMESTAMP(), INTERVAL %d SECOND)) - INTERVAL 1 DAY",
             $device, $off, $off));
         $out['starts_yday'] = $y !== null ? (int) round((float) $y) : null;
+        if ($device === 'heiko') $out = array_merge($out, sdl_heiko_totals());
         return $out;
     }, 60);
 }
@@ -307,6 +308,54 @@ function sdl_daily(WP_REST_Request $r) {
             return $out;
         }, $rows);
     }, 600);
+}
+
+/* ---------- pompa ciepła: doby od początku roku (zużycie, starty, czas pracy) ----------
+   Źródła: bieżące odczyty (energy_total – przyrost w dobie, starts i run_h – największy stan licznika w dobie)
+   oraz jednorazowo zaimportowane z historii HA wartości dobowe (kwh_day, starts_day, run_day), które mają pierwszeństwo. */
+function sdl_heiko_days($since) {
+    return sdl_cached("heiko_days|$since", function () use ($since) {
+        global $wpdb;
+        $t = sdl_table(); $off = sdl_offset();
+        $q = function ($metric, $expr) use ($wpdb, $t, $off, $since) {
+            $rows = $wpdb->get_results($wpdb->prepare(
+                "SELECT DATE(DATE_ADD(ts, INTERVAL %d SECOND)) AS d, $expr AS v FROM $t
+                 WHERE device='heiko' AND metric=%s AND ts >= %s - INTERVAL 1 DAY GROUP BY d", $off, $metric, $since));
+            $o = [];
+            foreach ($rows as $r) if ($r->d >= $since && $r->v !== null) $o[$r->d] = (float) $r->v;
+            return $o;
+        };
+        $live = ['kwh' => $q('energy_total', 'MAX(value) - MIN(value)'), 'starts' => $q('starts', 'MAX(value)'), 'run' => $q('run_h', 'MAX(value)')];
+        $imp  = ['kwh' => $q('kwh_day', 'MAX(value)'), 'starts' => $q('starts_day', 'MAX(value)'), 'run' => $q('run_day', 'MAX(value)')];
+        $days = [];
+        foreach (['kwh', 'starts', 'run'] as $k) {
+            foreach ($live[$k] + [] as $d => $v) $days[$d][$k] = $v;
+            foreach ($imp[$k] as $d => $v) $days[$d][$k] = $v;      /* import z HA ma pierwszeństwo */
+        }
+        ksort($days);
+        return $days;
+    }, 600);
+}
+
+function sdl_heiko_totals() {
+    $tz = sdl_tz();
+    $now = new DateTime('now', $tz);
+    $today = $now->format('Y-m-d');
+    $days = sdl_heiko_days($now->format('Y') . '-01-01');
+    $sum = function ($from, $k) use ($days, $today) { $s = 0; $n = 0; foreach ($days as $d => $v) if ($d >= $from && $d <= $today && isset($v[$k])) { $s += $v[$k]; $n++; } return [$s, $n]; };
+    $week = (clone $now)->modify('monday this week')->format('Y-m-d');
+    $month = $now->format('Y-m-01');
+    $daysIn = function ($from) use ($now, $tz) { return (int) (new DateTime($from, $tz))->diff(new DateTime($now->format('Y-m-d'), $tz))->days + 1; };
+    [$ws] = $sum($week, 'starts'); [$ms] = $sum($month, 'starts');
+    [$yk] = $sum('0000', 'kwh'); [$ys] = $sum('0000', 'starts'); [$yr] = $sum('0000', 'run');
+    return [
+        'starts_week_avg'  => round($ws / $daysIn($week), 1),
+        'starts_month_avg' => round($ms / $daysIn($month), 1),
+        'year_kwh'   => round($yk, 1),
+        'year_starts'=> (int) round($ys),
+        'year_run_h' => round($yr, 1),
+        'year_since' => $days ? array_key_first($days) : null,
+    ];
 }
 
 /* ---------- dane po stronie serwera: dla czytników ekranu, wyszukiwarek i agentów AI (wygląd bez zmian) ---------- */
@@ -378,6 +427,7 @@ function sdl_summary_heiko($dev = 'heiko') {
     if (isset($v['noel_top'])) $t[] = 'Bufor NOEL 700 l – góra ' . sdl_num($v['noel_top']) . ' °C, środek ' . sdl_num($v['noel_mid'] ?? null) . ' °C, dół ' . sdl_num($v['noel_bot'] ?? null) . ' °C.';
     $F = sdl_frost($v['outdoor'] ?? null, $v['rh_out'] ?? null, $v['tp'] ?? null, ($v['power'] ?? 0) > 300);
     if ($F) $t[] = 'Warunki szronienia: wilgotność na zewnątrz ' . sdl_num($F['rh'], 0) . ' %, woda w powietrzu ' . sdl_num($F['ah']) . ' g/m³, punkt rosy ' . sdl_num($F['dew']) . ' °C, punkt szronu ' . sdl_num($F['frost']) . ' °C, parownik ' . sdl_num($F['ts']) . ' °C' . ($F['est'] ? ' (szacunek)' : '') . ', potencjał szronienia ' . sdl_num($F['pot']) . ' g/m³ (' . sdl_frost_level($F['pot']) . ').';
+    if (isset($L['year_kwh'])) $t[] = 'Starty na dobę: średnio ' . sdl_num($L['starts_week_avg'] ?? null) . ' w tym tygodniu i ' . sdl_num($L['starts_month_avg'] ?? null) . ' w tym miesiącu; wczoraj ' . sdl_num($L['starts_yday'] ?? null, 0) . '. Od ' . esc_html($L['year_since'] ?? '') . ': zużycie ' . sdl_num($L['year_kwh'], 0) . ' kWh, ' . sdl_num($L['year_starts'] ?? null, 0) . ' startów, czas pracy sprężarki ' . sdl_num($L['year_run_h'] ?? null, 0) . ' h.';
     $t[] = 'Starty sprężarki dziś: ' . sdl_num($v['starts'] ?? null, 0) . '. Odszraniania dziś: ' . sdl_num($v['defrost_n'] ?? null, 0) . ' (łącznie ' . sdl_num(isset($v['defrost_h']) ? $v['defrost_h'] * 60 : null) . ' min).';
     if (isset($L['today_standby'])) $t[] = 'Czuwanie dziś (sprężarka stoi: elektronika i pompa obiegowa): ' . sdl_kwh_txt($L['today_standby']) . ', starty pompy obiegowej: ' . sdl_num($v['circ_starts'] ?? null, 0) . '.';
     $o = [];
@@ -470,15 +520,28 @@ add_shortcode('sdl_heiko', function ($atts) {
 <div class="sdl-wrap" data-sdl-device="<?php echo esc_attr($a['device']); ?>">
   <div class="sdl-status"><span class="sdl-dot"></span><span class="sdl-status-text">Ładowanie danych…</span></div>
 
-  <div class="sdl-kpis">
+  <div class="sdl-kpis sdl-kpis-5">
     <div class="sdl-kpi"><div class="sdl-kpi-label">Zużycie dziś</div><div class="sdl-kpi-val"><span data-k="today">–</span> <small>kWh</small></div><div class="sdl-kpi-sub" data-k="today_split"></div></div>
     <div class="sdl-kpi"><div class="sdl-kpi-label">Wczoraj</div><div class="sdl-kpi-val"><span data-k="yesterday">–</span> <small>kWh</small></div><div class="sdl-kpi-sub" data-k="yesterday_split"></div></div>
     <div class="sdl-kpi"><div class="sdl-kpi-label">Moc teraz</div><div class="sdl-kpi-val"><span data-k="power">–</span> <small data-k="power_unit">W</small></div></div>
     <div class="sdl-kpi" title="Energia pobrana, gdy sprężarka stoi: elektronika (ok. 12 W) i okresowe włączenia pompy obiegowej (ok. 109 W)."><div class="sdl-kpi-label">Czuwanie dziś</div><div class="sdl-kpi-val"><span data-k="standby">–</span> <small data-k="standby_unit">Wh</small></div><div class="sdl-kpi-sub">starty pompy obiegowej: <span data-k="circ">–</span></div></div>
     <div class="sdl-kpi"><div class="sdl-kpi-label">Na zewnątrz</div><div class="sdl-kpi-val"><span data-k="outdoor">–</span> <small>°C</small></div></div>
+  </div>
+  <div class="sdl-kpis sdl-kpis-5">
+    <div class="sdl-kpi"><div class="sdl-kpi-label">Starty dziś</div><div class="sdl-kpi-val"><span data-k="st_today">–</span></div><div class="sdl-kpi-sub" data-k="st_today_sub"></div></div>
+    <div class="sdl-kpi"><div class="sdl-kpi-label">Starty wczoraj</div><div class="sdl-kpi-val"><span data-k="st_yday">–</span></div></div>
+    <div class="sdl-kpi"><div class="sdl-kpi-label">Starty – ten tydzień</div><div class="sdl-kpi-val"><span data-k="st_week">–</span> <small>/ dobę</small></div><div class="sdl-kpi-sub">średnio od poniedziałku</div></div>
+    <div class="sdl-kpi"><div class="sdl-kpi-label">Starty – ten miesiąc</div><div class="sdl-kpi-val"><span data-k="st_month">–</span> <small>/ dobę</small></div><div class="sdl-kpi-sub">średnio od 1. dnia miesiąca</div></div>
+  </div>
+  <div class="sdl-kpis sdl-kpis-5">
     <div class="sdl-kpi"><div class="sdl-kpi-label"><span data-k="m_cur_name">Ten miesiąc</span> (do dziś)</div><div class="sdl-kpi-val"><span data-k="m_cur">–</span> <small>kWh</small></div></div>
     <div class="sdl-kpi"><div class="sdl-kpi-label" data-k="m_prev_name">Poprzedni miesiąc</div><div class="sdl-kpi-val"><span data-k="m_prev">–</span> <small>kWh</small></div></div>
-    <div class="sdl-kpi" title="Suma czasu, w którym sprężarka pracowała od północy (wg poboru mocy)."><div class="sdl-kpi-label">Praca sprężarki dziś</div><div class="sdl-kpi-val" data-k="run">–</div><div class="sdl-kpi-sub">starty dziś: <span data-k="run_starts">–</span></div></div>
+    <div class="sdl-kpi" title="Suma czasu, w którym sprężarka pracowała od północy (wg poboru mocy)."><div class="sdl-kpi-label">Praca sprężarki dziś</div><div class="sdl-kpi-val" data-k="run">–</div></div>
+  </div>
+  <div class="sdl-kpis sdl-kpis-5">
+    <div class="sdl-kpi sdl-kpi-year"><div class="sdl-kpi-label"><span data-k="y_label">Od początku roku</span>: zużycie</div><div class="sdl-kpi-val"><span data-k="y_kwh">–</span> <small>kWh</small></div></div>
+    <div class="sdl-kpi sdl-kpi-year"><div class="sdl-kpi-label"><span data-k="y_label2">Od początku roku</span>: starty</div><div class="sdl-kpi-val"><span data-k="y_starts">–</span></div></div>
+    <div class="sdl-kpi sdl-kpi-year"><div class="sdl-kpi-label"><span data-k="y_label3">Od początku roku</span>: czas pracy</div><div class="sdl-kpi-val" data-k="y_run">–</div></div>
   </div>
 
   <div class="sdl-row">
@@ -880,7 +943,7 @@ add_action('init', function () {
         . "- `GET {$api}events?device=heiko_defrost` – zdarzenia odszraniania.\n\n"
         . "Urządzenia (DEVICE) i metryki:\n"
         . "- `dom` – cały dom: `power` [W], `l1` `l2` `l3` [W], `energy_total` [kWh, licznik narastający], `outdoor` [°C].\n"
-        . "- `heiko` – pompa ciepła: `power` [W], `energy_total` `energy_co` `energy_cwu` `energy_standby` [kWh, narastająco], `noel_top` `noel_mid` `noel_bot` `supply` `outdoor` [°C], `starts`, `defrost_n`, `defrost_h` [h], `circ_starts` (dzisiejsze), `rh_out` (wilgotność na zewnątrz) [%], `tp` (temperatura parownika) [°C], `fan` (obroty wentylatora), `run_h` (czas pracy sprężarki dziś) [h].\n"
+        . "- `heiko` – pompa ciepła: `power` [W], `energy_total` `energy_co` `energy_cwu` `energy_standby` [kWh, narastająco], `noel_top` `noel_mid` `noel_bot` `supply` `outdoor` [°C], `starts`, `defrost_n`, `defrost_h` [h], `circ_starts` (dzisiejsze), `rh_out` (wilgotność na zewnątrz) [%], `tp` (temperatura parownika) [°C], `fan` (obroty wentylatora), `run_h` (czas pracy sprężarki dziś) [h]. Odpowiedź `latest?device=heiko` zawiera też `starts_week_avg`, `starts_month_avg` (średnio startów na dobę), `year_kwh`, `year_starts`, `year_run_h` (od początku roku) i `year_since`.\n"
         . "- `reqnet` – rekuperator: `flow_in` `flow_out` [m³/h], `czerpnia` `nawiew` `wyciag` `wyrzutnia` [°C], `power` [W], `energy_total` [kWh].\n"
         . "- `maty` – temperatury pomieszczeń: `salon` `sypialnia` `lazienka` [°C], `rosa` (punkt rosy) [°C]; zawór mieszający: `zawor_zadana` (temperatura zadana), `zawor_temp` (zasilanie mat), `zawor_powrot` (powrót z mat), `zawor_przed` (woda z wężownicy w buforze przed zaworem) [°C], `zawor_otwarcie` [%].\n"
         . "- `pompa_cwu` – pompa cyrkulacyjna: `energy_total` [kWh], `starts` (dziś), `run_h` `run_h_yday` [h].\n"

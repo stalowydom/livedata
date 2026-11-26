@@ -133,7 +133,19 @@
           var rm = Math.round(v.run_h * 60), rel = $('[data-k="run"]');
           if (rel) rel.innerHTML = rm < 60 ? rm + ' <small>min</small>' : Math.floor(rm / 60) + ' <small>h</small> ' + (rm % 60) + ' <small>min</small>';
         }
-        setK('run_starts', nf(v.starts, 0));
+        setK('st_today', nf(v.starts, 0));
+        setK('st_today_sub', v.starts_co != null ? 'CO ' + nf(v.starts_co, 0) + ' · CWU ' + nf(v.starts_cwu, 0) : '');
+        setK('st_yday', nf(d.starts_yday, 0));
+        setK('st_week', nf(d.starts_week_avg, 1));
+        setK('st_month', nf(d.starts_month_avg, 1));
+        setK('y_kwh', nf(d.year_kwh, 0));
+        setK('y_starts', nf(d.year_starts, 0));
+        var yr = $('[data-k="y_run"]');
+        if (yr && d.year_run_h != null) yr.innerHTML = nf(Math.floor(d.year_run_h), 0) + ' <small>h</small> ' + Math.round((d.year_run_h % 1) * 60) + ' <small>min</small>';
+        if (d.year_since && d.year_since.slice(5) !== '01-01') {
+          var ylab = 'Od ' + new Date(d.year_since + 'T12:00:00').toLocaleDateString('pl-PL', { day: 'numeric', month: 'numeric' });
+          ['y_label', 'y_label2', 'y_label3'].forEach(function (k) { setK(k, ylab); });
+        }
         setK('outdoor', nf(v.outdoor, 1));
         ['noel_top', 'noel_mid', 'noel_bot', 'supply'].forEach(function (m) {
           var t = root.querySelector('[data-t="' + m + '"]'); if (t) t.textContent = nf(v[m], 1);

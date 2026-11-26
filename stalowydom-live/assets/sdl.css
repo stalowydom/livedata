@@ -116,3 +116,8 @@
 .sdl-more .sdl-more-close,.sdl-more[open] .sdl-more-open{display:none}
 .sdl-more[open] .sdl-more-close{display:inline}
 .sdl-table th.sdl-day{color:#e6edf3;text-transform:none;letter-spacing:0;font-size:13px;padding-top:16px;background:#1f2933}
+
+/* kafelki pompy: stała siatka 5 kolumn, żeby wiersze o różnej liczbie kafelków miały te same szerokości */
+.sdl-kpis-5{grid-template-columns:repeat(5,minmax(0,1fr));margin-bottom:14px}
+@media (max-width:980px){.sdl-kpis-5{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:600px){.sdl-kpis-5{grid-template-columns:repeat(2,minmax(0,1fr))}}
