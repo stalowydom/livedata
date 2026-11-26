@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.33.0
+Version: 1.33.1
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.33.0');
+define('SDL_VER', '1.33.1');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -962,7 +962,7 @@ add_shortcode('sdl_bilans', function () {
     if ($mc) echo esc_html('Przy średniej ' . sdl_num($mc['t']) . ' °C na zewnątrz woda do mat sufitowych ma teraz ok. ' . sdl_num($mc['new_v']) . ' °C, a zeszłej zimy przy tej samej temperaturze potrzebowała ok. ' . sdl_num($mc['old_v']) . ' °C – o ' . sdl_num(abs($mc['diff'])) . ' °C ' . ($mc['diff'] <= 0 ? 'mniej' : 'więcej') . '.');
     else echo 'Porównanie pojawi się, gdy w nowym sezonie zbierze się co najmniej 10 dni grzewczych.';
   ?></p>
-  <p>To drugi, niezależny dowód. Nie zależy od wydajności pompy: im mniej ciepła ucieka, tym chłodniejsza woda wystarcza, żeby w domu było tak samo ciepło. W mrozy zeszłej zimy trzeba było ustawiać na zaworze mieszającym nawet 37 °C.</p>
+  <p>To drugi, niezależny dowód. Nie zależy od wydajności pompy: im mniej ciepła ucieka, tym chłodniejsza woda wystarcza, żeby w domu było tak samo ciepło. W mrozy zeszłej zimy trzeba było ustawiać na zaworze mieszającym nawet 37 °C. Temperaturę wody ustawiamy sami – zawsze tak, żeby w domu było komfortowo – więc ten wykres pokazuje, ile ciepła dom realnie potrzebował, a nie tylko automatykę.</p>
   <div class="sdl-card"><div class="sdl-canvas sdl-chart-tall"><canvas data-b="chart-mat" role="img" aria-label="Średnia dobowa temperatura wody zasilającej maty w funkcji temperatury zewnętrznej – sezon przed i po murku"></canvas></div>
   <p class="sdl-note">Średnia dobowa temperatura wody za zaworem mieszającym (zasilanie mat sufitowych) – dane z historii sterownika Sinum i z Home Assistant, dla dni grzewczych do 12 °C. Temperatura zewnętrzna z tego samego czujnika co na wykresie wyżej.</p></div>
 </div>
