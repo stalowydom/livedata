@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.32.1
+Version: 1.32.2
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.32.1');
+define('SDL_VER', '1.32.2');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -916,7 +916,7 @@ add_shortcode('sdl_bilans', function () {
     <div class="sdl-kpi"><div class="sdl-kpi-label">Ciepło na ogrzewanie w roku</div><div class="sdl-kpi-val"><?php echo number_format($o['heat_kwh'], 0, ',', ' '); ?> <small>kWh</small></div><div class="sdl-kpi-sub"><?php echo (int) $o['heat_kwhm2']; ?> kWh na m² (sezon standardowy)</div></div>
     <div class="sdl-kpi"><div class="sdl-kpi-label">Zainstalowana pompa ciepła</div><div class="sdl-kpi-val"><?php echo (int) $o['pump_kw']; ?> <small>kW</small></div><div class="sdl-kpi-sub">ok. 4 × więcej niż strata ciepła</div></div>
   </div>
-  <p>Dlaczego aż tyle? Pompę wybieraliśmy „rzutem na taśmę”, a w drugim etapie dojdzie garaż z kolejnych czterech kontenerów (według obliczeń kolejne <?php echo sdl_num($o['garage_kw']); ?> kW). Duża pompa w małym domu zwykle włącza się i wyłącza co chwilę – u nas tak się nie dzieje, bo pracuje na bufor 700 l i startuje średnio kilka razy na dobę. <a href="/heiko/">Zobacz, jak pracuje na żywo →</a></p>
+  <p>Dlaczego aż tyle? Pompa trafiła do nas „rzutem na taśmę”: ostatnia sztuka z wyprzedaży, w cenie tak niskiej, że zbrodnią byłoby nie skorzystać (<a href="https://youtu.be/XT13_MKPdKc" target="_blank" rel="noopener">zobacz film „Pompa ciepła za 2999 zł??”</a>). Do tego w drugim etapie dojdzie garaż z kolejnych czterech kontenerów (według obliczeń kolejne <?php echo sdl_num($o['garage_kw']); ?> kW). Duża pompa w małym domu zwykle włącza się i wyłącza co chwilę – u nas tak się nie dzieje, bo pracuje na bufor 700 l i startuje średnio kilka razy na dobę. <a href="/heiko/">Zobacz, jak pracuje na żywo →</a></p>
 
   <h3 class="sdl-bil-h">Czy 3,6 kW przy −18 °C to w ogóle możliwe?</h3>
   <?php $R = sdl_reality_check(); ?>
