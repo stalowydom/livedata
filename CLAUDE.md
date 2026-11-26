@@ -30,8 +30,8 @@ Każda zmiana treści lub wyglądu podstrony urządzenia (np. /heiko/) wymaga ak
 - Zmiana wtyczki, która widocznie zmienia podstronę (np. nowy wykres), też liczy się jako zmiana tej podstrony.
 
 Historia:
-- Heiko (/heiko/, page_id 369) – 1.0 z 21.11.2026, 1.1 i 1.2 tego samego dnia; 2.0 z 22.11.2026 (sekcja odszraniania [sdl_odszranianie]), 2.1 i 2.2 tego samego dnia; 2.3–2.9 z 23–24.11.2026; 3.0 z 24.11.2026 (sekcja „Warunki szronienia” w [sdl_odszranianie]); 3.1–3.2 z 26.11.2026.
-- Starlink (/starlink/, page_id 480, shortcode [sdl_starlink]) – 1.0 i 2.0 z 26.11.2026 (2.0: sekcja „A ile danych pobieramy” – miesięczne zużycie wpisane ręcznie w `$use` z aplikacji Starlink; aktualizować co miesiąc). Statystyki przesyłu liczone z bazy (`sdl_stream_stats()`).
+- Heiko (/heiko/, page_id 369) – 1.0 z 21.11.2026, 1.1 i 1.2 tego samego dnia; 2.0 z 22.11.2026 (sekcja odszraniania [sdl_odszranianie]), 2.1 i 2.2 tego samego dnia; 2.3–2.9 z 23–24.11.2026; 3.0 z 24.11.2026 (sekcja „Warunki szronienia” w [sdl_odszranianie]); 3.1–3.6 z 26.11.2026; 4.0 z 26.11.2026 (sekcja z dwoma filmami YouTube na dole, jak na /aquilo/).
+- Starlink (/starlink/, page_id 480, shortcode [sdl_starlink]) – 1.0, 2.0 i 3.0 z 26.11.2026 (3.0: dwa filmy YouTube na dole; 2.0: sekcja „A ile danych pobieramy” – miesięczne zużycie wpisane ręcznie w `$use` z aplikacji Starlink; aktualizować co miesiąc). Statystyki przesyłu liczone z bazy (`sdl_stream_stats()`).
 - Dom na żywo (/live/, page_id 383, shortcode [sdl_dom]) – 1.0–1.8 z 22.11.2026, 1.9–1.15 z 23–24.11.2026. Link z kafelka „Dashboard Live” na stronie głównej.
 
 ## Agenci AI i SEO
