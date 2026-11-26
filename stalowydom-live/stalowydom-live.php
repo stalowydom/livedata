@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.34.0
+Version: 1.35.0
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.34.0');
+define('SDL_VER', '1.35.0');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -1012,6 +1012,21 @@ add_shortcode('sdl_starlink', function () {
     <div class="sdl-kpi"><div class="sdl-kpi-label">Dane na dobę</div><div class="sdl-kpi-val">ok. <?php echo sdl_num($mb_day, 2); ?> <small>MB</small></div><div class="sdl-kpi-sub">z szyfrowaniem i nagłówkami ok. <?php echo sdl_num($mb_https, 1); ?> MB</div></div>
     <div class="sdl-kpi"><div class="sdl-kpi-label">Przy 200 Mbit/s to</div><div class="sdl-kpi-val"><?php echo sdl_num($sec, 2); ?> <small>s</small></div><div class="sdl-kpi-sub">tyle trwałoby wysłanie danych z całej doby naraz</div></div>
     <div class="sdl-kpi"><div class="sdl-kpi-label">Odczytów w bazie łącznie</div><div class="sdl-kpi-val"><?php echo $nf($st['total']); ?></div><div class="sdl-kpi-sub"><?php echo $st['first'] ? 'pomiary od ' . esc_html(wp_date('j.m.Y', strtotime($st['first'] . ' UTC'), sdl_tz())) . ' + historia z Home Assistant' : ''; ?></div></div>
+  </div>
+  <?php $use = [['maj', 1.17], ['czerwiec', 2.00], ['lipiec', 1.40], ['sierpień', 2.03], ['wrzesień', 1.46], ['październik', 1.46], ['listopad*', 1.02]];
+        $u_sum = array_sum(array_column($use, 1)); $u_days = 210; $u_gb_day = $u_sum * 1000 / $u_days; $u_max = max(array_column($use, 1));
+        $u_share = $mb_https / ($u_gb_day * 1000) * 100; ?>
+  <h3 class="sdl-bil-h">A ile danych pobieramy</h3>
+  <p>Wysyłanie odczytów na stronę to drobiazg. W drugą stronę płynie znacznie więcej: praca zdalna, wideorozmowy, filmy, aktualizacje i kopie zapasowe. Od maja przez łącze satelitarne przeszło łącznie ok. <b><?php echo sdl_num($u_sum, 1); ?> TB</b> danych – średnio ok. <b><?php echo sdl_num($u_gb_day, 0); ?> GB na dobę</b>. Bez dobrego internetu ten dom po prostu by nie działał.</p>
+  <div class="sdl-kpis">
+    <div class="sdl-kpi"><div class="sdl-kpi-label">Łącznie od maja</div><div class="sdl-kpi-val"><?php echo sdl_num($u_sum, 1); ?> <small>TB</small></div><div class="sdl-kpi-sub">dane z aplikacji Starlink</div></div>
+    <div class="sdl-kpi"><div class="sdl-kpi-label">Średnio na miesiąc</div><div class="sdl-kpi-val"><?php echo sdl_num(($u_sum - 1.02) / 6, 1); ?> <small>TB</small></div><div class="sdl-kpi-sub">pełne miesiące maj–październik</div></div>
+    <div class="sdl-kpi"><div class="sdl-kpi-label">Rekordowa doba</div><div class="sdl-kpi-val">ok. 500 <small>GB</small></div><div class="sdl-kpi-sub">koniec czerwca</div></div>
+  </div>
+  <div class="sdl-card">
+    <div class="sdl-head"><h3>Pobrane dane – miesiąc po miesiącu</h3></div>
+    <div class="sdl-ubars"><?php foreach ($use as [$m, $tb]) { echo '<div class="sdl-ubar"><span class="sdl-ubar-m">' . esc_html($m) . '</span><span class="sdl-ubar-t"><span style="width:' . round($tb / $u_max * 100) . '%"></span></span><span class="sdl-ubar-v">' . sdl_num($tb, 2) . ' TB</span></div>'; } ?></div>
+    <p class="sdl-note">* listopad do 26 dnia miesiąca. Dane wg aplikacji Starlink (liczone w czasie UTC). Na tle tego ruchu odczyty wysyłane na tę stronę to ok. <?php echo sdl_num($u_share, 3); ?>% – ułamek promila.</p>
   </div>
   <div class="sdl-card">
     <div class="sdl-head"><h3>Kto ile „mówi” – ostatnia doba</h3></div>

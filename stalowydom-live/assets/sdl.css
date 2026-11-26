@@ -147,3 +147,9 @@
 
 .sdl-kpi-val.sdl-kpi-txt{font-size:24px}
 .sdl-starlink .sdl-kpis{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.sdl-bilans p,.sdl-bilans li{font-size:16px}.sdl-bilans p.sdl-note{font-size:13px}.sdl-bilans p.sdl-bil-lead{font-size:17px}
+.sdl-ubars{display:grid;gap:8px;margin:4px 0 6px}
+.sdl-ubar{display:grid;grid-template-columns:110px 1fr 80px;gap:12px;align-items:center;font-size:14px;color:#c9d3dd}
+.sdl-ubar-t{background:#1b242d;border-radius:4px;height:14px;overflow:hidden}.sdl-ubar-t span{display:block;height:100%;background:#3b82f6;border-radius:4px}
+.sdl-ubar-v{text-align:right;color:#fff;font-weight:700;font-variant-numeric:tabular-nums}
+@media (max-width:600px){.sdl-ubar{grid-template-columns:86px 1fr 66px;gap:8px;font-size:13px}}
