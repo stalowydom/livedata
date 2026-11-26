@@ -43,6 +43,7 @@ Historia:
 - Maty (`maty`) wysyłają też odczyty zaworu mieszającego z Sinum (`zawor_zadana`, `zawor_temp`, `zawor_powrot`, `zawor_przed`, `zawor_co`, `zawor_otwarcie`); strata wężownicy = `heiko.noel_bot` − `zawor_przed`. `zawor_co` nie jest pokazywany (czujnik do poprawy).
 - Pompa ciepła wysyła też zużycie z podziałem CO/CWU, liczbę i czas faktycznych odszronień oraz `rh_out` (wilgotność na zewnątrz), `tp` (parownik), `fan`. Szronienie liczy `sdl_frost()` (PHP) i `frost()` w sdl-defrost.js – te same wzory Magnusa.
 - Sumy od początku roku i średnie startów: `sdl_heiko_totals()`. Dni do 25.11.2026 zaimportowane z historii HA (statystyki długoterminowe) jako `kwh_day`, `starts_day`, `run_day` (mają pierwszeństwo); późniejsze liczone z bieżących odczytów (`energy_total`, `starts`, `run_h`).
+- Strona /projekt: shortcode `[sdl_bilans]` (liczby z OZC w `sdl_ozc()`, struktura strat, zdjęcie murku `assets/img/murek-fundament.webp`, „czy 3,6 kW to możliwe” z wczorajszych danych, dwa wykresy sezonów z `/sdl/v1/seasons`). Historia zaimportowana: `tout_day` (śr. dobowa temp. zewn. z HA od 20.01.2026), `mat_day` (śr. dobowa temp. wody do mat z historii Sinum, 12.2025–04.2026 i od 20.09.2026). Adresu, działki, projektanta i grubości izolacji z OZC nie publikujemy.
 - Zdarzenia odszraniania (urządzenie `heiko_defrost`) strona czyta z `/sdl/v1/events`.
 - Szczegóły konfiguracji HA (nazwy sensorów i automatyzacji) trzymamy poza repozytorium.
 
