@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.36.3
+Version: 1.37.0
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.36.3');
+define('SDL_VER', '1.37.0');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -939,7 +939,11 @@ add_shortcode('sdl_bilans', function () {
       : ($R['at18'] > 3.9 ? 'Rzeczywista strata wychodzi więc trochę większa niż 3,6 kW z obliczeń, ale tego samego rzędu – nie kilka razy większa.'
       : ($R['at18'] >= 3.2 ? 'To praktycznie tyle, ile wyszło z obliczeń.' : 'To nawet mniej niż w obliczeniach – ale pamiętajmy, że COP przyjęliśmy szacunkowo.'));
     echo esc_html($verdict); ?> Na wynik wpływa kilka rzeczy: w górę – energia zużywana na odszranianie, straty bufora i wężownicy (woda z wężownicy jest o kilka stopni chłodniejsza niż w zbiorniku) i to, że obliczenia zakładają idealne wykonanie; w dół – domownicy i urządzenia, które oddają ciepło, więc część strat pokrywają oni, a nie pompa.</p>
-  <p>Dokładnie sprawdzimy to na dwa sposoby. Ciepłomierz na wyjściu z pompy pokaże prawdziwy COP zamiast przyjętego „ok. 3”. A poprzedni rok, gdy dom grzały grzałki elektryczne, pokaże stratę wprost – grzałka zamienia 1 kWh prądu dokładnie w 1 kWh ciepła, więc nie trzeba niczego zgadywać.</p>
+  <h3 class="sdl-bil-h">Sprawdzian z czasów grzałek: 3,4 kW</h3>
+  <p>Najprościej stratę domu widać na grzałkach elektrycznych – grzałka zamienia 1 kWh prądu dokładnie w 1 kWh ciepła, więc nie trzeba zgadywać żadnego COP. A do 25 grudnia 2025 nasz dom grzały właśnie grzałki w buforze.</p>
+  <p class="sdl-bil-calc">W najzimniejsze dni przed Wigilią 2025 (ok. −10 °C) same grzałki zużyły do <b>92 kWh na dobę</b>. W sierpniu, bez ogrzewania, ciepła woda brała średnio ok. 9,5 kWh na dobę. Zostaje <b>92 − 10 = 82 kWh</b> na ogrzewanie, czyli przez 24 godziny <b>ok. 3,4 kW</b> – to zmierzona licznikiem strata domu przy −10 °C. <?php echo sdl_yt('rKTyAxtBmX8', 1358, 'liczę to w filmie'); ?></p>
+  <p>Według obliczeń przy −10 °C powinno to być ok. 2,8 kW (3,6 kW przy −18 °C, przeliczone na mniejszą różnicę temperatur). Wyszło ok. 20% więcej – mniej więcej tyle, ile szacuję straty przez wychłodzoną podłogę, zanim powstał murek (25–30%, <?php echo sdl_yt('CftcsQWNF08', 872, 'mówię o tym tutaj'); ?>). Jedno i drugie to wciąż ten sam rząd wielkości: kilka kilowatów, a nie kilkanaście.</p>
+  <p>Kolejne sprawdziany: ciepłomierz na wyjściu z pompy pokaże prawdziwy COP zamiast przyjętego „ok. 3”, a pełne dane dobowe z grzałek ze sterownika bufora dołączymy do wykresów, gdy tylko go podłączymy. Porównanie grzałek z pompą krok po kroku jest na <a href="/heiko/">stronie pompy ciepła</a>.</p>
 
   <h3 class="sdl-bil-h">Gdzie ucieka ciepło</h3>
   <div class="sdl-bil-split">
@@ -1039,6 +1043,45 @@ add_shortcode('sdl_starlink', function () {
     </table></div>
     <p class="sdl-note">Wysyłane są tylko odczyty urządzeń – bez adresów, nazw komputerów czy innych informacji o domowej sieci. Gdy łącze na chwilę zniknie (np. w nocy, gdy Starlink instaluje aktualizacje), na stronie pojawi się przerwa w danych, a odczyty popłyną dalej po powrocie sieci.</p>
   </div>
+</div>
+<?php
+    return ob_get_clean();
+});
+
+/* link do konkretnej minuty filmu na YouTube */
+function sdl_yt($id, $sec, $label = 'zobacz w filmie') {
+    $t = sprintf('%d:%02d', intdiv($sec, 60), $sec % 60);
+    return '<a class="sdl-yt" href="' . esc_url('https://youtu.be/' . $id . '?t=' . (int) $sec) . '" target="_blank" rel="noopener">▶ ' . esc_html($label) . ' (' . $t . ')</a>';
+}
+
+/* ---------- [sdl_grzalki] – rok na grzałkach kontra pompa ciepła (liczby z liczników, pokazywane w filmach) ---------- */
+add_shortcode('sdl_grzalki', function () {
+    wp_enqueue_style('sdl', SDL_URL . 'assets/sdl.css', [], SDL_VER);
+    $A = 'rKTyAxtBmX8'; $B = 'CftcsQWNF08';
+    $kpi = function ($label, $val, $unit, $sub, $yt, $accent = '#f97316') {
+        return '<div class="sdl-kpi" style="border-top-color:' . $accent . '"><div class="sdl-kpi-label">' . esc_html($label) . '</div><div class="sdl-kpi-val">' . $val . ($unit ? ' <small>' . esc_html($unit) . '</small>' : '') . '</div><div class="sdl-kpi-sub">' . $sub . '</div><div class="sdl-kpi-sub">' . $yt . '</div></div>';
+    };
+    ob_start(); ?>
+<div class="sdl-wrap sdl-bilans sdl-grzalki">
+  <p class="sdl-bil-lead">Zanim pojawiła się pompa, dom przez cały 2025 rok grzały grzałki elektryczne w buforze. Grzałka zamienia 1 kWh prądu w 1 kWh ciepła – więc to idealny punkt odniesienia. Od 25 grudnia 2025 grzeje pompa ciepła. Poniżej liczby z liczników, które pokazuję w filmach – przy każdej jest link do minuty, w której o tym mówię.</p>
+  <div class="sdl-kpis">
+    <?php
+    echo $kpi('Rok 2025 na grzałkach', '9 213', 'kWh', 'ogrzewanie i ciepła woda, od połowy kwietnia, 5 osób', sdl_yt($A, 1320, 'film'), '#7c8794');
+    echo $kpi('Grudzień 2025 – grzałki', '61', 'kWh/dobę', '1 546 kWh w 25 dni, najwięcej 92 kWh w dobę', sdl_yt($B, 1327, 'film'), '#7c8794');
+    echo $kpi('Styczeń 2026 – pompa', '33', 'kWh/dobę', '1 059 kWh w miesiącu (mediana 34,3), mrozy do −13 °C', sdl_yt($B, 861, 'film'));
+    echo $kpi('O połowę mniej prądu', 'COP ≈ 2', '', 'przy ok. −12 °C, z porównania grzałek i pompy', sdl_yt($B, 1384, 'film'));
+    echo $kpi('Przy ok. 0 °C', 'COP ≈ 3', '', '700 l wody o 8 °C cieplej = 6,5 kWh ciepła za 2 kWh prądu', sdl_yt($A, 2088, 'film'));
+    echo $kpi('Starty sprężarki', '15', 'na dobę', 'średnio w styczniu, najwięcej 23 – czyli najwyżej raz na godzinę', sdl_yt($B, 1143, 'film'));
+    ?>
+  </div>
+  <h3 class="sdl-bil-h">Ile mocy naprawdę potrzebuje ten dom</h3>
+  <p class="sdl-bil-calc">Z grzałek da się to policzyć wprost. W najzimniejsze dni przed Wigilią 2025 (ok. −10 °C) grzałki zużyły 92 kWh na dobę. Ciepła woda brała wtedy ok. 10 kWh (w sierpniu, bez ogrzewania, średnio 9,5 kWh na dobę). Zostaje 82 kWh na ogrzewanie, czyli <b>ok. 3,4 kW</b> przez całą dobę. <?php echo sdl_yt($A, 1358, 'liczę to w filmie'); ?></p>
+  <p>Dlatego pompa 15 kW w tym domu wcale się nie męczy: pracuje długo i spokojnie na bufor 700 l, zamiast co chwilę się włączać. Więcej o tym, skąd się biorą te liczby i ile według obliczeń traci dom, jest na <a href="/projekt/">stronie projektu</a>.</p>
+  <h3 class="sdl-bil-h">„Pompa stanęła na mrozie”? Nie mróz, tylko prąd</h3>
+  <p>Na początku lutego 2026, przy −15 °C, rano pompa stała. Nie zamarzła – w sieci było kilka bardzo krótkich zaników napięcia, po których elektronika weszła w tryb awaryjny. Wystarczyło ją wyłączyć i włączyć. Przy mrozie pracowała cały czas bez grzałek, a bufor zdążył przez ten czas utrzymać ciepło w domu. <?php echo sdl_yt($B, 60, 'opowiadam o tym'); ?></p>
+  <h3 class="sdl-bil-h">Prognoza do sprawdzenia: styczeń 2027</h3>
+  <p>W styczniu 2026 część ciepła uciekała przez podłogę – ziemia pod kontenerami siadła i pod domem hulał mróz. Szacowałem, że to 25–30% zużycia i że po naprawie styczeń powinien zamknąć się w <b>ok. 700 kWh zamiast 1 059</b>. <?php echo sdl_yt($B, 872, 'prognoza w filmie'); ?> Murek jest już zrobiony – w styczniu 2027 sprawdzimy to tutaj na żywo. Pierwszy sygnał już jest: na wykresie „zużycie na każdy stopień” wyżej ta jesień wychodzi wyraźnie poniżej średniej z zeszłej zimy.</p>
+  <p class="sdl-note">Filmy: „Pompa ciepła zimą – czy działa i ile bierze prądu?” oraz „I mnie dopadło… Pompa ciepła stanęła przy mrozach”. Szczegółowe dane dobowe z grzałek (ze sterownika bufora) dołączymy do wykresów, gdy tylko go podłączymy – wtedy porównamy grzałki i pompę dzień po dniu przy tych samych temperaturach.</p>
 </div>
 <?php
     return ob_get_clean();

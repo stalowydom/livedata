@@ -157,3 +157,5 @@
 .sdl-subh small{text-transform:none;color:var(--sdl-muted);font-weight:400}
 .sdl-card .sdl-subh,.sdl-card .sdl-legend-temp{border-top:1px solid var(--sdl-line);padding-top:16px;margin-top:22px}
 .sdl-card .sdl-legend-temp{margin-bottom:10px}
+.sdl-yt{color:#f97316 !important;text-decoration:none;font-weight:600;white-space:nowrap}.sdl-yt:hover{text-decoration:underline}
+.sdl-grzalki .sdl-kpi-val{font-size:30px}
