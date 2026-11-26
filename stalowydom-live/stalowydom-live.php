@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.32.0
+Version: 1.32.1
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.32.0');
+define('SDL_VER', '1.32.1');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -1095,7 +1095,8 @@ add_action('init', function () {
         . "- `GET {$api}latest?device=DEVICE` – ostatnie odczyty (`values`), czas odczytu (`ts`, Unix), zużycie dziś (`today_kwh`; dla heiko także `today_co`, `today_cwu`, `today_standby`), liczba startów wczoraj (`starts_yday`).\n"
         . "- `GET {$api}daily?device=DEVICE&metric=energy_total&days=30` – zużycie dobowe [kWh] jako `[[\"RRRR-MM-DD\", kWh], …]`. `metric=outdoor&agg=stats` zwraca `[dzień, średnia, min, maks]` temperatury.\n"
         . "- `GET {$api}series?device=heiko&range=24h|7d|30d&metrics=power,noel_top` – przebieg w czasie.\n"
-        . "- `GET {$api}events?device=heiko_defrost` – zdarzenia odszraniania.\n\n"
+        . "- `GET {$api}events?device=heiko_defrost` – zdarzenia odszraniania.\n"
+        . "- `GET {$api}seasons` – dobowe zużycie prądu pompy i średnia temperatura zewnętrzna (od 01.2026), trendy dla sezonów grzewczych i porównanie przy tej samej temperaturze (efekt obmurowania podłogi). Obliczenia strat ciepła (OZC) są opisane na stronie projektu.\n\n"
         . "Urządzenia (DEVICE) i metryki:\n"
         . "- `dom` – cały dom: `power` [W], `l1` `l2` `l3` [W], `energy_total` [kWh, licznik narastający], `outdoor` [°C].\n"
         . "- `heiko` – pompa ciepła: `power` [W], `energy_total` `energy_co` `energy_cwu` `energy_standby` [kWh, narastająco], `noel_top` `noel_mid` `noel_bot` `supply` `outdoor` [°C], `starts`, `defrost_n`, `defrost_h` [h], `circ_starts` (dzisiejsze), `rh_out` (wilgotność na zewnątrz) [%], `tp` (temperatura parownika) [°C], `fan` (obroty wentylatora), `wind` (wiatr z prognozy met.no) [km/h], `run_h` (czas pracy sprężarki dziś) [h]. Odpowiedź `latest?device=heiko` zawiera też `starts_week_avg`, `starts_month_avg` (średnio startów na dobę), `year_kwh`, `year_starts`, `year_run_h`, `year_starts_avg` (od początku roku), `months` (zużycie w 5 ostatnich miesiącach, [RRRR-MM, kWh]) i `year_since`.\n"
