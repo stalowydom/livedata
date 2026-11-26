@@ -30,9 +30,9 @@ Każda podstrona oprócz /kontakt/ (i strony głównej) ma blok wersji. Każda z
 - Zmiana wtyczki, która widocznie zmienia podstronę (np. nowy wykres), też liczy się jako zmiana tej podstrony.
 
 Historia:
-- Heiko (/heiko/, page_id 369) – 1.0 z 21.11.2026, 1.1 i 1.2 tego samego dnia; 2.0 z 22.11.2026 (sekcja odszraniania [sdl_odszranianie]), 2.1 i 2.2 tego samego dnia; 2.3–2.9 z 23–24.11.2026; 3.0 z 24.11.2026 (sekcja „Warunki szronienia” w [sdl_odszranianie]); 3.1–3.6 z 26.11.2026; 4.0–4.1 z 26.11.2026 (filmy YouTube na dole); 5.0 z 26.11.2026 (wykres kWh na stopień: zużycie / (20 °C − śr. temp. zewn.), doby ≤ 12 °C, średnia 7 dni, odniesienie do poprzedniej zimy z /sdl/v1/seasons).
+- Heiko (/heiko/, page_id 369) – 1.0 z 21.11.2026, 1.1 i 1.2 tego samego dnia; 2.0 z 22.11.2026 (sekcja odszraniania [sdl_odszranianie]), 2.1 i 2.2 tego samego dnia; 2.3–2.9 z 23–24.11.2026; 3.0 z 24.11.2026 (sekcja „Warunki szronienia” w [sdl_odszranianie]); 3.1–3.6 z 26.11.2026; 4.0–4.1 z 26.11.2026 (filmy YouTube na dole); 5.0 z 26.11.2026 (wykres kWh na stopień: zużycie / (20 °C − śr. temp. zewn.), doby ≤ 12 °C, średnia 7 dni, odniesienie do poprzedniej zimy z /sdl/v1/seasons); 6.0 z 26.11.2026 (sekcja „Grzałki kontra pompa ciepła” – shortcode [sdl_grzalki] przed filmami).
 - Starlink (/starlink/, page_id 480, shortcode [sdl_starlink]) – 1.0 z 26.11.2026 (zmiany z dnia publikacji zebrane w 1.0 na życzenie właściciela). Sekcja „A ile danych pobieramy”: miesięczne zużycie wpisane ręcznie w `$use` z aplikacji Starlink – aktualizować co miesiąc. Statystyki przesyłu liczone z bazy (`sdl_stream_stats()`).
-- Projekt (/projekt/, page_id 67) – 3.1 z 26.11.2026; Sprzęt (/sprzet/, page_id 90) – 2.2 z 26.11.2026; Aquilo (/aquilo/, page_id 199) i Polityka prywatności (page_id 397) – 1.0 z 26.11.2026 (blok wersji nad H1; wcześniejsza historia odtworzona z ustaleń z właścicielem).
+- Projekt (/projekt/, page_id 67) – 4.0 z 26.11.2026 (sekcja „Sprawdzian z czasów grzałek: 3,4 kW” w [sdl_bilans]); Sprzęt (/sprzet/, page_id 90) – 2.2 z 26.11.2026; Aquilo (/aquilo/, page_id 199) i Polityka prywatności (page_id 397) – 1.0 z 26.11.2026 (blok wersji nad H1; wcześniejsza historia odtworzona z ustaleń z właścicielem).
 - Dom na żywo (/live/, page_id 383, shortcode [sdl_dom]) – 1.0–1.8 z 22.11.2026, 1.9–1.15 z 23–24.11.2026. Link z kafelka „Dashboard Live” na stronie głównej.
 
 ## Agenci AI i SEO
@@ -48,6 +48,10 @@ Historia:
 - Strona /projekt: shortcode `[sdl_bilans]` (liczby z OZC w `sdl_ozc()`, struktura strat, zdjęcie murku `assets/img/murek-fundament.webp`, „czy 3,6 kW to możliwe” z wczorajszych danych, dwa wykresy sezonów z `/sdl/v1/seasons`). Historia zaimportowana: `tout_day` (śr. dobowa temp. zewn. z HA od 20.01.2026), `mat_day` (śr. dobowa temp. wody do mat z historii Sinum, 12.2025–04.2026 i od 20.09.2026). Adresu, działki, projektanta i grubości izolacji z OZC nie publikujemy.
 - Zdarzenia odszraniania (urządzenie `heiko_defrost`) strona czyta z `/sdl/v1/events`.
 - Szczegóły konfiguracji HA (nazwy sensorów i automatyzacji) trzymamy poza repozytorium.
+
+## Grzałki (rok 2025) i filmy
+- Do 25.12.2025 dom grzały grzałki w buforze (sterownik mybero – na razie bez zasilania; po podłączeniu pobrać dane dobowe i dodać porównanie pod przyciskiem „porównaj z grzałkami”, nie mieszać z panelem na żywo).
+- Liczby w [sdl_grzalki] i na /projekt pochodzą z filmów YouTube właściciela; przy każdej link do minuty: `sdl_yt($id, $sekunda, $opis)`. Filmy: rKTyAxtBmX8 („Pompa ciepła zimą…”), CftcsQWNF08 („I mnie dopadło…”).
 
 ## Kod QR
 - Kody QR wskazują na `https://stalowydom.com/qr` (lub `/qr/<nazwa>` dla osobnych kodów, np. ulotka, baner) – nasza domena, więc kod nie wygasa. Wtyczka liczy skany (łącznie, osoby, dziś), przekierowuje na stronę główną z `utm_source=qr&utm_medium=<nazwa>`.
