@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.40.1
+Version: 1.41.0
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.40.1');
+define('SDL_VER', '1.41.0');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -574,6 +574,14 @@ add_shortcode('sdl_heiko', function ($atts) {
     <div class="sdl-kpi sdl-kpi-year"><div class="sdl-kpi-label"><span data-k="y_label3">Od początku roku</span>: czas pracy</div><div class="sdl-kpi-val" data-k="y_run">–</div><div class="sdl-kpi-sub" data-k="y_run_sub"></div></div>
     <div class="sdl-kpi sdl-kpi-year"><div class="sdl-kpi-label"><span data-k="y_label4">Od początku roku</span>: starty na dobę</div><div class="sdl-kpi-val"><span data-k="y_starts_avg">–</span> <small>/ dobę</small></div><div class="sdl-kpi-sub">średnia dobowa</div></div>
   </div>
+
+  <hr class="sdl-hr">
+  <div class="sdl-mode" aria-label="Tryb pracy i harmonogram pompy ciepła">
+    <div class="sdl-mode-item" title="Co pompa robi w tej chwili (odczyt z pompy co 5 minut)."><div class="sdl-kpi-label">Teraz</div><div class="sdl-mode-val" data-k="mode_now">–</div></div>
+    <div class="sdl-mode-item" title="Tryb ustawiony w pompie: Ogrzewanie = tylko maty (CO), Auto = maty i ciepła woda (CO + CWU)."><div class="sdl-kpi-label">Tryb pompy</div><div class="sdl-mode-val" data-k="mode_sel">–</div></div>
+    <div class="sdl-mode-item sdl-mode-wide" title="Harmonogram w Home Assistant przełącza tryb pompy o stałych godzinach – CWU grzejemy raz na dobę, wieczorem."><div class="sdl-kpi-label">Harmonogram</div><div class="sdl-mode-val" data-k="sched">–</div><div class="sdl-kpi-sub" data-k="sched_sub"></div></div>
+  </div>
+  <hr class="sdl-hr">
 
   <div class="sdl-row">
     <div class="sdl-card sdl-tank-card">

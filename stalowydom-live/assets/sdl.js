@@ -129,6 +129,19 @@
           else { setK('standby', nf(d.today_standby * 1000, 0)); setK('standby_unit', 'Wh'); }
         }
         setK('circ', nf(v.circ_starts, 0));
+        /* tryb pracy i harmonogram (Heiko) */
+        if (v.mode != null) {
+          var mn = { 0: 'Postój', 1: 'Grzanie CWU', 2: 'Ogrzewanie (CO)' }[Math.round(v.mode)] || '–';
+          var me = $('[data-k="mode_now"]');
+          if (me) { me.textContent = mn; me.className = 'sdl-mode-val sdl-mode-m' + Math.round(v.mode); }
+        }
+        if (v.sel_mode != null) setK('mode_sel', ['Ogrzewanie (CO)', 'Auto (CO + CWU)', 'Tylko CWU', 'Chłodzenie'][Math.round(v.sel_mode)] || '–');
+        if (v.sched_on != null) {
+          var hm = function (m) { m = Math.round(m); return Math.floor(m / 60) + ':' + ('0' + (m % 60)).slice(-2); };
+          var st = { 0: 'wyłączony', 1: 'wg harmonogramu', 2: 'czeka na grzanie CWU', 3: 'grzeje CWU, potem ogrzewanie' }[Math.round(v.sched_status)];
+          setK('sched', v.sched_on ? 'Włączony' + (st && v.sched_status > 0 ? ' · ' + st : '') : 'Wyłączony');
+          setK('sched_sub', v.sched_on && v.auto_from != null && v.co_from != null ? 'Auto (CO + CWU) od ' + hm(v.auto_from) + ' · tylko ogrzewanie od ' + hm(v.co_from) : '');
+        }
         if (v.run_h != null) {
           var rm = Math.round(v.run_h * 60), rel = $('[data-k="run"]');
           if (rel) rel.innerHTML = rm < 60 ? rm + ' <small>min</small>' : Math.floor(rm / 60) + ' <small>h</small> ' + (rm % 60) + ' <small>min</small>';
