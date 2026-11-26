@@ -68,7 +68,7 @@
     loadFrost(root); setInterval(function () { loadFrost(root); }, 300000);
     var dev = root.getAttribute('data-sdl-defrost');
     var set = function (k, v) { var el = root.querySelector('[data-f="' + k + '"]'); if (el) el.textContent = v; };
-    getJSON(SDL.api + 'events?device=' + dev + '&limit=10').then(function (ev) {
+    getJSON(SDL.api + 'events?device=' + dev + '&days=7').then(function (ev) {
       if (!ev || !ev.length) return;
       var today = new Date(); today.setHours(0, 0, 0, 0);
       set('today', String(ev.filter(function (e) { return e.ts * 1000 >= today.getTime(); }).length));
@@ -76,8 +76,28 @@
       set('avg', durs.length ? nf(durs.reduce(function (a, b) { return a + b; }, 0) / durs.length, 1) : '–');
       set('last', when(ev[0].ts - (ev[0].values.duration_min || 0) * 60));
       set('story', story(ev[0]));
+      /* podsumowanie tygodnia + tabela pogrupowana na dni (domyślnie zwinięta) */
+      var dayKey = function (ts) { var d = new Date(ts * 1000); return d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate(); };
+      var days = {}, order = [];
+      ev.forEach(function (e) { var k = dayKey(e.ts); if (!days[k]) { days[k] = []; order.push(k); } days[k].push(e); });
+      var allMin = durs.reduce(function (a, b) { return a + b; }, 0);
+      set('week', 'W ciągu ostatnich 7 dni pompa odszraniała się ' + ev.length + ' razy, łącznie przez ' + nf(allMin, 0) + ' min (średnio ' +
+        nf(ev.length / Math.max(1, order.length), 1) + ' razy na dobę). Najwięcej odszronień: ' +
+        (function () { var best = order.reduce(function (a, k) { return days[k].length > days[a].length ? k : a; }, order[0]);
+          return new Date(days[best][0].ts * 1000).toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'numeric' }) + ' (' + days[best].length + ').'; })());
+      var sum = root.querySelector('.sdl-more-open'); if (sum) sum.textContent = 'Pokaż wszystkie odszraniania (' + ev.length + ')';
       var tb = root.querySelector('[data-f="rows"]'); tb.innerHTML = '';
+      var lastDay = null;
       ev.forEach(function (e) {
+        var k = dayKey(e.ts);
+        if (k !== lastDay) {
+          lastDay = k;
+          var hr = document.createElement('tr'), th = document.createElement('th');
+          th.colSpan = 5; th.scope = 'rowgroup'; th.className = 'sdl-day';
+          var dm = days[k].reduce(function (a, x) { return a + (x.values.duration_min || 0); }, 0);
+          th.textContent = new Date(e.ts * 1000).toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' }) + ' – ' + days[k].length + ' ×, razem ' + nf(dm, 0) + ' min';
+          hr.appendChild(th); tb.appendChild(hr);
+        }
         var v = e.values, tr = document.createElement('tr');
         var cells = [when(e.ts - (v.duration_min || 0) * 60), nf(v.duration_min, 1) + ' min',
           (v.tp_start != null ? sg(v.tp_start) + ' → ' + sg(v.tp_end) + ' °C' : '–'),

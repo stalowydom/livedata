@@ -106,3 +106,13 @@
 @keyframes sdl-rot{0%,35%{transform:rotate(0)}55%,85%{transform:rotate(-90deg)}100%{transform:rotate(0)}}
 .sdl-rot-x{margin-left:auto;background:none;border:0;color:#9aa7b4;font-size:18px;line-height:1;padding:6px;cursor:pointer}
 @media (prefers-reduced-motion:reduce){.sdl-rot-ico{animation:none}}
+
+/* zwijana historia odszraniania */
+.sdl-more summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:8px;margin:4px 0 12px;padding:8px 14px;border:1px solid #f97316;border-radius:8px;color:#f97316;font-size:14px;font-weight:600}
+.sdl-more summary::-webkit-details-marker{display:none}
+.sdl-more summary::before{content:'▸';transition:transform .2s}
+.sdl-more[open] summary::before{transform:rotate(90deg)}
+.sdl-more summary:hover{background:rgba(249,115,22,.1)}
+.sdl-more .sdl-more-close,.sdl-more[open] .sdl-more-open{display:none}
+.sdl-more[open] .sdl-more-close{display:inline}
+.sdl-table th.sdl-day{color:#e6edf3;text-transform:none;letter-spacing:0;font-size:13px;padding-top:16px;background:#1f2933}

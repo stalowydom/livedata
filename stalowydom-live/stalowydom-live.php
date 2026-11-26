@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.25.1
+Version: 1.26.0
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.25.1');
+define('SDL_VER', '1.26.0');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -192,12 +192,14 @@ function sdl_backfill(WP_REST_Request $r) {
 
 function sdl_events(WP_REST_Request $r) {
     $device = $r->get_param('device');
-    $limit  = min(50, max(1, (int) $r->get_param('limit') ?: 10));
+    $days   = min(31, max(0, (int) $r->get_param('days')));
+    $limit  = $days ? 400 : min(50, max(1, (int) $r->get_param('limit') ?: 10));
     if (!sdl_key_ok($device)) return new WP_Error('sdl_bad', 'device', ['status' => 400]);
-    return sdl_cached("events|$device|$limit", function () use ($device, $limit) {
+    return sdl_cached("events|$device|$limit|$days", function () use ($device, $limit, $days) {
         global $wpdb;
         $t = sdl_table();
-        $rows = $wpdb->get_results($wpdb->prepare("SELECT ts, metric, value FROM $t WHERE device=%s ORDER BY ts DESC, id DESC LIMIT %d", $device, $limit * 12));
+        $since = $days ? $wpdb->prepare(' AND ts >= UTC_TIMESTAMP() - INTERVAL %d DAY', $days) : '';
+        $rows = $wpdb->get_results($wpdb->prepare("SELECT ts, metric, value FROM $t WHERE device=%s$since ORDER BY ts DESC, id DESC LIMIT %d", $device, $limit * 12));
         $ev = [];
         foreach ($rows as $row) {
             if (!isset($ev[$row->ts])) { if (count($ev) >= $limit) break; $ev[$row->ts] = ['ts' => strtotime($row->ts . ' UTC'), 'values' => []]; }
@@ -476,6 +478,7 @@ add_shortcode('sdl_heiko', function ($atts) {
     <div class="sdl-kpi"><div class="sdl-kpi-label">Na zewnątrz</div><div class="sdl-kpi-val"><span data-k="outdoor">–</span> <small>°C</small></div></div>
     <div class="sdl-kpi"><div class="sdl-kpi-label"><span data-k="m_cur_name">Ten miesiąc</span> (do dziś)</div><div class="sdl-kpi-val"><span data-k="m_cur">–</span> <small>kWh</small></div></div>
     <div class="sdl-kpi"><div class="sdl-kpi-label" data-k="m_prev_name">Poprzedni miesiąc</div><div class="sdl-kpi-val"><span data-k="m_prev">–</span> <small>kWh</small></div></div>
+    <div class="sdl-kpi" title="Suma czasu, w którym sprężarka pracowała od północy (wg poboru mocy)."><div class="sdl-kpi-label">Praca sprężarki dziś</div><div class="sdl-kpi-val" data-k="run">–</div><div class="sdl-kpi-sub">starty dziś: <span data-k="run_starts">–</span></div></div>
   </div>
 
   <div class="sdl-row">
@@ -767,11 +770,15 @@ add_shortcode('sdl_odszranianie', function ($atts) {
     <p class="sdl-defrost-text" data-f="story">Czekam na pierwsze odszranianie zarejestrowane przez Home Assistant.</p>
   </div>
   <div class="sdl-card">
-    <div class="sdl-head"><h3>Historia odszraniania</h3></div>
-    <div class="sdl-table-wrap"><table class="sdl-table">
-      <thead><tr><th scope="col">Kiedy</th><th scope="col">Czas</th><th scope="col">Parownik</th><th scope="col">Woda z pompy</th><th scope="col">Na zewnątrz</th></tr></thead>
-      <tbody data-f="rows"><tr><td colspan="5">–</td></tr></tbody>
-    </table></div>
+    <div class="sdl-head"><h3>Historia odszraniania – 7 dni</h3></div>
+    <p class="sdl-defrost-text" data-f="week">Wczytuję historię…</p>
+    <details class="sdl-more">
+      <summary><span class="sdl-more-open">Pokaż wszystkie odszraniania</span><span class="sdl-more-close">Zwiń historię</span></summary>
+      <div class="sdl-table-wrap"><table class="sdl-table">
+        <thead><tr><th scope="col">Kiedy</th><th scope="col">Czas</th><th scope="col">Parownik</th><th scope="col">Woda z pompy</th><th scope="col">Na zewnątrz</th></tr></thead>
+        <tbody data-f="rows"><tr><td colspan="5">–</td></tr></tbody>
+      </table></div>
+    </details>
     <p class="sdl-note">Odszranianie liczymy tylko wtedy, gdy sprężarka pracuje, a wentylator jednostki zewnętrznej stoi – sama flaga z pompy potrafi „wisieć” dłużej.</p>
   </div>
 </div>
@@ -873,7 +880,7 @@ add_action('init', function () {
         . "- `GET {$api}events?device=heiko_defrost` – zdarzenia odszraniania.\n\n"
         . "Urządzenia (DEVICE) i metryki:\n"
         . "- `dom` – cały dom: `power` [W], `l1` `l2` `l3` [W], `energy_total` [kWh, licznik narastający], `outdoor` [°C].\n"
-        . "- `heiko` – pompa ciepła: `power` [W], `energy_total` `energy_co` `energy_cwu` `energy_standby` [kWh, narastająco], `noel_top` `noel_mid` `noel_bot` `supply` `outdoor` [°C], `starts`, `defrost_n`, `defrost_h` [h], `circ_starts` (dzisiejsze), `rh_out` (wilgotność na zewnątrz) [%], `tp` (temperatura parownika) [°C], `fan` (obroty wentylatora).\n"
+        . "- `heiko` – pompa ciepła: `power` [W], `energy_total` `energy_co` `energy_cwu` `energy_standby` [kWh, narastająco], `noel_top` `noel_mid` `noel_bot` `supply` `outdoor` [°C], `starts`, `defrost_n`, `defrost_h` [h], `circ_starts` (dzisiejsze), `rh_out` (wilgotność na zewnątrz) [%], `tp` (temperatura parownika) [°C], `fan` (obroty wentylatora), `run_h` (czas pracy sprężarki dziś) [h].\n"
         . "- `reqnet` – rekuperator: `flow_in` `flow_out` [m³/h], `czerpnia` `nawiew` `wyciag` `wyrzutnia` [°C], `power` [W], `energy_total` [kWh].\n"
         . "- `maty` – temperatury pomieszczeń: `salon` `sypialnia` `lazienka` [°C], `rosa` (punkt rosy) [°C]; zawór mieszający: `zawor_zadana` (temperatura zadana), `zawor_temp` (zasilanie mat), `zawor_powrot` (powrót z mat), `zawor_przed` (woda z wężownicy w buforze przed zaworem) [°C], `zawor_otwarcie` [%].\n"
         . "- `pompa_cwu` – pompa cyrkulacyjna: `energy_total` [kWh], `starts` (dziś), `run_h` `run_h_yday` [h].\n"
