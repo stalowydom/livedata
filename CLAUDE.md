@@ -31,7 +31,7 @@ Każda podstrona oprócz /kontakt/ (i strony głównej) ma blok wersji. Każda z
 
 Historia:
 - Heiko (/heiko/, page_id 369) – 1.0 z 21.11.2026, 1.1 i 1.2 tego samego dnia; 2.0 z 22.11.2026 (sekcja odszraniania [sdl_odszranianie]), 2.1 i 2.2 tego samego dnia; 2.3–2.9 z 23–24.11.2026; 3.0 z 24.11.2026 (sekcja „Warunki szronienia” w [sdl_odszranianie]); 3.1–3.6 z 26.11.2026; 4.0–4.1 z 26.11.2026 (filmy YouTube na dole); 5.0 z 26.11.2026 (wykres kWh na stopień: zużycie / (20 °C − śr. temp. zewn.), doby ≤ 12 °C, średnia 7 dni, odniesienie do poprzedniej zimy z /sdl/v1/seasons).
-- Starlink (/starlink/, page_id 480, shortcode [sdl_starlink]) – 1.0, 2.0 i 3.0 z 26.11.2026 (3.0: dwa filmy YouTube na dole; 2.0: sekcja „A ile danych pobieramy” – miesięczne zużycie wpisane ręcznie w `$use` z aplikacji Starlink; aktualizować co miesiąc). Statystyki przesyłu liczone z bazy (`sdl_stream_stats()`).
+- Starlink (/starlink/, page_id 480, shortcode [sdl_starlink]) – 1.0 z 26.11.2026 (zmiany z dnia publikacji zebrane w 1.0 na życzenie właściciela). Sekcja „A ile danych pobieramy”: miesięczne zużycie wpisane ręcznie w `$use` z aplikacji Starlink – aktualizować co miesiąc. Statystyki przesyłu liczone z bazy (`sdl_stream_stats()`).
 - Projekt (/projekt/, page_id 67) – 3.1 z 26.11.2026; Sprzęt (/sprzet/, page_id 90) – 2.2 z 26.11.2026; Aquilo (/aquilo/, page_id 199) i Polityka prywatności (page_id 397) – 1.0 z 26.11.2026 (blok wersji nad H1; wcześniejsza historia odtworzona z ustaleń z właścicielem).
 - Dom na żywo (/live/, page_id 383, shortcode [sdl_dom]) – 1.0–1.8 z 22.11.2026, 1.9–1.15 z 23–24.11.2026. Link z kafelka „Dashboard Live” na stronie głównej.
 
