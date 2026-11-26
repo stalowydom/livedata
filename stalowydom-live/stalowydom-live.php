@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.38.0
+Version: 1.39.0
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.38.0');
+define('SDL_VER', '1.39.0');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -985,7 +985,7 @@ function sdl_stream_stats() {
         $total = (int) $wpdb->get_var("SELECT COUNT(*) FROM $t");
         $first = $wpdb->get_var("SELECT MIN(ts) FROM $t WHERE metric NOT IN ('kwh_day','starts_day','run_day','tout_day','mat_day')");
         $dev = []; $day = 0;
-        foreach ($rows as $r) { if (in_array($r->device, ['heiko_defrost'], true)) continue; $dev[] = [$r->device, (int) $r->n, (int) $r->m]; $day += (int) $r->n; }
+        foreach ($rows as $r) { if (in_array($r->device, ['heiko_defrost', 'heiko_cop'], true)) continue; $dev[] = [$r->device, (int) $r->n, (int) $r->m]; $day += (int) $r->n; }
         return ['devices' => $dev, 'day' => $day, 'total' => $total, 'first' => $first];
     }, 600);
 }
@@ -1139,6 +1139,187 @@ add_shortcode('sdl_cop', function () {
     <li><b>Z ciepłomierza</b> – dokładny pomiar w każdej chwili, bez szacowania.</li>
   </ol>
   <p class="sdl-note">Typowe wartości COP w tabeli to orientacyjne zakresy dla nowoczesnych pomp powietrze–woda w warunkach badań według norm (woda 35 °C); konkretne modele różnią się między sobą. Nasze wartości to szacunki do czasu montażu ciepłomierza.</p>
+</div>
+<?php
+    return ob_get_clean();
+});
+
+/* ---------- COP z cykli bufora: bilans energii zbiornika NOEL (bez ciepłomierza) ----------
+   Ciepło cyklu = przyrost energii w buforze (0,738 kWh/K ≈ 635 l wody, średnia z trzech czujników)
+   + ciepło oddane w tym czasie na maty (z tempa stygnięcia bufora przed i po cyklu). Prąd = przyrost licznika pompy.
+   Cykle zapisujemy jako urządzenie heiko_cop (metryki cop, tout, kind 0=CO/1=CWU, el, dur, tb, te) – zaczytane z HA
+   (dokładność 1 min) albo wykrywane tutaj z odczytów co 5 min. */
+define('SDL_TANK_KWH_K', 0.738);
+
+function sdl_cop_catalog() {
+    /* instrukcja Heiko Thermal 15, tabela wydajności grzewczej, sprężarka 49 Hz (typowa modulacja) */
+    return [
+        'w35' => [[-15, 2.51], [-7, 3.17], [2, 4.47], [7, 5.18], [12, 5.88]],
+        'w55' => [[-15, 1.26], [-7, 1.69], [2, 2.29], [7, 2.74], [12, 3.12]],
+    ];
+}
+
+function sdl_cop_detect() {
+    global $wpdb; $t = sdl_table();
+    $last = $wpdb->get_var("SELECT MAX(ts) FROM $t WHERE device='heiko_cop' AND metric='cop'");
+    $from = max($last ? strtotime($last . ' UTC') + 3600 : 0, time() - 4 * 86400);
+    $to = time() - 5400;
+    if ($to - $from < 3 * 3600) return 0;
+    $rows = $wpdb->get_results($wpdb->prepare(
+        "SELECT ts, metric, value FROM $t WHERE device='heiko' AND metric IN ('power','noel_top','noel_mid','noel_bot','energy_total','energy_cwu','outdoor') AND ts BETWEEN %s AND %s ORDER BY ts",
+        gmdate('Y-m-d H:i:s', $from - 7200), gmdate('Y-m-d H:i:s', $to)));
+    $by = [];
+    foreach ($rows as $r) $by[$r->ts][$r->metric] = (float) $r->value;
+    $P = [];
+    foreach ($by as $ts => $v) {
+        if (!isset($v['power'], $v['noel_top'], $v['noel_mid'], $v['noel_bot'], $v['energy_total'])) continue;
+        $P[] = ['t' => strtotime($ts . ' UTC'), 'p' => $v['power'], 'E' => SDL_TANK_KWH_K * ($v['noel_top'] + $v['noel_mid'] + $v['noel_bot']) / 3,
+                'kwh' => $v['energy_total'], 'cwu' => $v['energy_cwu'] ?? null, 'o' => $v['outdoor'] ?? null];
+    }
+    $n = count($P); if ($n < 40) return 0;
+    $on = function ($i) use ($P) { return $P[$i]['p'] > 300; };
+    $runs = []; $i = 0;
+    while ($i < $n) {
+        if (!$on($i)) { $i++; continue; }
+        $a = $i; $b = $i;
+        while ($b + 1 < $n && ($on($b + 1) || ($b + 2 < $n && $on($b + 2)))) $b++;
+        $runs[] = [$a, $b]; $i = $b + 1;
+    }
+    $slope = function ($a, $b) use ($P) {
+        $x = []; $y = [];
+        for ($k = $a; $k <= $b; $k++) { $x[] = $P[$k]['t'] / 3600; $y[] = $P[$k]['E']; }
+        $m = count($x); if ($m < 6) return null;
+        $mx = array_sum($x) / $m; $my = array_sum($y) / $m; $sxx = 0; $sxy = 0;
+        for ($k = 0; $k < $m; $k++) { $sxx += ($x[$k] - $mx) ** 2; $sxy += ($x[$k] - $mx) * ($y[$k] - $my); }
+        return $sxx > 0 ? $sxy / $sxx : null;
+    };
+    $found = 0;
+    foreach ($runs as $r => [$a, $b]) {
+        if ($b - $a < 3 || $a < 7 || $b + 8 >= $n) continue;
+        if ($P[$a]['t'] < $from) continue;
+        $prevEnd = $r > 0 ? $runs[$r - 1][1] : -100; $nextStart = isset($runs[$r + 1]) ? $runs[$r + 1][0] : $n + 100;
+        $pa = max($a - 12, $prevEnd + 2); $pb = $a - 1; $qa = $b + 2; $qb = min($b + 14, $nextStart - 1, $n - 1);
+        if ($pb - $pa < 5 || $qb - $qa < 5) continue;
+        $s1 = $slope($pa, $pb); $s2 = $slope($qa, $qb);
+        if ($s1 === null || $s2 === null) continue;
+        $i0 = $a - 1; $i1 = $b + 2;
+        $dh = ($P[$i1]['t'] - $P[$i0]['t']) / 3600;
+        $heat = ($P[$i1]['E'] - $P[$i0]['E']) - ($s1 + $s2) / 2 * $dh;
+        $el = $P[$i1]['kwh'] - $P[$i0]['kwh'];
+        if ($el < 0.4) continue;
+        $cop = $heat / $el;
+        if ($cop < 1 || $cop > 7) continue;
+        $cw = ($P[$i1]['cwu'] !== null && $P[$i0]['cwu'] !== null) ? ($P[$i1]['cwu'] - $P[$i0]['cwu']) / $el : 0;
+        $os = []; for ($k = $a; $k <= $b; $k++) if ($P[$k]['o'] !== null) $os[] = $P[$k]['o'];
+        if (!$os) continue;
+        $ts = gmdate('Y-m-d H:i:s', $P[$a]['t']);
+        if ($wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $t WHERE device='heiko_cop' AND metric='cop' AND ts BETWEEN %s AND %s",
+            gmdate('Y-m-d H:i:s', $P[$a]['t'] - 1800), gmdate('Y-m-d H:i:s', $P[$a]['t'] + 1800)))) continue;
+        $vals = ['cop' => round($cop, 2), 'tout' => round(array_sum($os) / count($os), 1), 'kind' => $cw > 0.5 ? 1 : 0, 'el' => round($el, 2),
+                 'dur' => round(($P[$b]['t'] - $P[$a]['t']) / 3600 + 1 / 12, 2), 'tb' => round($P[$i0]['E'] / SDL_TANK_KWH_K, 1), 'te' => round($P[$i1]['E'] / SDL_TANK_KWH_K, 1)];
+        foreach ($vals as $m => $v) $wpdb->insert($t, ['device' => 'heiko_cop', 'metric' => $m, 'ts' => $ts, 'value' => $v], ['%s', '%s', '%s', '%f']);
+        $found++;
+    }
+    return $found;
+}
+
+function sdl_cop_bins($cyc) {
+    $edges = [[-30, -5, 'poniżej −5 °C'], [-5, -1, '−5…−1 °C'], [-1, 1, 'ok. 0 °C'], [1, 3, '+1…+3 °C'], [3, 6, '+3…+6 °C'], [6, 10, '+6…+10 °C'], [10, 40, 'powyżej +10 °C']];
+    $out = [];
+    foreach ($edges as [$lo, $hi, $label]) {
+        $v = []; foreach ($cyc as $c) if ($c['kind'] == 0 && $c['tout'] >= $lo && $c['tout'] < $hi) $v[] = $c['cop'];
+        if (!$v) continue;
+        $out[] = ['label' => $label, 'n' => count($v), 'avg' => round(array_sum($v) / count($v), 2), 'max' => max($v)];
+    }
+    return $out;
+}
+
+function sdl_cop_data() {
+    return sdl_cached('cop2', function () {
+        global $wpdb; $t = sdl_table();
+        sdl_cop_detect();
+        $rows = $wpdb->get_results("SELECT ts, metric, value FROM $t WHERE device='heiko_cop' ORDER BY ts");
+        $by = [];
+        foreach ($rows as $r) $by[$r->ts][$r->metric] = (float) $r->value;
+        $cyc = [];
+        foreach ($by as $ts => $v) {
+            if (!isset($v['cop'], $v['tout'])) continue;
+            $cyc[] = ['ts' => strtotime($ts . ' UTC'), 'cop' => $v['cop'], 'tout' => $v['tout'], 'kind' => (int) ($v['kind'] ?? 0),
+                      'el' => $v['el'] ?? null, 'dur' => $v['dur'] ?? null, 'tb' => $v['tb'] ?? null, 'te' => $v['te'] ?? null];
+        }
+        $co = array_values(array_filter($cyc, function ($c) { return $c['kind'] == 0; }));
+        $best = null; foreach ($co as $c) if (!$best || $c['cop'] > $best['cop']) $best = $c;
+        return ['cycles' => $cyc, 'bins' => sdl_cop_bins($cyc), 'catalog' => sdl_cop_catalog(), 'n' => count($cyc), 'n_co' => count($co),
+                'best' => $best, 'first' => $cyc ? $cyc[0]['ts'] : null];
+    }, 1800);
+}
+
+add_action('rest_api_init', function () {
+    register_rest_route('sdl/v1', '/cop', ['methods' => 'GET', 'callback' => function () { return sdl_cop_data(); }, 'permission_callback' => '__return_true']);
+});
+
+/* ---------- [sdl_cop_pomiar] – COP zmierzony z cykli bufora, porównany z katalogiem (wykład krok po kroku) ---------- */
+add_shortcode('sdl_cop_pomiar', function () {
+    wp_enqueue_style('sdl', SDL_URL . 'assets/sdl.css', [], SDL_VER);
+    wp_enqueue_script('chartjs', 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js', [], '4.4.1', true);
+    wp_enqueue_script('sdl-cop', SDL_URL . 'assets/sdl-cop.js', ['chartjs'], SDL_VER, true);
+    wp_localize_script('sdl-cop', 'SDLCOP', ['api' => esc_url_raw(rest_url('sdl/v1/cop'))]);
+    $D = sdl_cop_data(); $tz = sdl_tz();
+    $since = $D['first'] ? wp_date('j.m.Y', $D['first'], $tz) : '';
+    ob_start(); ?>
+<div class="sdl-wrap sdl-bilans sdl-cop-m">
+  <p class="sdl-bil-lead">W poprzedniej części wyjaśniliśmy, czym jest COP i dlaczego katalog to nie to samo co dom. Teraz sprawdzamy to na liczbach: policzyliśmy COP naszej pompy z prawdziwych cykli pracy – bez ciepłomierza – i porównaliśmy z tabelami producenta. Wynik: <b>przy około +6…+9 °C na zewnątrz Heiko już osiąga COP 4 i więcej</b>.</p>
+
+  <h3 class="sdl-bil-h">1. Pytanie</h3>
+  <p>Czy nasza pompa w prawdziwej instalacji – z buforem 700 l, wężownicą i ciepłą wodą – osiąga COP 4–5, którym chwalą się producenci? A jeśli nie zawsze, to w jakich warunkach tak, a w jakich nie?</p>
+
+  <h3 class="sdl-bil-h">2. Metoda: bufor jako ciepłomierz</h3>
+  <p>Bufor NOEL to ok. 635 litrów wody (netto). Podgrzanie litra wody o 1 °C wymaga 1,163 Wh, więc cały zbiornik magazynuje <b>ok. 0,74 kWh na każdy stopień</b>. Jeśli wiemy, o ile podniosła się temperatura w zbiorniku podczas pracy sprężarki, wiemy, ile ciepła do niego trafiło.</p>
+  <ol>
+    <li><b>Cykl pracy.</b> Bierzemy każdy pełny cykl sprężarki: od startu do zatrzymania.</li>
+    <li><b>Energia w buforze.</b> Średnia z trzech czujników na zbiorniku (góra, środek, dół) przed cyklem i po nim – różnica razy 0,74 kWh/K.</li>
+    <li><b>Ciepło zabrane przez maty.</b> W trakcie grzania dom nadal pobiera ciepło. Ile? Mierzymy, jak szybko bufor stygnie tuż przed cyklem i tuż po nim, i przyjmujemy średnie tempo dla czasu cyklu.</li>
+    <li><b>Prąd.</b> Przyrost licznika energii pompy w tym samym czasie.</li>
+    <li><b>COP cyklu</b> = (przyrost energii w buforze + ciepło oddane na maty) ÷ zużyty prąd.</li>
+  </ol>
+  <p class="sdl-bil-calc">Przykład: bufor nagrzał się z 35,0 do 40,3 °C (+5,3 K × 0,74 = 3,9 kWh), maty w tym czasie zabrały ok. 1,3 kWh, a pompa zużyła 1,5 kWh prądu. COP = (3,9 + 1,3) ÷ 1,5 ≈ <b>3,5</b> – przy +6,8 °C na zewnątrz.</p>
+  <p>W wyniku są już straty na odszranianie, praca pompy obiegowej i automatyki – to COP rzeczywisty, a nie laboratoryjny. Dokładność oceniamy na <b>±10–15%</b>: czujniki leżą na powierzchni zbiornika, a ciepło zabrane przez maty szacujemy.</p>
+
+  <h3 class="sdl-bil-h">3. Wyniki</h3>
+  <p>Grzanie domu (bufor podgrzewany z ok. 35 do 41 °C), średni COP w przedziałach temperatury zewnętrznej. Tabela i wykres <b>liczą się same</b> z każdego nowego cyklu<?php echo $since ? ' – pomiary od ' . esc_html($since) : ''; ?>.</p>
+  <div class="sdl-table-wrap"><table class="sdl-table">
+    <thead><tr><th scope="col">Na zewnątrz</th><th scope="col">Średni COP</th><th scope="col">Najlepszy cykl</th><th scope="col">Cykli</th></tr></thead>
+    <tbody data-cop="bins"><?php foreach ($D['bins'] as $bn) { echo '<tr><td>' . esc_html($bn['label']) . '</td><td><b>' . sdl_num($bn['avg'], 2) . '</b></td><td>' . sdl_num($bn['max'], 2) . '</td><td>' . (int) $bn['n'] . '</td></tr>'; } ?></tbody>
+  </table></div>
+  <div class="sdl-card"><div class="sdl-canvas sdl-chart-tall"><canvas data-cop="chart" role="img" aria-label="COP każdego cyklu pracy pompy w funkcji temperatury zewnętrznej, na tle wartości z katalogu Heiko dla wody 35 i 55 °C"></canvas></div>
+    <p class="sdl-note">Każdy punkt to jeden cykl pracy sprężarki. Pomarańczowe – grzanie domu, niebieskie – podgrzewanie ciepłej wody do ok. 47 °C. Linie – katalog Heiko Thermal 15 (sprężarka 49 Hz) dla wody 35 °C i 55 °C.</p></div>
+  <p>Grzanie ciepłej wody do ok. 47 °C daje wyraźnie mniej: zwykle 2,4–3,7, a krótkie wieczorne dogrzewanie z 42 do 47 °C tylko 1,6–2,8. To ten sam efekt wyższej temperatury wody, o którym mówiliśmy wyżej – widoczny w naszych własnych danych.</p>
+
+  <h3 class="sdl-bil-h">4. Porównanie z katalogiem producenta</h3>
+  <p>Instrukcja Heiko Thermal 15 podaje COP dla kilku punktów badania i kilku prędkości sprężarki. Zakresy poniżej obejmują wszystkie prędkości (36–76 Hz):</p>
+  <div class="sdl-table-wrap"><table class="sdl-table">
+    <thead><tr><th scope="col">Warunki</th><th scope="col">Katalog, woda 35 °C</th><th scope="col">Katalog, woda 55 °C</th><th scope="col">U nas (woda ok. 38–43 °C)</th></tr></thead>
+    <tbody>
+      <tr><td>A7 (+7 °C)</td><td>4,7–5,2</td><td>2,4–2,7</td><td><b>≈ 4,0</b></td></tr>
+      <tr><td>A2 (+2 °C)</td><td>4,2–4,5</td><td>2,0–2,4</td><td><b>≈ 3,0–3,3</b></td></tr>
+      <tr><td>A-7 (−7 °C)</td><td>3,0–3,4</td><td>1,5–1,8</td><td>prognoza ≈ 2,3–2,5</td></tr>
+      <tr><td>A-15 (−15 °C)</td><td>2,3–2,7</td><td>1,0–1,5</td><td>–</td></tr>
+    </tbody>
+  </table></div>
+  <p>W karcie katalogowej jest też COP 4,0 przy +2 °C (woda 30 → 35 °C) i sezonowa efektywność ogrzewania 196,8% przy wodzie 35 °C, co odpowiada SCOP ok. 5,0. Przy wodzie 55 °C sezonowa efektywność spada do 130,2%, czyli SCOP ok. 3,3.</p>
+
+  <h3 class="sdl-bil-h">5. Wnioski</h3>
+  <ul>
+    <li><b>Przy +7 °C jesteśmy na ok. 85–90% katalogu</b> – jeśli przeliczyć katalog na naszą temperaturę wody (między 35 a 55 °C wychodzi ok. 4,4). To bardzo dobry wynik jak na prawdziwą instalację.</li>
+    <li><b>Przy 0…+2 °C różnica jest większa.</b> W tym zakresie przy wilgotnym powietrzu pompa najczęściej się odszrania, a każde odszranianie zabiera ciepło z bufora.</li>
+    <li><b>Temperatura wody waży najwięcej.</b> W katalogu, przy tej samej temperaturze powietrza, przejście z wody 35 °C na 55 °C obniża COP prawie o połowę. To potwierdza wszystko, co napisaliśmy o wężownicy i temperaturze bufora: każde 3 K mniej w zbiorniku to ok. 7–9% więcej COP.</li>
+    <li><b>Ciepła woda kontra grzanie domu</b> – różnica między podgrzewaniem wody do 47 °C a grzaniem domu to ten sam efekt wyższej temperatury, widoczny w naszych danych.</li>
+    <li><b>Wcześniejszy szacunek „ok. 3 przy 0 °C”</b> z filmu, po doliczeniu ciepła zabranego przez maty, wychodzi trochę niżej: ok. 2,65. Szacunek dla −7 °C (2,3–2,5) się trzyma.</li>
+  </ul>
+
+  <h3 class="sdl-bil-h">6. Co dalej</h3>
+  <p>Wykres będzie się zapełniał przez całą zimę. W styczniu zobaczymy prawdziwe punkty przy −7 i −10 °C, a wiosną, przy +10 °C, prawdopodobnie COP powyżej 4,5. Gdy pojawi się ciepłomierz, porównamy tę metodę z dokładnym pomiarem – i sprawdzimy, jak dobrze bufor sprawdza się w roli ciepłomierza.</p>
+  <p class="sdl-note">COP z katalogu: instrukcja montażu Heiko Thermal (2023), tabele wydajności grzewczej modelu Thermal 15. Wartości katalogowe zaokrąglone do jednego miejsca po przecinku, liczone jako wydajność grzewcza ÷ moc wejściowa.</p>
 </div>
 <?php
     return ob_get_clean();
