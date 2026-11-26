@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.31.2
+Version: 1.32.0
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.31.2');
+define('SDL_VER', '1.32.0');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -867,6 +867,27 @@ add_action('rest_api_init', function () {
     register_rest_route('sdl/v1', '/seasons', ['methods' => 'GET', 'callback' => function () { return sdl_seasons(); }, 'permission_callback' => '__return_true']);
 });
 
+/* „Czy 3,6 kW to realne?” – szacunek straty domu z wczorajszego zużycia prądu na ogrzewanie (CO) i średniej temperatury.
+   COP przyjęty orientacyjnie (brak ciepłomierza), dlatego wynik podajemy jako przybliżenie. */
+function sdl_reality_check() {
+    return sdl_cached('reality1', function () {
+        $tz = sdl_tz();
+        $co = sdl_now_daily('heiko', 'energy_co', 10);
+        $days = sdl_heiko_days((new DateTime('-12 days', $tz))->format('Y-m-d'));
+        $today = (new DateTime('now', $tz))->format('Y-m-d');
+        $cos = []; foreach ((array) $co as $r) $cos[$r[0]] = $r[1];
+        krsort($days);
+        foreach ($days as $d => $v) {
+            if ($d >= $today || !isset($cos[$d], $v['tout']) || $v['tout'] > 8 || $cos[$d] < 3) continue;
+            $cop = 3.0; $tin = 20;
+            $pel = $cos[$d] / 24; $heat = $pel * $cop; $dt = $tin - $v['tout'];
+            return ['day' => $d, 'tout' => round($v['tout'], 1), 'co_kwh' => round($cos[$d], 1), 'pel' => round($pel, 2), 'cop' => $cop,
+                    'heat' => round($heat, 1), 'dt' => round($dt), 'at18' => round($heat / $dt * 38, 1)];
+        }
+        return null;
+    }, 1800);
+}
+
 function sdl_donut($split) {
     $r = 70; $c = 2 * M_PI * $r; $off = 0; $seg = '';
     foreach ($split as [$label, $pct, $col]) {
@@ -896,6 +917,19 @@ add_shortcode('sdl_bilans', function () {
     <div class="sdl-kpi"><div class="sdl-kpi-label">Zainstalowana pompa ciepła</div><div class="sdl-kpi-val"><?php echo (int) $o['pump_kw']; ?> <small>kW</small></div><div class="sdl-kpi-sub">ok. 4 × więcej niż strata ciepła</div></div>
   </div>
   <p>Dlaczego aż tyle? Pompę wybieraliśmy „rzutem na taśmę”, a w drugim etapie dojdzie garaż z kolejnych czterech kontenerów (według obliczeń kolejne <?php echo sdl_num($o['garage_kw']); ?> kW). Duża pompa w małym domu zwykle włącza się i wyłącza co chwilę – u nas tak się nie dzieje, bo pracuje na bufor 700 l i startuje średnio kilka razy na dobę. <a href="/heiko/">Zobacz, jak pracuje na żywo →</a></p>
+
+  <h3 class="sdl-bil-h">Czy 3,6 kW przy −18 °C to w ogóle możliwe?</h3>
+  <?php $R = sdl_reality_check(); ?>
+  <p>Brzmi nieprawdopodobnie mało – ale trzeba odróżnić prąd od ciepła. Pompa ciepła z 1 kWh prądu daje kilka kWh ciepła, bo resztę pobiera z powietrza. Ile dokładnie, zależy od temperatury na zewnątrz i temperatury wody: przy wodzie ok. 30 °C do mat sufitowych i lekkim mrozie to mniej więcej 3 kWh ciepła z 1 kWh prądu.</p>
+  <?php if ($R) { $dl = wp_date('j.m', strtotime($R['day'] . ' 12:00'), $tz = sdl_tz()); ?>
+  <p class="sdl-bil-calc">Policzmy na prawdziwych danych. <b><?php echo esc_html($dl); ?></b> średnio na zewnątrz było <b><?php echo sdl_num($R['tout']); ?> °C</b>, a pompa zużyła na samo ogrzewanie (bez ciepłej wody) <b><?php echo sdl_num($R['co_kwh']); ?> kWh prądu</b> – średnio <?php echo sdl_num($R['pel'], 2); ?> kW. Razy ok. <?php echo sdl_num($R['cop'], 0); ?> to <b>ok. <?php echo sdl_num($R['heat']); ?> kW ciepła</b> przy różnicy <?php echo (int) $R['dt']; ?> stopni między środkiem a zewnątrz. Przy −18 °C ta różnica wynosi 38 stopni, więc wychodzi <b>ok. <?php echo sdl_num($R['at18']); ?> kW</b>.</p>
+  <?php } ?>
+  <p><?php
+    $verdict = !$R ? 'Z pomiarów zimowych wychodzi strata tego samego rzędu co w obliczeniach – nie kilka razy większa.'
+      : ($R['at18'] > 3.9 ? 'Rzeczywista strata wychodzi więc trochę większa niż 3,6 kW z obliczeń, ale tego samego rzędu – nie kilka razy większa.'
+      : ($R['at18'] >= 3.2 ? 'To praktycznie tyle, ile wyszło z obliczeń.' : 'To nawet mniej niż w obliczeniach – ale pamiętajmy, że COP przyjęliśmy szacunkowo.'));
+    echo esc_html($verdict); ?> Na wynik wpływa kilka rzeczy: w górę – energia zużywana na odszranianie, straty bufora i wężownicy (woda z wężownicy jest o kilka stopni chłodniejsza niż w zbiorniku) i to, że obliczenia zakładają idealne wykonanie; w dół – domownicy i urządzenia, które oddają ciepło, więc część strat pokrywają oni, a nie pompa.</p>
+  <p>Dokładnie sprawdzimy to na dwa sposoby. Ciepłomierz na wyjściu z pompy pokaże prawdziwy COP zamiast przyjętego „ok. 3”. A poprzedni rok, gdy dom grzały grzałki elektryczne, pokaże stratę wprost – grzałka zamienia 1 kWh prądu dokładnie w 1 kWh ciepła, więc nie trzeba niczego zgadywać.</p>
 
   <h3 class="sdl-bil-h">Gdzie ucieka ciepło</h3>
   <div class="sdl-bil-split">

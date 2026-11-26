@@ -141,3 +141,6 @@
 .sdl-bil-lead{font-size:17px;color:#fff}
 .sdl-canvas.sdl-chart-tall{height:380px;position:relative}
 @media (max-width:760px){.sdl-bil-split{grid-template-columns:1fr}.sdl-bilans .sdl-kpis{grid-template-columns:1fr}.sdl-chart-tall{height:300px}}
+
+.sdl-bil-calc{background:#242f3a;border-left:3px solid #f97316;padding:12px 16px;border-radius:8px}
+.sdl-bil-calc b{color:#fff}
