@@ -136,6 +136,12 @@
         setK('st_today', nf(v.starts, 0));
         setK('st_today_sub', v.starts_co != null ? 'CO ' + nf(v.starts_co, 0) + ' · CWU ' + nf(v.starts_cwu, 0) : '');
         setK('st_yday', nf(d.starts_yday, 0));
+        setK('st_yday_sub', d.starts_co_yday != null ? 'CO ' + nf(d.starts_co_yday, 0) + ' · CWU ' + nf(d.starts_cwu_yday, 0) : '');
+        if (v.outdoor != null && v.wind != null) {
+          /* temperatura odczuwalna (wind chill, Environment Canada) – ma sens przy T ≤ 10 °C i wietrze > 4,8 km/h */
+          var fl = v.outdoor <= 10 && v.wind > 4.8 ? 13.12 + 0.6215 * v.outdoor - 11.37 * Math.pow(v.wind, 0.16) + 0.3965 * v.outdoor * Math.pow(v.wind, 0.16) : v.outdoor;
+          setK('feels', 'odczuwalna ' + nf(fl, 1) + ' °C · wiatr ' + nf(v.wind, 0) + ' km/h');
+        }
         setK('st_week', nf(d.starts_week_avg, 1));
         setK('st_month', nf(d.starts_month_avg, 1));
         (d.months || []).forEach(function (m, j) {
