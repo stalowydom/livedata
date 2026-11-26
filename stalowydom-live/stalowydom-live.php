@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.29.1
+Version: 1.30.0
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.29.1');
+define('SDL_VER', '1.30.0');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -314,7 +314,7 @@ function sdl_daily(WP_REST_Request $r) {
    Źródła: bieżące odczyty (energy_total – przyrost w dobie, starts i run_h – największy stan licznika w dobie)
    oraz jednorazowo zaimportowane z historii HA wartości dobowe (kwh_day, starts_day, run_day), które mają pierwszeństwo. */
 function sdl_heiko_days($since) {
-    return sdl_cached("heiko_days|$since", function () use ($since) {
+    return sdl_cached("heiko_days2|$since", function () use ($since) {
         global $wpdb;
         $t = sdl_table(); $off = sdl_offset();
         $q = function ($metric, $expr) use ($wpdb, $t, $off, $since) {
@@ -325,10 +325,10 @@ function sdl_heiko_days($since) {
             foreach ($rows as $r) if ($r->d >= $since && $r->v !== null) $o[$r->d] = (float) $r->v;
             return $o;
         };
-        $live = ['kwh' => $q('energy_total', 'MAX(value) - MIN(value)'), 'starts' => $q('starts', 'MAX(value)'), 'run' => $q('run_h', 'MAX(value)')];
-        $imp  = ['kwh' => $q('kwh_day', 'MAX(value)'), 'starts' => $q('starts_day', 'MAX(value)'), 'run' => $q('run_day', 'MAX(value)')];
+        $live = ['kwh' => $q('energy_total', 'MAX(value) - MIN(value)'), 'starts' => $q('starts', 'MAX(value)'), 'run' => $q('run_h', 'MAX(value)'), 'tout' => $q('outdoor', 'AVG(value)')];
+        $imp  = ['kwh' => $q('kwh_day', 'MAX(value)'), 'starts' => $q('starts_day', 'MAX(value)'), 'run' => $q('run_day', 'MAX(value)'), 'tout' => $q('tout_day', 'MAX(value)')];
         $days = [];
-        foreach (['kwh', 'starts', 'run'] as $k) {
+        foreach (['kwh', 'starts', 'run', 'tout'] as $k) {
             foreach ($live[$k] + [] as $d => $v) $days[$d][$k] = $v;
             foreach ($imp[$k] as $d => $v) $days[$d][$k] = $v;      /* import z HA ma pierwszeństwo */
         }
@@ -810,6 +810,107 @@ function sdl_frost_story($f) {
     $s .= ' Najgorsze dla pompy są temperatury w okolicy zera przy dużej wilgotności: ciepłe powietrze niesie dużo wody. W siarczysty mróz powietrze jest suche i szronu przybywa kilka razy wolniej.';
     return $s;
 }
+
+/* ---------- bilans cieplny domu: [sdl_bilans] na stronie /projekt ----------
+   Liczby z obliczeń OZC (PN-EN 12831, -18 °C) + porównanie sezonów z liczników: zużycie prądu pompy na dobę
+   w funkcji średniej temperatury zewnętrznej (prosta regresja dla dni do 14 °C). */
+function sdl_ozc() {
+    return [
+        'load_kw' => 3.6, 'load_wm2' => 34, 'heat_kwh' => 6042, 'heat_kwhm2' => 57, 'area' => 105.7,
+        'load_thick_kw' => 3.4, 'garage_kw' => 3.2, 'garage_kwh' => 3909, 'pump_kw' => 15,
+        'split' => [['Podłoga na gruncie', 27.2, '#f97316'], ['Wentylacja', 23.4, '#3b82f6'], ['Okna', 19.7, '#60a5fa'],
+                    ['Ściany zewnętrzne', 16.3, '#94a3b8'], ['Dach', 10.5, '#64748b'], ['Drzwi', 2.8, '#475569']],
+    ];
+}
+
+function sdl_season_of($d) { $y = (int) substr($d, 0, 4); $m = (int) substr($d, 5, 2); return $m >= 8 ? $y . '/' . substr($y + 1, 2) : ($y - 1) . '/' . substr($y, 2); }
+
+function sdl_seasons() {
+    return sdl_cached('seasons1', function () {
+        $today = (new DateTime('now', sdl_tz()))->format('Y-m-d');
+        $pts = []; $by = [];
+        foreach (sdl_heiko_days('2025-08-01') as $d => $v) {
+            if ($d >= $today || !isset($v['kwh'], $v['tout'])) continue;
+            $se = sdl_season_of($d);
+            $pts[] = [$d, round($v['tout'], 1), round($v['kwh'], 2), $se];
+            if ($v['tout'] <= 14) $by[$se][] = [$v['tout'], $v['kwh']];
+        }
+        $fits = [];
+        foreach ($by as $se => $xy) {
+            $n = count($xy); if ($n < 10) continue;
+            $mx = array_sum(array_column($xy, 0)) / $n; $my = array_sum(array_column($xy, 1)) / $n;
+            $sxx = 0; $sxy = 0; foreach ($xy as [$x, $y]) { $sxx += ($x - $mx) ** 2; $sxy += ($x - $mx) * ($y - $my); }
+            if ($sxx <= 0) continue;
+            $b = $sxy / $sxx; $a = $my - $b * $mx;
+            $fits[$se] = ['a' => round($a, 3), 'b' => round($b, 3), 'n' => $n, 'tmin' => round(min(array_column($xy, 0)), 1), 'tmax' => round(max(array_column($xy, 0)), 1), 'tmean' => round($mx, 1)];
+        }
+        ksort($fits);
+        $cmp = null; $keys = array_keys($fits);
+        if (count($keys) >= 2) {
+            $new = $fits[end($keys)]; $old = $fits[$keys[count($keys) - 2]];
+            $t = $new['tmean'];                       /* porównanie przy typowej temperaturze bieżącego sezonu */
+            $yo = $old['a'] + $old['b'] * $t; $yn = $new['a'] + $new['b'] * $t;
+            if ($yo > 0) $cmp = ['old' => $keys[count($keys) - 2], 'new' => end($keys), 't' => $t, 'kwh_old' => round($yo, 1), 'kwh_new' => round($yn, 1), 'pct' => round(($yn - $yo) / $yo * 100)];
+        }
+        return ['points' => $pts, 'fits' => (object) $fits, 'compare' => $cmp];
+    }, 600);
+}
+
+add_action('rest_api_init', function () {
+    register_rest_route('sdl/v1', '/seasons', ['methods' => 'GET', 'callback' => function () { return sdl_seasons(); }, 'permission_callback' => '__return_true']);
+});
+
+function sdl_donut($split) {
+    $r = 70; $c = 2 * M_PI * $r; $off = 0; $seg = '';
+    foreach ($split as [$label, $pct, $col]) {
+        $len = $c * $pct / 100;
+        $seg .= sprintf('<circle r="%d" cx="90" cy="90" fill="none" stroke="%s" stroke-width="28" stroke-dasharray="%.2f %.2f" stroke-dashoffset="%.2f" transform="rotate(-90 90 90)"><title>%s: %s%%</title></circle>',
+            $r, $col, $len, $c - $len, -$off, esc_attr($label), sdl_num($pct));
+        $off += $len;
+    }
+    return '<svg class="sdl-donut" viewBox="0 0 180 180" role="img" aria-label="Struktura strat ciepła">' . $seg . '<text x="90" y="86" text-anchor="middle" class="sdl-donut-big">27%</text><text x="90" y="106" text-anchor="middle" class="sdl-donut-small">przez podłogę</text></svg>';
+}
+
+add_shortcode('sdl_bilans', function () {
+    wp_enqueue_style('sdl', SDL_URL . 'assets/sdl.css', [], SDL_VER);
+    wp_enqueue_script('chartjs', 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js', [], '4.4.1', true);
+    wp_enqueue_script('sdl-bilans', SDL_URL . 'assets/sdl-bilans.js', ['chartjs'], SDL_VER, true);
+    wp_localize_script('sdl-bilans', 'SDL', ['api' => esc_url_raw(rest_url('sdl/v1/'))]);
+    $o = sdl_ozc(); $S = sdl_seasons(); $c = $S['compare'];
+    $legend = '';
+    foreach ($o['split'] as [$l, $p, $col]) $legend .= '<li><span style="background:' . $col . '"></span>' . esc_html($l) . ' <b>' . sdl_num($p) . '%</b></li>';
+    ob_start(); ?>
+<div class="sdl-wrap sdl-bilans">
+  <h3 class="sdl-bil-h">Ile ciepła potrzebuje ten dom</h3>
+  <p>Przed budową policzyliśmy straty ciepła zgodnie z normą (obliczenia OZC dla mroźnego dnia: −18 °C na zewnątrz, 20 °C w środku). W rzeczywistości ocieplenie jest nawet lepsze niż w obliczeniach – pianą wypełniliśmy przetłoczenia ścian na płasko.</p>
+  <div class="sdl-kpis">
+    <div class="sdl-kpi"><div class="sdl-kpi-label">Moc potrzebna przy −18 °C</div><div class="sdl-kpi-val"><?php echo sdl_num($o['load_kw']); ?> <small>kW</small></div><div class="sdl-kpi-sub"><?php echo (int) $o['load_wm2']; ?> W na m² podłogi</div></div>
+    <div class="sdl-kpi"><div class="sdl-kpi-label">Ciepło na ogrzewanie w roku</div><div class="sdl-kpi-val"><?php echo number_format_i18n($o['heat_kwh']); ?> <small>kWh</small></div><div class="sdl-kpi-sub"><?php echo (int) $o['heat_kwhm2']; ?> kWh na m² (sezon standardowy)</div></div>
+    <div class="sdl-kpi"><div class="sdl-kpi-label">Zainstalowana pompa ciepła</div><div class="sdl-kpi-val"><?php echo (int) $o['pump_kw']; ?> <small>kW</small></div><div class="sdl-kpi-sub">ok. 4 × więcej niż strata ciepła</div></div>
+  </div>
+  <p>Dlaczego aż tyle? Pompę wybieraliśmy „rzutem na taśmę”, a w drugim etapie dojdzie garaż z kolejnych czterech kontenerów (według obliczeń kolejne <?php echo sdl_num($o['garage_kw']); ?> kW). Duża pompa w małym domu zwykle włącza się i wyłącza co chwilę – u nas tak się nie dzieje, bo pracuje na bufor 700 l i startuje średnio kilka razy na dobę. <a href="/heiko/">Zobacz, jak pracuje na żywo →</a></p>
+
+  <h3 class="sdl-bil-h">Gdzie ucieka ciepło</h3>
+  <div class="sdl-bil-split">
+    <div><?php echo sdl_donut($o['split']); ?><ul class="sdl-legend"><?php echo $legend; ?></ul></div>
+    <div>
+      <p>Najwięcej ciepła – ponad jedna czwarta – ucieka przez podłogę. Sama stal ścian, której wszyscy się boją w domach z kontenerów, wcale nie jest największym problemem.</p>
+      <p>Pierwszej zimy było jeszcze gorzej, niż pokazują obliczenia. Grunt pod kontenerami osiadł i pod podłogą zrobiła się pustka, przez którą hulał mroźny wiatr. Podłoga była zimna, a pompa zużywała dużo prądu. W tym roku obmurowaliśmy dom dookoła bloczkami betonowymi – podłoga jest teraz wyraźnie cieplejsza. Ile to dało, pokazuje wykres niżej.</p>
+      <figure class="sdl-bil-photo"><img src="<?php echo esc_url(SDL_URL . 'assets/img/murek-fundament.webp'); ?>" width="730" height="800" loading="lazy" alt="Murek z bloczków betonowych zamykający przestrzeń pod kontenerami domu"><figcaption>Murek z bloczków zamknął przestrzeń pod kontenerami.</figcaption></figure>
+    </div>
+  </div>
+
+  <h3 class="sdl-bil-h">Projekt kontra rzeczywistość: zima przed i po murku</h3>
+  <p class="sdl-bil-lead" data-b="lead"><?php
+    if ($c) echo esc_html('Przy średniej temperaturze ' . sdl_num($c['t']) . ' °C pompa zużywa teraz ok. ' . sdl_num($c['kwh_new']) . ' kWh prądu na dobę, a zeszłej zimy przy tej samej temperaturze zużywała ok. ' . sdl_num($c['kwh_old']) . ' kWh – to ' . ($c['pct'] <= 0 ? abs($c['pct']) . '% mniej' : $c['pct'] . '% więcej') . '.');
+    else echo 'Porównanie pojawi się, gdy w nowym sezonie zbierze się co najmniej 10 dni grzewczych.';
+  ?></p>
+  <div class="sdl-card"><div class="sdl-canvas sdl-chart-tall"><canvas data-b="chart" role="img" aria-label="Dobowe zużycie prądu pompy w funkcji temperatury zewnętrznej – sezon przed i po murku"></canvas></div>
+  <p class="sdl-note">Każdy punkt to jedna doba: średnia temperatura zewnętrzna i zużycie prądu przez pompę (ogrzewanie razem z ciepłą wodą, ok. 2–3 kWh na dobę przez cały rok). Linie pokazują trend dla dni do 14 °C. Porównujemy zużycie przy tej samej temperaturze, więc łagodniejsza czy ostrzejsza zima nie zafałszowuje wyniku. Pompa przy lżejszym mrozie pracuje wydajniej – dlatego porównujemy punkty przy tej samej temperaturze, a nie całe miesiące. Dane z pomiarów od stycznia 2026; wykres uzupełnia się sam każdego dnia.</p></div>
+</div>
+<?php
+    return ob_get_clean();
+});
 
 /* ---------- odszranianie: [sdl_odszranianie device="heiko_defrost"] ---------- */
 add_shortcode('sdl_odszranianie', function ($atts) {
