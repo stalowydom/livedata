@@ -151,6 +151,11 @@
           var yy = +m[0].slice(0, 4), mo = +m[0].slice(5, 7), now = new Date();
           var nd = j === 0 ? now.getDate() : new Date(yy, mo, 0).getDate();
           setK('m' + j + '_sub', m[1] != null ? 'średnio ' + nf(m[1] / nd, 1) + ' kWh na dzień' : '');
+          var nmc = nm.charAt(0).toUpperCase() + nm.slice(1);
+          setK('r' + j + '_name', 'Praca sprężarki – ' + (j === 0 ? nm + ' (do dziś)' : nmc));
+          var re = $('[data-k="r' + j + '"]');
+          if (re) re.innerHTML = m[2] != null ? nf(Math.round(m[2]), 0) + ' <small>h</small>' : '–';
+          setK('r' + j + '_sub', m[2] != null ? 'średnio ' + nf(m[2] / nd, 1) + ' h na dzień' : '');
         });
         setK('y_kwh', nf(d.year_kwh, 0));
         setK('y_starts', nf(d.year_starts, 0));
