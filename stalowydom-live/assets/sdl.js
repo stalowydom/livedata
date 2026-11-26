@@ -138,6 +138,11 @@
         setK('st_yday', nf(d.starts_yday, 0));
         setK('st_week', nf(d.starts_week_avg, 1));
         setK('st_month', nf(d.starts_month_avg, 1));
+        (d.months || []).forEach(function (m, j) {
+          var nm = new Date(m[0] + '-15T12:00:00').toLocaleDateString('pl-PL', { month: 'long' });
+          setK('m' + j + '_name', nm.charAt(0).toUpperCase() + nm.slice(1) + (j === 0 ? ' (do dziś)' : ''));
+          setK('m' + j, nf(m[1], 0));
+        });
         setK('y_kwh', nf(d.year_kwh, 0));
         setK('y_starts', nf(d.year_starts, 0));
         setK('y_starts_avg', nf(d.year_starts_avg, 1));
@@ -197,11 +202,6 @@
         while (kwh.length && !kwh[0][1]) kwh.shift(); /* bez pustych dni na początku historii */
         r[1].forEach(function (x) { out[x[0]] = { avg: x[1], min: x[2], max: x[3] }; });
         var sum = kwh.reduce(function (a, x) { return a + x[1]; }, 0);
-        get('daily?device=' + device + '&metric=energy_total&days=62').then(function (rr) {
-          var m = monthSums(rr);
-          setK('m_cur', nf(m.cur, 0)); setK('m_prev', nf(m.prev, 0));
-          setK('m_cur_name', m.curName.charAt(0).toUpperCase() + m.curName.slice(1)); setK('m_prev_name', m.prevName.charAt(0).toUpperCase() + m.prevName.slice(1));
-        }).catch(function () {});
         var yd = new Date(); yd.setDate(yd.getDate() - 1);
         var ykey = yd.getFullYear() + '-' + String(yd.getMonth() + 1).padStart(2, '0') + '-' + String(yd.getDate()).padStart(2, '0');
         var yrow = kwh.filter(function (x) { return x[0] === ykey; })[0];

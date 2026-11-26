@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.28.0
+Version: 1.29.0
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.28.0');
+define('SDL_VER', '1.29.0');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -348,7 +348,15 @@ function sdl_heiko_totals() {
     $daysIn = function ($from) use ($now, $tz) { return (int) (new DateTime($from, $tz))->diff(new DateTime($now->format('Y-m-d'), $tz))->days + 1; };
     [$ws] = $sum($week, 'starts'); [$ms] = $sum($month, 'starts');
     [$yk] = $sum('0000', 'kwh'); [$ys] = $sum('0000', 'starts'); [$yr] = $sum('0000', 'run');
+    $months = [];
+    for ($i = 0; $i < 4; $i++) {
+        $m = (new DateTime($now->format('Y-m-01'), $tz))->modify("-$i month")->format('Y-m');
+        $k = 0; $any = false;
+        foreach (sdl_heiko_days($m . '-01') as $d => $v) if (substr($d, 0, 7) === $m && isset($v['kwh'])) { $k += $v['kwh']; $any = true; }
+        $months[] = [$m, $any ? round($k, 1) : null];
+    }
     return [
+        'months' => $months,
         'starts_week_avg'  => round($ws / $daysIn($week), 1),
         'starts_month_avg' => round($ms / $daysIn($month), 1),
         'year_kwh'   => round($yk, 1),
@@ -533,11 +541,13 @@ add_shortcode('sdl_heiko', function ($atts) {
     <div class="sdl-kpi"><div class="sdl-kpi-label">Starty wczoraj</div><div class="sdl-kpi-val"><span data-k="st_yday">–</span></div></div>
     <div class="sdl-kpi"><div class="sdl-kpi-label">Starty – ten tydzień</div><div class="sdl-kpi-val"><span data-k="st_week">–</span> <small>/ dobę</small></div><div class="sdl-kpi-sub">średnio od poniedziałku</div></div>
     <div class="sdl-kpi"><div class="sdl-kpi-label">Starty – ten miesiąc</div><div class="sdl-kpi-val"><span data-k="st_month">–</span> <small>/ dobę</small></div><div class="sdl-kpi-sub">średnio od 1. dnia miesiąca</div></div>
+    <div class="sdl-kpi" title="Suma czasu, w którym sprężarka pracowała od północy (wg poboru mocy)."><div class="sdl-kpi-label">Praca sprężarki dziś</div><div class="sdl-kpi-val" data-k="run">–</div></div>
   </div>
   <div class="sdl-kpis sdl-kpis-5">
-    <div class="sdl-kpi"><div class="sdl-kpi-label"><span data-k="m_cur_name">Ten miesiąc</span> (do dziś)</div><div class="sdl-kpi-val"><span data-k="m_cur">–</span> <small>kWh</small></div></div>
-    <div class="sdl-kpi"><div class="sdl-kpi-label" data-k="m_prev_name">Poprzedni miesiąc</div><div class="sdl-kpi-val"><span data-k="m_prev">–</span> <small>kWh</small></div></div>
-    <div class="sdl-kpi" title="Suma czasu, w którym sprężarka pracowała od północy (wg poboru mocy)."><div class="sdl-kpi-label">Praca sprężarki dziś</div><div class="sdl-kpi-val" data-k="run">–</div></div>
+    <div class="sdl-kpi"><div class="sdl-kpi-label" data-k="m0_name">Ten miesiąc (do dziś)</div><div class="sdl-kpi-val"><span data-k="m0">–</span> <small>kWh</small></div></div>
+    <div class="sdl-kpi"><div class="sdl-kpi-label" data-k="m1_name">–</div><div class="sdl-kpi-val"><span data-k="m1">–</span> <small>kWh</small></div></div>
+    <div class="sdl-kpi"><div class="sdl-kpi-label" data-k="m2_name">–</div><div class="sdl-kpi-val"><span data-k="m2">–</span> <small>kWh</small></div></div>
+    <div class="sdl-kpi"><div class="sdl-kpi-label" data-k="m3_name">–</div><div class="sdl-kpi-val"><span data-k="m3">–</span> <small>kWh</small></div></div>
   </div>
   <div class="sdl-kpis sdl-kpis-5">
     <div class="sdl-kpi sdl-kpi-year"><div class="sdl-kpi-label"><span data-k="y_label">Od początku roku</span>: zużycie</div><div class="sdl-kpi-val"><span data-k="y_kwh">–</span> <small>kWh</small></div></div>
@@ -945,7 +955,7 @@ add_action('init', function () {
         . "- `GET {$api}events?device=heiko_defrost` – zdarzenia odszraniania.\n\n"
         . "Urządzenia (DEVICE) i metryki:\n"
         . "- `dom` – cały dom: `power` [W], `l1` `l2` `l3` [W], `energy_total` [kWh, licznik narastający], `outdoor` [°C].\n"
-        . "- `heiko` – pompa ciepła: `power` [W], `energy_total` `energy_co` `energy_cwu` `energy_standby` [kWh, narastająco], `noel_top` `noel_mid` `noel_bot` `supply` `outdoor` [°C], `starts`, `defrost_n`, `defrost_h` [h], `circ_starts` (dzisiejsze), `rh_out` (wilgotność na zewnątrz) [%], `tp` (temperatura parownika) [°C], `fan` (obroty wentylatora), `run_h` (czas pracy sprężarki dziś) [h]. Odpowiedź `latest?device=heiko` zawiera też `starts_week_avg`, `starts_month_avg` (średnio startów na dobę), `year_kwh`, `year_starts`, `year_run_h`, `year_starts_avg` (od początku roku) i `year_since`.\n"
+        . "- `heiko` – pompa ciepła: `power` [W], `energy_total` `energy_co` `energy_cwu` `energy_standby` [kWh, narastająco], `noel_top` `noel_mid` `noel_bot` `supply` `outdoor` [°C], `starts`, `defrost_n`, `defrost_h` [h], `circ_starts` (dzisiejsze), `rh_out` (wilgotność na zewnątrz) [%], `tp` (temperatura parownika) [°C], `fan` (obroty wentylatora), `run_h` (czas pracy sprężarki dziś) [h]. Odpowiedź `latest?device=heiko` zawiera też `starts_week_avg`, `starts_month_avg` (średnio startów na dobę), `year_kwh`, `year_starts`, `year_run_h`, `year_starts_avg` (od początku roku), `months` (zużycie w 4 ostatnich miesiącach, [RRRR-MM, kWh]) i `year_since`.\n"
         . "- `reqnet` – rekuperator: `flow_in` `flow_out` [m³/h], `czerpnia` `nawiew` `wyciag` `wyrzutnia` [°C], `power` [W], `energy_total` [kWh].\n"
         . "- `maty` – temperatury pomieszczeń: `salon` `sypialnia` `lazienka` [°C], `rosa` (punkt rosy) [°C]; zawór mieszający: `zawor_zadana` (temperatura zadana), `zawor_temp` (zasilanie mat), `zawor_powrot` (powrót z mat), `zawor_przed` (woda z wężownicy w buforze przed zaworem) [°C], `zawor_otwarcie` [%].\n"
         . "- `pompa_cwu` – pompa cyrkulacyjna: `energy_total` [kWh], `starts` (dziś), `run_h` `run_h_yday` [h].\n"
