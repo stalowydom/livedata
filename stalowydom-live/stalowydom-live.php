@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.41.0
+Version: 1.42.0
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.41.0');
+define('SDL_VER', '1.42.0');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -579,6 +579,7 @@ add_shortcode('sdl_heiko', function ($atts) {
   <div class="sdl-mode" aria-label="Tryb pracy i harmonogram pompy ciepła">
     <div class="sdl-mode-item" title="Co pompa robi w tej chwili (odczyt z pompy co 5 minut)."><div class="sdl-kpi-label">Teraz</div><div class="sdl-mode-val" data-k="mode_now">–</div></div>
     <div class="sdl-mode-item" title="Tryb ustawiony w pompie: Ogrzewanie = tylko maty (CO), Auto = maty i ciepła woda (CO + CWU)."><div class="sdl-kpi-label">Tryb pompy</div><div class="sdl-mode-val" data-k="mode_sel">–</div></div>
+    <div class="sdl-mode-item" title="Częstotliwość pracy sprężarki inwerterowej: im wyższa, tym większa moc grzewcza (i pobór prądu). 0 Hz = sprężarka stoi."><div class="sdl-kpi-label">Sprężarka</div><div class="sdl-mode-val"><span data-k="hz">–</span> <small>Hz</small></div></div>
     <div class="sdl-mode-item sdl-mode-wide" title="Harmonogram w Home Assistant przełącza tryb pompy o stałych godzinach – CWU grzejemy raz na dobę, wieczorem."><div class="sdl-kpi-label">Harmonogram</div><div class="sdl-mode-val" data-k="sched">–</div><div class="sdl-kpi-sub" data-k="sched_sub"></div></div>
   </div>
   <hr class="sdl-hr">
@@ -1338,6 +1339,24 @@ add_shortcode('sdl_cop_pomiar', function () {
 
   <h3 class="sdl-bil-h">6. Co dalej</h3>
   <p>Wykres będzie się zapełniał przez całą zimę. W styczniu zobaczymy prawdziwe punkty przy −7 i −10 °C, a wiosną, przy +10 °C, prawdopodobnie COP powyżej 4,5. Gdy pojawi się ciepłomierz, porównamy tę metodę z dokładnym pomiarem – i sprawdzimy, jak dobrze bufor sprawdza się w roli ciepłomierza.</p>
+  <h3 class="sdl-bil-h">7. A jaki jest SCOP?</h3>
+  <?php $nn = 0; $ss = 0; foreach ($D['bins'] as $bn) { if ($bn['avg'] !== null && $bn['n'] > 0) { $nn += $bn['n']; $ss += $bn['avg'] * $bn['n']; } } ?>
+  <p>SCOP to średnia sprawność z całego sezonu grzewczego: całe ciepło oddane przez pompę od jesieni do wiosny podzielone przez cały zużyty prąd. Pojedyncze cykle z tabeli wyżej to dopiero cegiełki – zimny styczeń dopiero przed nami, a to on najmocniej zaniży wynik.<?php if ($nn) echo ' Na dziś średni COP ze wszystkich zmierzonych cykli grzania domu wynosi <b>' . sdl_num($ss / $nn, 2) . '</b> (' . (int) $nn . ' cykli, głównie przy temperaturach dodatnich).'; ?></p>
+  <p>Dlatego <b>SCOP podamy po sezonie</b> – policzony tą samą metodą bufora, z każdego cyklu od jesieni do wiosny, razem z ciepłą wodą. Dla porównania: katalog Heiko obiecuje SCOP ok. 5,0 przy wodzie 35 °C i ok. 3,3 przy 55 °C. My pracujemy na wodzie ok. 38–43 °C dla domu i ok. 47–55 °C dla CWU, więc uczciwie spodziewamy się wyniku pomiędzy – bliżej dolnej granicy, bo u nas maty grzeją się z tego samego zbiornika co ciepła woda (o tym niżej).</p>
+
+  <h3 class="sdl-bil-h">8. Ciepłomierz – dokładniejszy następca bufora</h3>
+  <p>Metoda bufora działa, ale ma swoje ±10–15%. Najdokładniejszym rozwiązaniem jest <b>ciepłomierz</b>: mierzy przepływ wody i temperatury zasilania i powrotu, a z tego liczy energię cieplną w kWh – co do cyklu, bez szacowania ciepła zabranego przez maty.</p>
+  <p class="sdl-bil-calc">moc cieplna = przepływ × ciepło właściwe wody × (temperatura zasilania − temperatura powrotu)</p>
+  <p>U nas nie jest to jednak „wkręć i gotowe”:</p>
+  <ul>
+    <li><b>Rura 35 mm w systemie zaprasowywanym (steelpress).</b> Montaż oznacza rozcięcie instalacji i wpięcie przetwornika przepływu na złączkach zaprasowywanych.</li>
+    <li><b>Nie wolno zdławić przepływu.</b> Przy 15 kW i różnicy temperatur 5 K przez pompę płynie ok. 2,6 m³/h. Za mały ciepłomierz stawia opór: spada przepływ, rośnie temperatura wody, a pompa traci sprawność – pomiar psułby to, co ma mierzyć. Szukamy więc modelu z zapasem (np. przepływ nominalny 6 m³/h) i z niskim spadkiem ciśnienia.</li>
+    <li><b>Ultradźwiękowy, nie skrzydełkowy</b> – bez ruchomych części, z małym oporem i odporny na zanieczyszczenia.</li>
+    <li><b>Czysta woda, bez glikolu</b> – wystarczy standardowy ciepłomierz do wody. Przy glikolu trzeba by modelu kalibrowanego na glikol, inaczej wynik byłby błędny.</li>
+    <li><b>Montaż wg instrukcji:</b> proste odcinki rury przed przetwornikiem i za nim, położenie bez gromadzenia się powietrza (zwykle na powrocie), czujniki temperatury dobrane w parze.</li>
+    <li><b>Komunikacja</b> przez M-Bus lub wyjście impulsowe – żeby dane trafiały do Home Assistant i na tę stronę automatycznie.</li>
+  </ul>
+  <p>Ciepłomierz zamontujemy przy przebudowie maszynowni opisanej w planie rozwojowym – i tak będziemy wtedy ciąć rury, więc nie zrobimy tego dwa razy. Docelowo rozważamy dwa: na obiegu ogrzewania i na obiegu CWU. Wtedy porównamy go z metodą bufora i sprawdzimy, jak dobrze zbiornik sprawdzał się w roli ciepłomierza.</p>
   <p class="sdl-note">COP z katalogu: instrukcja montażu Heiko Thermal (2023), tabele wydajności grzewczej modelu Thermal 15. Wartości katalogowe zaokrąglone do jednego miejsca po przecinku, liczone jako wydajność grzewcza ÷ moc wejściowa.</p>
 </div>
 <?php
@@ -1345,6 +1364,43 @@ add_shortcode('sdl_cop_pomiar', function () {
 });
 
 /* ---------- odszranianie: [sdl_odszranianie device="heiko_defrost"] ---------- */
+/* ---------- [sdl_plan] – podział CO/CWU, zawory przeciwzamrożeniowe, plan rozwojowy (treść uzgodniona z właścicielem 27.11.2026) ---------- */
+add_shortcode('sdl_plan', function () {
+    wp_enqueue_style('sdl', SDL_URL . 'assets/sdl.css', [], SDL_VER);
+    ob_start(); ?>
+<div class="sdl-wrap sdl-bilans sdl-plan">
+  <p class="sdl-bil-lead">Liczby na tej stronie pokazują nie tylko pompę, ale cały układ, w którym pracuje. Kilka jego cech zmienia sposób czytania danych – a część z nich chcemy w najbliższych latach poprawić.</p>
+
+  <h3 class="sdl-bil-h">1. Zużycie „CWU” a ogrzewanie – jak czytać podział</h3>
+  <p>Pompa grzeje jeden zasobnik NOEL 700 l. W górnej części ma wężownicę ciepłej wody (CWU), a w dolnej wężownicę miedzianą, która zasila kapilarne maty sufitowe. W praktyce <b>część energii zapisanej jako „CWU” to w rzeczywistości ogrzewanie domu</b>: gdy pompa grzeje zasobnik w trybie CWU, maty pobierają z niego ciepło.</p>
+  <p>Widać to w danych. Dobowe zużycie na „CWU” rośnie razem z mrozem – z ok. 6,6 kWh przy +1,6 °C do ok. 10 kWh przy −1,5 °C (23–26.11.2026) – a przecież ilość ciepłej wody zużywanej przez domowników nie zależy od pogody. Do tego maty dostają ciepło z wody o temperaturze CWU, a nie z obiegu niskotemperaturowego, co obniża sprawność pompy.</p>
+  <p>Dlatego <b>podział CO / CWU traktujemy orientacyjnie</b>. Miarodajne jest zużycie łączne, przeliczone na temperaturę zewnętrzną – stąd wykres kWh na stopień wyżej na stronie.</p>
+
+  <h3 class="sdl-bil-h">2. Zawory przeciwzamrożeniowe – ochrona, która kosztuje</h3>
+  <p>W obiegu nie ma glikolu – płynie czysta woda. Przed zamarznięciem chronią ją zawory przeciwzamrożeniowe przy jednostce zewnętrznej: gdy woda zbliży się do zera, zawory otwierają się i ją wypuszczają, zanim rozsadzi rury albo wymiennik. To skuteczne zabezpieczenie na wypadek awarii zasilania, gdy staje pompa obiegowa.</p>
+  <p>Ma jednak swoją cenę. Zawory muszą „czuć” temperaturę otoczenia, więc są odkryte i nieizolowane – to miejsce, przez które instalacja traci ciepło przez cały sezon. Strata nie jest duża, ale stała.</p>
+  <p>Gdy dom dostanie magazyn energii, pompa obiegowa będzie miała zasilanie także podczas przerw w dostawie prądu. Wtedy zawory będzie można usunąć albo solidnie zaizolować (co w praktyce wyłącza ich działanie) – a rolę zabezpieczenia przejmie zasilanie awaryjne i alarm w Home Assistant przy spadku temperatury wody w obiegu zewnętrznym.</p>
+
+  <h3 class="sdl-bil-h">3. Plan rozwojowy (2027–2028)</h3>
+  <ol>
+    <li><b>Etap 2: garaż.</b> Cztery kontenery już stoją – teraz czeka nas ich ocieplenie i wykończenie.</li>
+    <li><b>Rozbudowa instalacji po wykończeniu garażu:</b> osobny bufor dla ogrzewania, który oddzieli ciepłą wodę od obiegu mat. Maty będą zasilane bezpośrednio niską temperaturą, bez pośrednictwa zasobnika CWU. Przy tej przebudowie zamontujemy też ciepłomierz.</li>
+    <li><b>Spodziewany efekt:</b> mniej kWh na stopień, wyższy COP i rzetelny podział energii na ogrzewanie i ciepłą wodę.</li>
+  </ol>
+  <p>Wszystkie zmiany zmierzymy tym samym wskaźnikiem kWh na stopień – żeby porównanie „przed i po” było uczciwe.</p>
+
+  <h3 class="sdl-bil-h">4. Czego nauczył nas ten dom</h3>
+  <p>Układ mat zostaje bez zmian – jego przebudowa oznaczałaby zbyt duże zniszczenia wykończonych wnętrz. Gdybyśmy jednak budowali dziś, zrobilibyśmy to inaczej:</p>
+  <ul>
+    <li><b>gęstsze maty kapilarne SB10</b> zamiast SB20,</li>
+    <li><b>dodatkowe maty ścienne</b> w jednym z pokoi dzieci, w sypialni i w salonie.</li>
+  </ul>
+  <p>Dane z naszych termostatów pokazują dlaczego: w tych dwóch pokojach temperatura przez dużą część sezonu nie osiąga wartości zadanej (w ostatnich dwóch tygodniach przez 36–50% czasu była niższa o ponad 0,5 °C), a w salonie dodatkowe ok. 10 m² mat pozwoliłoby częściej zamykać obieg. To wiedza, którą stosujemy dziś w nowych projektach.</p>
+</div>
+<?php
+    return ob_get_clean();
+});
+
 add_shortcode('sdl_odszranianie', function ($atts) {
     $a = shortcode_atts(['device' => 'heiko_defrost'], $atts);
     if (!sdl_key_ok($a['device'])) return '';

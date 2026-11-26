@@ -161,8 +161,10 @@
 .sdl-grzalki .sdl-kpi-val{font-size:30px}
 .sdl-bilans ul,.sdl-bilans ol{margin:0 0 14px;padding-left:22px;line-height:1.65}.sdl-bilans li{margin:0 0 6px}
 .sdl-hr{border:0;border-top:1px solid var(--sdl-line);margin:4px 0 14px}
-.sdl-mode{display:grid;grid-template-columns:1fr 1fr 2fr;gap:14px;margin-bottom:14px}
+.sdl-mode{display:grid;grid-template-columns:1fr 1fr 1fr 2fr;gap:14px;margin-bottom:14px}
 .sdl-mode-item{background:var(--sdl-card);border-radius:10px;padding:14px 18px}
 .sdl-mode-val{font-size:22px;font-weight:700;line-height:1.3;margin-top:4px}
+.sdl-mode-val small{font-size:14px;font-weight:400;color:var(--sdl-muted)}
 .sdl-mode-m0{color:var(--sdl-muted)}.sdl-mode-m1{color:#ef4444}.sdl-mode-m2{color:#f97316}
-@media (max-width:760px){.sdl-mode{grid-template-columns:1fr 1fr}.sdl-mode-wide{grid-column:1/-1}}
+@media (max-width:980px){.sdl-mode{grid-template-columns:1fr 1fr 1fr}.sdl-mode-wide{grid-column:1/-1}}
+@media (max-width:600px){.sdl-mode{grid-template-columns:1fr 1fr}}

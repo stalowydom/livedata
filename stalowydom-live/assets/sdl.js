@@ -135,6 +135,7 @@
           var me = $('[data-k="mode_now"]');
           if (me) { me.textContent = mn; me.className = 'sdl-mode-val sdl-mode-m' + Math.round(v.mode); }
         }
+        if (v.hz != null) setK('hz', nf(v.hz, 0));
         if (v.sel_mode != null) setK('mode_sel', ['Ogrzewanie (CO)', 'Auto (CO + CWU)', 'Tylko CWU', 'Chłodzenie'][Math.round(v.sel_mode)] || '–');
         if (v.sched_on != null) {
           var hm = function (m) { m = Math.round(m); return Math.floor(m / 60) + ':' + ('0' + (m % 60)).slice(-2); };
