@@ -277,7 +277,7 @@
         }
         var okd = baseOpts('kWh/°C');
         okd.plugins.tooltip.callbacks.label = function (c) {
-          if (c.datasetIndex === 2) return ' Zima ' + refName + ': średnio ' + nf(c.raw, 2) + ' kWh/°C';
+          if (c.datasetIndex === 2) return ' Zeszła zima (' + refName + '): średnio ' + nf(c.raw, 2) + ' kWh/°C';
           if (c.raw == null) return null;
           return c.datasetIndex === 0 ? ' ' + nf(c.raw, 2) + ' kWh na każdy stopień różnicy' : ' Średnia z 7 dni: ' + nf(c.raw, 2) + ' kWh/°C';
         };
@@ -291,14 +291,14 @@
           { label: 'Doba', data: vKd, borderColor: C.accent, backgroundColor: C.accent, borderWidth: 0, pointRadius: 4, showLine: false, sdlLabels: { pos: 'above', d: 2, unit: '' } },
           { label: 'Średnia z 7 dni', data: vAvg, borderColor: C.supply, backgroundColor: C.supply, borderWidth: 2, pointRadius: 0, tension: 0.3, spanGaps: true }
         ];
-        if (ref != null) kdSets.push({ label: 'Zima ' + refName + ' – średnio', data: days.map(function () { return ref; }), borderColor: C.bot, backgroundColor: C.bot, borderWidth: 2, borderDash: [6, 4], pointRadius: 0 });
+        if (ref != null) kdSets.push({ label: 'Zeszła zima (' + refName + ') – średnio ' + nf(ref, 2), data: days.map(function () { return ref; }), borderColor: C.bot, backgroundColor: C.bot, borderWidth: 2, borderDash: [6, 4], pointRadius: 0 });
         if (vKd.some(function (v) { return v != null; })) {
           draw('dailykd', { type: 'line', options: okd, data: { labels: labels, datasets: kdSets } });
           var last = vAvg.filter(function (v) { return v != null; }).pop();
           var noteEl = root.querySelector('[data-kd-note]');
           if (noteEl && last != null && ref != null) {
             var pct = Math.round((last - ref) / ref * 100);
-            noteEl.textContent = 'Ostatnie 7 dni: średnio ' + nf(last, 2) + ' kWh na stopień, zimą ' + refName + ': ' + nf(ref, 2) + ' kWh (' + (pct > 0 ? '+' : '') + pct + '%). ';
+            noteEl.textContent = 'Ostatnie 7 dni: średnio ' + nf(last, 2) + ' kWh na stopień. Niebieska przerywana linia to średnia z zeszłej zimy (' + refName + '): ' + nf(ref, 2) + ' kWh – teraz ' + (pct > 0 ? '+' : '') + pct + '%. ';
           }
         }
 
