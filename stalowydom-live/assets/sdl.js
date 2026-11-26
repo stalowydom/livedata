@@ -141,7 +141,8 @@
         setK('y_kwh', nf(d.year_kwh, 0));
         setK('y_starts', nf(d.year_starts, 0));
         var yr = $('[data-k="y_run"]');
-        if (yr && d.year_run_h != null) yr.innerHTML = nf(Math.floor(d.year_run_h), 0) + ' <small>h</small> ' + Math.round((d.year_run_h % 1) * 60) + ' <small>min</small>';
+        if (yr && d.year_run_h != null) yr.innerHTML = nf(Math.round(d.year_run_h), 0) + ' <small>h</small>';
+        setK('y_run_sub', d.year_run_h != null ? 'to ok. ' + nf(d.year_run_h / 24, 0) + ' pełnych dób pracy' : '');
         if (d.year_since && d.year_since.slice(5) !== '01-01') {
           var ylab = 'Od ' + new Date(d.year_since + 'T12:00:00').toLocaleDateString('pl-PL', { day: 'numeric', month: 'numeric' });
           ['y_label', 'y_label2', 'y_label3'].forEach(function (k) { setK(k, ylab); });

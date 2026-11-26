@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.27.0
+Version: 1.27.1
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.27.0');
+define('SDL_VER', '1.27.1');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -541,7 +541,7 @@ add_shortcode('sdl_heiko', function ($atts) {
   <div class="sdl-kpis sdl-kpis-5">
     <div class="sdl-kpi sdl-kpi-year"><div class="sdl-kpi-label"><span data-k="y_label">Od początku roku</span>: zużycie</div><div class="sdl-kpi-val"><span data-k="y_kwh">–</span> <small>kWh</small></div></div>
     <div class="sdl-kpi sdl-kpi-year"><div class="sdl-kpi-label"><span data-k="y_label2">Od początku roku</span>: starty</div><div class="sdl-kpi-val"><span data-k="y_starts">–</span></div></div>
-    <div class="sdl-kpi sdl-kpi-year"><div class="sdl-kpi-label"><span data-k="y_label3">Od początku roku</span>: czas pracy</div><div class="sdl-kpi-val" data-k="y_run">–</div></div>
+    <div class="sdl-kpi sdl-kpi-year"><div class="sdl-kpi-label"><span data-k="y_label3">Od początku roku</span>: czas pracy</div><div class="sdl-kpi-val" data-k="y_run">–</div><div class="sdl-kpi-sub" data-k="y_run_sub"></div></div>
   </div>
 
   <div class="sdl-row">
