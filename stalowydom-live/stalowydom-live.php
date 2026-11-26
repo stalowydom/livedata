@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.40.0
+Version: 1.40.1
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.40.0');
+define('SDL_VER', '1.40.1');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -555,18 +555,18 @@ add_shortcode('sdl_heiko', function ($atts) {
     <div class="sdl-kpi" title="Suma czasu, w którym sprężarka pracowała od północy (wg poboru mocy)."><div class="sdl-kpi-label">Praca sprężarki dziś</div><div class="sdl-kpi-val" data-k="run">–</div></div>
   </div>
   <div class="sdl-kpis sdl-kpis-5">
-    <div class="sdl-kpi"><div class="sdl-kpi-label" data-k="m0_name">Ten miesiąc (do dziś)</div><div class="sdl-kpi-val"><span data-k="m0">–</span> <small>kWh</small></div><div class="sdl-kpi-sub" data-k="m0_sub"></div></div>
-    <div class="sdl-kpi"><div class="sdl-kpi-label" data-k="m1_name">–</div><div class="sdl-kpi-val"><span data-k="m1">–</span> <small>kWh</small></div><div class="sdl-kpi-sub" data-k="m1_sub"></div></div>
-    <div class="sdl-kpi"><div class="sdl-kpi-label" data-k="m2_name">–</div><div class="sdl-kpi-val"><span data-k="m2">–</span> <small>kWh</small></div><div class="sdl-kpi-sub" data-k="m2_sub"></div></div>
-    <div class="sdl-kpi"><div class="sdl-kpi-label" data-k="m3_name">–</div><div class="sdl-kpi-val"><span data-k="m3">–</span> <small>kWh</small></div><div class="sdl-kpi-sub" data-k="m3_sub"></div></div>
-    <div class="sdl-kpi"><div class="sdl-kpi-label" data-k="m4_name">–</div><div class="sdl-kpi-val"><span data-k="m4">–</span> <small>kWh</small></div><div class="sdl-kpi-sub" data-k="m4_sub"></div></div>
+    <div class="sdl-kpi" style="border-top-color:#3b82f6"><div class="sdl-kpi-label" data-k="m0_name">Ten miesiąc (do dziś)</div><div class="sdl-kpi-val"><span data-k="m0">–</span> <small>kWh</small></div><div class="sdl-kpi-sub" data-k="m0_sub"></div></div>
+    <div class="sdl-kpi" style="border-top-color:#3b82f6"><div class="sdl-kpi-label" data-k="m1_name">–</div><div class="sdl-kpi-val"><span data-k="m1">–</span> <small>kWh</small></div><div class="sdl-kpi-sub" data-k="m1_sub"></div></div>
+    <div class="sdl-kpi" style="border-top-color:#3b82f6"><div class="sdl-kpi-label" data-k="m2_name">–</div><div class="sdl-kpi-val"><span data-k="m2">–</span> <small>kWh</small></div><div class="sdl-kpi-sub" data-k="m2_sub"></div></div>
+    <div class="sdl-kpi" style="border-top-color:#3b82f6"><div class="sdl-kpi-label" data-k="m3_name">–</div><div class="sdl-kpi-val"><span data-k="m3">–</span> <small>kWh</small></div><div class="sdl-kpi-sub" data-k="m3_sub"></div></div>
+    <div class="sdl-kpi" style="border-top-color:#3b82f6"><div class="sdl-kpi-label" data-k="m4_name">–</div><div class="sdl-kpi-val"><span data-k="m4">–</span> <small>kWh</small></div><div class="sdl-kpi-sub" data-k="m4_sub"></div></div>
   </div>
   <div class="sdl-kpis sdl-kpis-5">
-    <div class="sdl-kpi" style="border-top-color:#3b82f6"><div class="sdl-kpi-label" data-k="r0_name">Praca sprężarki – ten miesiąc</div><div class="sdl-kpi-val" data-k="r0">–</div><div class="sdl-kpi-sub" data-k="r0_sub"></div></div>
-    <div class="sdl-kpi" style="border-top-color:#3b82f6"><div class="sdl-kpi-label" data-k="r1_name">–</div><div class="sdl-kpi-val" data-k="r1">–</div><div class="sdl-kpi-sub" data-k="r1_sub"></div></div>
-    <div class="sdl-kpi" style="border-top-color:#3b82f6"><div class="sdl-kpi-label" data-k="r2_name">–</div><div class="sdl-kpi-val" data-k="r2">–</div><div class="sdl-kpi-sub" data-k="r2_sub"></div></div>
-    <div class="sdl-kpi" style="border-top-color:#3b82f6"><div class="sdl-kpi-label" data-k="r3_name">–</div><div class="sdl-kpi-val" data-k="r3">–</div><div class="sdl-kpi-sub" data-k="r3_sub"></div></div>
-    <div class="sdl-kpi" style="border-top-color:#3b82f6"><div class="sdl-kpi-label" data-k="r4_name">–</div><div class="sdl-kpi-val" data-k="r4">–</div><div class="sdl-kpi-sub" data-k="r4_sub"></div></div>
+    <div class="sdl-kpi" style="border-top-color:#84cc16"><div class="sdl-kpi-label" data-k="r0_name">Praca sprężarki – ten miesiąc</div><div class="sdl-kpi-val" data-k="r0">–</div><div class="sdl-kpi-sub" data-k="r0_sub"></div></div>
+    <div class="sdl-kpi" style="border-top-color:#84cc16"><div class="sdl-kpi-label" data-k="r1_name">–</div><div class="sdl-kpi-val" data-k="r1">–</div><div class="sdl-kpi-sub" data-k="r1_sub"></div></div>
+    <div class="sdl-kpi" style="border-top-color:#84cc16"><div class="sdl-kpi-label" data-k="r2_name">–</div><div class="sdl-kpi-val" data-k="r2">–</div><div class="sdl-kpi-sub" data-k="r2_sub"></div></div>
+    <div class="sdl-kpi" style="border-top-color:#84cc16"><div class="sdl-kpi-label" data-k="r3_name">–</div><div class="sdl-kpi-val" data-k="r3">–</div><div class="sdl-kpi-sub" data-k="r3_sub"></div></div>
+    <div class="sdl-kpi" style="border-top-color:#84cc16"><div class="sdl-kpi-label" data-k="r4_name">–</div><div class="sdl-kpi-val" data-k="r4">–</div><div class="sdl-kpi-sub" data-k="r4_sub"></div></div>
   </div>
   <div class="sdl-kpis sdl-kpis-5">
     <div class="sdl-kpi sdl-kpi-year"><div class="sdl-kpi-label"><span data-k="y_label">Od początku roku</span>: zużycie</div><div class="sdl-kpi-val"><span data-k="y_kwh">–</span> <small>kWh</small></div></div>
