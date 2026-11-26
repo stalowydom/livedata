@@ -154,3 +154,4 @@
 .sdl-ubar-v{text-align:right;color:#fff;font-weight:700;font-variant-numeric:tabular-nums}
 @media (max-width:600px){.sdl-ubar{grid-template-columns:86px 1fr 66px;gap:8px;font-size:13px}}
 .sdl-subh{color:#fff;font-size:14px;text-transform:uppercase;letter-spacing:.03em;margin:22px 0 6px;padding:0}
+.sdl-subh small{text-transform:none;color:var(--sdl-muted);font-weight:400}

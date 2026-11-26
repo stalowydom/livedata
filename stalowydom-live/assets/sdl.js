@@ -285,6 +285,7 @@
         okd.plugins.legend = { display: true, position: 'bottom', labels: { color: C.tick, boxWidth: 12, boxHeight: 12, padding: 14 } };
         okd.scales.y.beginAtZero = true;
         okd.scales.y.ticks.maxTicksLimit = 5;
+        okd.scales.y.ticks.callback = function (v) { return nf(v, 1); };
         okd.layout = { padding: { top: 18 } };
         var kdSets = [
           { label: 'Doba', data: vKd, borderColor: C.accent, backgroundColor: C.accent, borderWidth: 0, pointRadius: 4, showLine: false, sdlLabels: { pos: 'above', d: 2, unit: '' } },

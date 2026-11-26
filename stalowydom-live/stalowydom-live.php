@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.36.0
+Version: 1.36.1
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.36.0');
+define('SDL_VER', '1.36.1');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -662,7 +662,7 @@ add_shortcode('sdl_heiko', function ($atts) {
   <div class="sdl-card">
     <div class="sdl-head"><h3>Dobowe zużycie energii – ostatnie 30 dni</h3></div>
     <div class="sdl-canvas"><canvas data-chart="daily" role="img" aria-label="Dobowe zużycie energii pompy ciepła z ostatnich 30 dni"></canvas></div>
-    <h3 class="sdl-subh">Zużycie na każdy stopień różnicy temperatur</h3>
+    <h3 class="sdl-subh">Zużycie na każdy stopień różnicy temperatur <small>(kWh/°C)</small></h3>
     <div class="sdl-canvas sdl-canvas-sm"><canvas data-chart="dailykd" role="img" aria-label="Zużycie energii pompy ciepła w kWh na stopień różnicy między 20 °C w domu a średnią temperaturą zewnętrzną, doby ze średnią do 12 °C"></canvas></div>
     <p class="sdl-note"><span data-kd-note></span>Dzielimy zużycie doby przez różnicę między 20 °C w domu a średnią temperaturą na zewnątrz – tylko w doby ze średnią do 12 °C, gdy dom faktycznie trzeba ogrzewać. Dzięki temu chłodne i ciepłe dni da się uczciwie porównać: im niżej, tym mniej prądu na każdy stopień mrozu. Wartość obejmuje też ciepłą wodę (CWU).</p>
     <div class="sdl-legend sdl-legend-temp"><span><i style="background:#f97316"></i>Temperatura zewnętrzna – maks. w ciągu dnia</span><span><i style="background:#3b82f6"></i>min. w ciągu dnia</span></div>
