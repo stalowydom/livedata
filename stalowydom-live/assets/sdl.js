@@ -203,7 +203,8 @@
         get('daily?device=' + device + '&metric=energy_total&days=30'),
         get('daily?device=' + device + '&metric=outdoor&agg=stats&days=30'),
         get('daily?device=' + device + '&metric=energy_co&days=30').catch(function () { return []; }),
-        get('daily?device=' + device + '&metric=energy_cwu&days=30').catch(function () { return []; })
+        get('daily?device=' + device + '&metric=energy_cwu&days=30').catch(function () { return []; }),
+        get('seasons').catch(function () { return null; })
       ]).then(function (r) {
         var kwh = r[0].slice(), out = {}, co = {}, cwu = {};
         r[2].forEach(function (x) { co[x[0]] = x[1]; });
@@ -261,6 +262,44 @@
               sdlLabels: { totals: kwh.map(function (x) { return x[1]; }), d: 1 } }, bar)
           ]
         } });
+
+        /* kWh na stopień: zużycie doby / (20 °C − średnia temperatura zewnętrzna), tylko doby ze średnią ≤ 12 °C (sezon grzewczy) */
+        var KD_IN = 20, KD_MAX = 12, nd = new Date(), todayKey = nd.getFullYear() + '-' + String(nd.getMonth() + 1).padStart(2, '0') + '-' + String(nd.getDate()).padStart(2, '0');
+        var kd = function (k, t) { return t != null && t <= KD_MAX && k > 0 ? k / (KD_IN - t) : null; };
+        var vKd = days.map(function (d, i) { var t = out[d]; return d >= todayKey ? null : kd(kwh[i][1], t ? t.avg : null); });
+        var vAvg = vKd.map(function (v, i) { var a = vKd.slice(Math.max(0, i - 6), i + 1).filter(function (x) { return x != null; }); return v == null || a.length < 3 ? null : a.reduce(function (s, x) { return s + x; }, 0) / a.length; });
+        var ref = null, refName = '', se = r[4];
+        if (se && se.points) {
+          var cur = se.compare ? se.compare.new : null, by = {};
+          se.points.forEach(function (p) { var v = kd(p[2], p[1]); if (v != null && p[3] !== cur) { (by[p[3]] = by[p[3]] || []).push(v); } });
+          var ks = Object.keys(by).sort();
+          if (ks.length) { refName = ks[ks.length - 1]; ref = by[refName].reduce(function (s, x) { return s + x; }, 0) / by[refName].length; }
+        }
+        var okd = baseOpts('kWh/°C');
+        okd.plugins.tooltip.callbacks.label = function (c) {
+          if (c.datasetIndex === 2) return ' Zima ' + refName + ': średnio ' + nf(c.raw, 2) + ' kWh/°C';
+          if (c.raw == null) return null;
+          return c.datasetIndex === 0 ? ' ' + nf(c.raw, 2) + ' kWh na każdy stopień różnicy' : ' Średnia z 7 dni: ' + nf(c.raw, 2) + ' kWh/°C';
+        };
+        okd.plugins.tooltip.callbacks.afterLabel = function (c) { if (c.datasetIndex !== 0) return ''; var t = out[days[c.dataIndex]]; return t ? ' Średnio na zewnątrz ' + nf(t.avg, 1) + ' °C · zużycie ' + nf(kwh[c.dataIndex][1], 1) + ' kWh' : ''; };
+        okd.plugins.legend = { display: true, position: 'bottom', labels: { color: C.tick, boxWidth: 12, boxHeight: 12, padding: 14 } };
+        okd.scales.y.beginAtZero = true;
+        okd.scales.y.ticks.maxTicksLimit = 5;
+        okd.layout = { padding: { top: 18 } };
+        var kdSets = [
+          { label: 'Doba', data: vKd, borderColor: C.accent, backgroundColor: C.accent, borderWidth: 0, pointRadius: 4, showLine: false, sdlLabels: { pos: 'above', d: 2, unit: '' } },
+          { label: 'Średnia z 7 dni', data: vAvg, borderColor: C.supply, backgroundColor: C.supply, borderWidth: 2, pointRadius: 0, tension: 0.3, spanGaps: true }
+        ];
+        if (ref != null) kdSets.push({ label: 'Zima ' + refName + ' – średnio', data: days.map(function () { return ref; }), borderColor: C.bot, backgroundColor: C.bot, borderWidth: 2, borderDash: [6, 4], pointRadius: 0 });
+        if (vKd.some(function (v) { return v != null; })) {
+          draw('dailykd', { type: 'line', options: okd, data: { labels: labels, datasets: kdSets } });
+          var last = vAvg.filter(function (v) { return v != null; }).pop();
+          var noteEl = root.querySelector('[data-kd-note]');
+          if (noteEl && last != null && ref != null) {
+            var pct = Math.round((last - ref) / ref * 100);
+            noteEl.textContent = 'Ostatnie 7 dni: średnio ' + nf(last, 2) + ' kWh na stopień, zimą ' + refName + ': ' + nf(ref, 2) + ' kWh (' + (pct > 0 ? '+' : '') + pct + '%). ';
+          }
+        }
 
         var ot = baseOpts('°C');
         ot.plugins.tooltip.callbacks.label = function (c) { return c.datasetIndex === 0 ? tempLines(c.dataIndex) : null; };
