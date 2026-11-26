@@ -129,7 +129,10 @@
           else { setK('standby', nf(d.today_standby * 1000, 0)); setK('standby_unit', 'Wh'); }
         }
         setK('circ', nf(v.circ_starts, 0));
-        if (v.run_h != null) { var rm = Math.round(v.run_h * 60); setK('run', rm < 60 ? rm + ' min' : Math.floor(rm / 60) + ' h ' + (rm % 60) + ' min'); }
+        if (v.run_h != null) {
+          var rm = Math.round(v.run_h * 60), rel = $('[data-k="run"]');
+          if (rel) rel.innerHTML = rm < 60 ? rm + ' <small>min</small>' : Math.floor(rm / 60) + ' <small>h</small> ' + (rm % 60) + ' <small>min</small>';
+        }
         setK('run_starts', nf(v.starts, 0));
         setK('outdoor', nf(v.outdoor, 1));
         ['noel_top', 'noel_mid', 'noel_bot', 'supply'].forEach(function (m) {
