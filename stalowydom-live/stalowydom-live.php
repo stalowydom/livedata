@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.49.0
+Version: 1.50.0
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.49.0');
+define('SDL_VER', '1.50.0');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -1553,6 +1553,85 @@ add_shortcode('sdl_reqnet', function () {
     <li><b>Stop przy pożarze:</b> planujemy wyłączanie centrali przez alarm dymu, żeby nie rozprowadzała dymu po kanałach.</li>
     <li><b>Wyniki testu 110 / 160 / 207 m³/h</b> – opiszemy je tutaj po kilku tygodniach.</li>
   </ul>
+</div>
+<?php
+    return ob_get_clean();
+});
+
+/* ---------- [sdl_maty] – maty kapilarne: kafelki na żywo, wykład o ogrzewaniu promieniowaniem, termowizja (szkic 27.11.2026, treść do akceptacji właściciela) ---------- */
+add_shortcode('sdl_maty', function () {
+    wp_enqueue_style('sdl', SDL_URL . 'assets/sdl.css', [], SDL_VER);
+    $M = sdl_now_latest('maty'); $v = $M['values'];
+    $sup = $v['zawor_temp'] ?? null; $ret = $v['zawor_powrot'] ?? null;
+    $dt  = (is_numeric($sup) && is_numeric($ret)) ? $sup - $ret : null;
+    $avg = (is_numeric($sup) && is_numeric($ret)) ? ($sup + $ret) / 2 : null;
+    $img = function ($f, $alt, $cap) {
+        return '<figure class="sdl-fig"><img src="' . esc_url(SDL_URL . 'assets/img/' . $f) . '" width="720" height="960" loading="lazy" alt="' . esc_attr($alt) . '"><figcaption>' . $cap . '</figcaption></figure>';
+    };
+    ob_start(); ?>
+<div class="sdl-wrap sdl-bilans sdl-maty">
+  <p class="sdl-bil-lead">W całym domu grzeją <b>maty kapilarne w sufitach</b>, a w łazienkach także w podłogach – ok. 88 m² mat na 102 m² domu. Nie ma grzejników ani nawiewu ciepłego powietrza. Sufit ma tylko kilka stopni więcej niż pokój, a mimo to wystarcza do ogrzania domu. Jak to możliwe? Bo <b>grzejemy światłem – podczerwonym, tak jak Słońce</b>.</p>
+
+  <div class="sdl-kpis sdl-kpis-5">
+    <div class="sdl-kpi" style="border-top-color:#f97316"><div class="sdl-kpi-label">Zasilanie mat</div><div class="sdl-kpi-val"><?php echo sdl_num($sup); ?> <small>°C</small></div><div class="sdl-kpi-sub">zawór: zadana <?php echo sdl_num($v['zawor_zadana'] ?? null, 0); ?> °C</div></div>
+    <div class="sdl-kpi" style="border-top-color:#3b82f6"><div class="sdl-kpi-label">Powrót z mat</div><div class="sdl-kpi-val"><?php echo sdl_num($ret); ?> <small>°C</small></div><div class="sdl-kpi-sub">różnica <?php echo sdl_num($dt); ?> K · średnio <?php echo sdl_num($avg); ?> °C</div></div>
+    <div class="sdl-kpi" title="Zawór mieszający domieszuje chłodniejszą wodę z powrotu do gorącej wody z wężownicy w buforze."><div class="sdl-kpi-label">Otwarcie zaworu</div><div class="sdl-kpi-val"><?php echo sdl_num($v['zawor_otwarcie'] ?? null, 0); ?> <small>%</small></div><div class="sdl-kpi-sub">z wężownicy: <?php echo sdl_num($v['zawor_przed'] ?? null); ?> °C</div></div>
+    <div class="sdl-kpi"><div class="sdl-kpi-label">W pokojach</div><div class="sdl-kpi-val"><?php echo sdl_num($v['salon'] ?? null); ?> <small>°C</small></div><div class="sdl-kpi-sub">salon · sypialnia <?php echo sdl_num($v['sypialnia'] ?? null); ?> · łazienka <?php echo sdl_num($v['lazienka'] ?? null); ?> °C</div></div>
+    <div class="sdl-kpi" style="border-top-color:#06b6d4" title="Punkt rosy powietrza w domu. Powierzchnia chłodniejsza od punktu rosy zaczyna się pocić – ważne przy chłodzeniu i przy zimnych ramach okien."><div class="sdl-kpi-label">Punkt rosy</div><div class="sdl-kpi-val"><?php echo sdl_num($v['rosa'] ?? null); ?> <small>°C</small></div><div class="sdl-kpi-sub">granica rosienia powierzchni</div></div>
+  </div>
+  <p class="sdl-note">Odczyt z <?php echo esc_html(sdl_when($M['ts'])); ?> (czas polski), z termostatów i zaworu mieszającego Sinum. Pełny zestaw danych domu: <a href="<?php echo esc_url(home_url('/live/')); ?>">Dom na żywo</a>.</p>
+
+  <h3 class="sdl-bil-h">1. Grzejemy światłem – podczerwonym, jak Słońce</h3>
+  <p>Każde ciało cieplejsze od zera bezwzględnego świeci. Nie zawsze widzimy to światło, ale ono jest – i niesie energię. Długość fali, przy której ciało świeci najmocniej, opisuje <b>prawo Wiena</b>:</p>
+  <p class="sdl-bil-calc">λ<sub>max</sub> ≈ 2898 ÷ T [µm], gdzie T to temperatura w kelwinach</p>
+  <ul>
+    <li><b>Słońce</b> (ok. 5800 K): λ ≈ 0,5 µm – światło widzialne. Ale mniej więcej połowa energii słonecznej dociera do nas jako podczerwień – to ją czujemy na twarzy jako ciepło.</li>
+    <li><b>Sufit z matami</b> (ok. 25 °C, czyli 298 K): λ ≈ <b>9,7 µm</b> – daleka podczerwień, dla oka niewidzialna, ale doskonale widoczna dla kamery termowizyjnej (zdjęcia niżej).</li>
+  </ul>
+  <p>Mechanizm jest ten sam. Promieniowanie przelatuje przez powietrze, prawie go nie ogrzewając, i oddaje energię dopiero wtedy, gdy trafi na ciało stałe: podłogę, ściany, meble i nas. Dlatego zimą na słońcu jest ciepło, choć powietrze ma kilka stopni – i dlatego pod ciepłym sufitem jest komfortowo, choć powietrze nie jest gorące.</p>
+
+  <h3 class="sdl-bil-h">2. Ile ciepła daje sufit cieplejszy tylko o kilka stopni</h3>
+  <p>Moc promieniowania między dwiema powierzchniami opisuje <b>prawo Stefana–Boltzmanna</b>:</p>
+  <p class="sdl-bil-calc">q = ε · σ · (T<sub>sufitu</sub>⁴ − T<sub>otoczenia</sub>⁴), σ = 5,67 · 10⁻⁸ W/(m²·K⁴), ε ≈ 0,93 (tynk, farba)</p>
+  <p class="sdl-bil-calc">Przykład: sufit 25 °C (298,15 K), ściany i podłoga 20 °C (293,15 K):<br>q = 0,93 · 5,67·10⁻⁸ · (298,15⁴ − 293,15⁴) ≈ <b>27 W/m²</b> samym promieniowaniem.</p>
+  <p>Do tego dochodzi trochę konwekcji, ale niewiele: ciepłe powietrze zostaje pod sufitem, bo nie ma gdzie „uciec” wyżej. To ok. 3–5 W/m². Razem <b>ok. 30 W/m²</b>, z czego <b>85–90% to promieniowanie</b>. Grzejnik działa odwrotnie – większość ciepła oddaje przez ogrzewanie powietrza, które krąży po pokoju.</p>
+  <p>30 W/m² wygląda skromnie, ale sufit jest duży. 88 m² mat × 30 W/m² ≈ <b>2,6 kW</b> – a tyle mniej więcej potrzebuje nasz dom w mroźny dzień (bilans na stronie <a href="<?php echo esc_url(home_url('/projekt/')); ?>">Projekt</a>).</p>
+
+  <h3 class="sdl-bil-h">3. Temperatura odczuwalna – dlaczego 20 °C może grzać jak 21 °C</h3>
+  <p>Człowiek nie ma termometru powietrza. Odczuwamy bilans ciepła ciała: ile oddajemy powietrzu i ile promieniowaniem do otaczających powierzchni. Inżynierowie opisują to <b>temperaturą operacyjną</b> – w pokoju bez przeciągów to w przybliżeniu średnia z temperatury powietrza i średniej temperatury powierzchni dookoła:</p>
+  <p class="sdl-bil-calc">t<sub>odczuwalna</sub> ≈ (t<sub>powietrza</sub> + t<sub>powierzchni</sub>) ÷ 2</p>
+  <p>Ciepły sufit podnosi średnią temperaturę powierzchni, więc to samo poczucie komfortu osiągamy przy powietrzu chłodniejszym o ok. 1 °C. A każdy stopień mniej w powietrzu to – według popularnej reguły – ok. 6% mniej ciepła na ogrzewanie, bo mniej ucieka przez ściany i wentylację.</p>
+  <p>Są też granice. Norma komfortu cieplnego (EN ISO 7730) dopuszcza dla ciepłego sufitu asymetrię promieniowania do ok. 5 K – czyli sufit nie powinien być dużo cieplejszy od reszty pokoju, bo zaczniemy czuć „grzanie w głowę”. Dlatego sufit grzewczy pracuje szeroko i łagodnie: <b>24–27 °C, a nie 40 °C</b>. U nas na zdjęciach ma 24–25 °C.</p>
+  <p>Dodatkowe zalety, które czuć na co dzień: nie ma ruchu powietrza ani kurzu unoszonego przez grzejniki, nic nie szumi, a ściany i meble nie zabierają miejsca.</p>
+
+  <h3 class="sdl-bil-h">4. Niska temperatura wody, czyli dobra praca pompy ciepła</h3>
+  <p>Skoro sufit ma mieć tylko 24–27 °C, woda w matach wystarczy ciepła o kilka stopni więcej – teraz zasilamy maty wodą o temperaturze <b><?php echo sdl_num($sup); ?> °C</b>, a wraca <b><?php echo sdl_num($ret); ?> °C</b>. Grzejniki potrzebują zwykle 45–55 °C. Dla pompy ciepła to ogromna różnica: im niższa temperatura wody, tym mniej pracy musi wykonać sprężarka. Typowo każdy stopień mniej poprawia COP o ok. 2–3%.</p>
+  <p>Mata kapilarna to siatka cienkich rurek z polipropylenu – średnicy kilku milimetrów, ułożonych co 10 mm (maty SB10) lub co 20 mm (SB20) – połączonych z grubszymi rurami zbiorczymi. Rurki są gęsto, więc ciepło rozchodzi się równomiernie i z wody do powierzchni sufitu tracimy tylko kilka stopni. Na naszych zdjęciach: woda średnio ok. <?php echo sdl_num($avg, 0); ?> °C, sufit ok. 24–25 °C.</p>
+
+  <h3 class="sdl-bil-h">5. Co widzi kamera termowizyjna</h3>
+  <p>Zdjęcia zrobione 27.11.2026 wieczorem, w trakcie grzania. Kolory oznaczają temperaturę powierzchni: żółty – najcieplej, fiolet – najzimniej (skala z prawej strony każdego zdjęcia).</p>
+  <div class="sdl-figs">
+    <?php echo $img('termo-sufit-okno-1.webp', 'Termowizja: sufit z matami kapilarnymi ok. 25 °C, widoczne pasy mat, okno balkonowe z ramą 12,5 °C', 'Sufit ok. 25 °C. Widać pasy mat – jaśniejsze tam, gdzie biegną rurki, ciemniejsze w przerwach między matami.'); ?>
+    <?php echo $img('termo-sufit-okno-2.webp', 'Termowizja: ciepły sufit z matami kapilarnymi 24,3 °C nad oknem, najzimniejszy punkt dolna rama okna 12,4 °C', 'Ten sam układ w drugim pokoju: sufit 24,3 °C, najzimniej przy dolnej ramie okna – 12,4 °C.'); ?>
+    <?php echo $img('termo-okno-biurko.webp', 'Termowizja: ściana z oknem ok. 20 °C, rama okna 14,3 °C, gorący punkt elektroniki na biurku 43,6 °C', 'Ściana ok. 20 °C, rama okna 14,3 °C. Gorący punkt 43,6 °C na biurku to elektronika – świeci w podczerwieni najmocniej w kadrze.'); ?>
+    <?php echo $img('termo-okno-poziome.webp', 'Termowizja: okno 12,7 °C na tle ciepłej ściany i sufitu ok. 26 °C', 'Ściany i sufit ciepłe, okno – najzimniejsza powierzchnia pokoju (12,7 °C na ramie).'); ?>
+  </div>
+  <p>Czego uczą te obrazy:</p>
+  <ul>
+    <li><b>Sufit jest najcieplejszą dużą powierzchnią w pokoju</b> – to on oddaje ciepło. Pasy widać, bo maty nie pokrywają sufitu w 100%: między nimi zostają wąskie przerwy (na profile, oprawy, rury zbiorcze).</li>
+    <li><b>Okna są najzimniejsze.</b> Szyba i rama mają 12–14 °C, podczas gdy ściany ok. 20 °C. Okno „zabiera” promieniowanie z pokoju – stojąc przy nim, czujemy chłód, choć powietrze ma tyle samo stopni.</li>
+    <li><b>Punkt rosy ma znaczenie także zimą.</b> Teraz w domu wynosi <?php echo sdl_num($v['rosa'] ?? null); ?> °C, a najzimniejsza rama ma 12,4 °C – zapas jest, ale niewielki. Przy wyższej wilgotności dolna krawędź okna zaczęłaby się pocić. To jeden z powodów, dla których pilnujemy wymiany powietrza (<a href="<?php echo esc_url(home_url('/reqnet/')); ?>">rekuperator</a>).</li>
+    <li><b>Uwaga na szkło:</b> szyba częściowo odbija podczerwień jak lustro, więc kamera pokazuje na niej mieszankę własnej temperatury szkła i odbić. Wiarygodniejsze są odczyty z ram i ścian.</li>
+  </ul>
+
+  <h3 class="sdl-bil-h">6. Łazienki – maty także w podłodze</h3>
+  <p>W łazienkach maty leżą również w podłodze, pod płytkami. Ciepła podłoga to komfort bosych stóp i szybko schnąca posadzka. Norma ogrzewania płaszczyznowego (EN 1264) dopuszcza w łazienkach powierzchnię podłogi do 33 °C, w pokojach do 29 °C – my, przy niskiej temperaturze wody, jesteśmy wyraźnie poniżej. Zdjęcia termowizyjne łazienki dodamy wkrótce.</p>
+
+  <h3 class="sdl-bil-h">7. Te same maty latem chłodzą</h3>
+  <p>Wystarczy puścić przez maty chłodną wodę, a sufit zacznie pochłaniać promieniowanie cieplne ludzi i przedmiotów – bez nawiewu zimnego powietrza i bez przeciągów. Granicą jest <b>punkt rosy</b>: jeśli sufit będzie chłodniejszy od punktu rosy powietrza, zacznie się na nim skraplać woda. Dlatego temperaturę wody chłodzącej ustawia się z zapasem 1,5–2 K powyżej punktu rosy, liczonego na bieżąco z temperatury i wilgotności w pokojach (kafelek „Punkt rosy” wyżej).</p>
+
+  <h3 class="sdl-bil-h">8. Co zrobilibyśmy dziś inaczej</h3>
+  <p>Maty w domu to SB20 i jest ich trochę za mało – dlatego w mrozy potrzebujemy cieplejszej wody, niż byłoby to konieczne. Dziś wybralibyśmy gęstsze maty SB10 i dodali maty ścienne w kilku pokojach. Więcej o tym i o planowanym osobnym buforze dla ogrzewania: <a href="<?php echo esc_url(home_url('/heiko/')); ?>">Pompa ciepła Heiko – plan rozwojowy</a>.</p>
 </div>
 <?php
     return ob_get_clean();
