@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.51.9
+Version: 1.51.10
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.51.9');
+define('SDL_VER', '1.51.10');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -981,6 +981,18 @@ add_shortcode('sdl_bilans', function () {
   <h3 class="sdl-bil-h">Drugi sprawdzian: doba z pompą ciepła (27.11.2026)</h3>
   <p class="sdl-bil-calc">Średnio −1,0 °C na zewnątrz. Według OZC dom potrzebuje wtedy 3,6 kW × 21/38 ≈ <b>2,0 kW, czyli ok. 48 kWh ciepła na dobę</b>. Pompa zużyła 22,8 kWh prądu; po odjęciu ok. 4,3 kWh na ciepłą wodę zostaje ok. 18,5 kWh na ogrzewanie. Przy COP ok. 2,65 (zmierzonym metodą bufora) to <b>ok. 49 kWh ciepła</b> – praktycznie dokładnie tyle, ile przewiduje projekt.</p>
   <p>Zimą 2025, na grzałkach i przed murkiem, instalacja musiała dawać o ok. 20% więcej, niż wynikało z obliczeń. Teraz – z murkiem – trafia w OZC. To dwa niezależne pomiary (licznik grzałek, w których nie ma żadnego COP, i bilans bufora pompy), a razem mówią to samo: obliczenia były dobre, a nadwyżkę zjadała wychłodzona podłoga. Uczciwe zastrzeżenie: w obu przypadkach dom dostaje dodatkowo ciepło od ludzi i ok. 12 kWh prądu na dobę z pozostałych urządzeń, więc jego całkowita strata jest wyższa niż samo ciepło z instalacji – ale porównanie „przed i po” jest liczone tak samo.</p>
+
+  <h4 class="sdl-bil-h">Ile dał murek?</h4>
+  <p>Łatwo tu o pomyłkę: 20% to nie „20% z 27% strat przez podłogę”, tylko 20% <b>całego</b> zapotrzebowania na ogrzewanie. OZC od początku zakłada podłogę nad zamkniętą przestrzenią pod domem – czyli taką, jaką mamy dopiero z murkiem. Przyjmijmy zapotrzebowanie z OZC za 100:</p>
+  <div class="sdl-table-wrap"><table class="sdl-table">
+    <thead><tr><th scope="col"></th><th scope="col">Bez murku (zima 2025)</th><th scope="col">Z murkiem (teraz)</th><th scope="col">OZC</th></tr></thead>
+    <tbody>
+      <tr><td>Całe zapotrzebowanie na ogrzewanie</td><td><b>ok. 120</b></td><td><b>ok. 100</b></td><td>100</td></tr>
+      <tr><td>z tego podłoga</td><td>ok. 47</td><td>ok. 27</td><td>27</td></tr>
+      <tr><td>reszta (ściany, okna, dach, wentylacja)</td><td>ok. 73</td><td>ok. 73</td><td>73</td></tr>
+    </tbody>
+  </table></div>
+  <p>Bez murku pod kontenerami hulał wiatr i podłoga traciła prawie dwa razy więcej, niż zakłada projekt. Murek zamknął tę przestrzeń i podłoga wróciła do wartości z obliczeń. W efekcie <b>całe ogrzewanie spadło o ok. 17–20%</b>, a <b>same straty przez podłogę o ok. 40%</b> – bardzo dużo jak na ścianę z bloczków. To na razie wynik z dwóch porównanych dób (z dokładnością pomiaru COP ±10–15%); pewniejszą liczbę da sezon na wykresie „zima przed i po murku” niżej.</p>
 
   <h3 class="sdl-bil-h">Gdzie ucieka ciepło</h3>
   <div class="sdl-bil-split">
