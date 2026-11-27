@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.51.5
+Version: 1.51.6
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.51.5');
+define('SDL_VER', '1.51.6');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -1660,7 +1660,7 @@ add_shortcode('sdl_plan', function () {
   </ul>
   <p>Dane z naszych termostatów pokazują dlaczego: w tych dwóch pokojach temperatura przez dużą część sezonu nie osiąga wartości zadanej (w ostatnich dwóch tygodniach przez 36–50% czasu była niższa o ponad 0,5 °C), a w salonie dodatkowe ok. 10 m² mat pozwoliłoby częściej zamykać obieg. To wiedza, którą stosujemy dziś w nowych projektach.</p>
 
-  <h3 class="sdl-bil-h" id="nastawy">5. Nastawy sterownika – plan zmian krok po kroku</h3>
+  <h3 class="sdl-bil-h" id="plan-optymalizacyjny">5. Plan optymalizacyjny – nastawy sterownika krok po kroku</h3>
   <p>Przejrzeliśmy wszystkie ekrany sterownika hydroboksa i porównaliśmy nastawy z danymi z ostatnich tygodni. Wniosek: pompa pracuje poprawnie, ale część ustawień każe jej grzać wodę cieplej, niż dom potrzebuje. A każdy stopień niżej to ok. 2–3% lepszy COP.</p>
   <p>Zmiany wprowadzamy <b>po kolei, co kilka dni</b>, a nie wszystkie naraz. Inaczej nie dałoby się powiedzieć, która zmiana ile dała – ani która odpowiada za ewentualny chłodniejszy pokój czy więcej startów sprężarki. Każdy krok oceniamy na tych samych danych co resztę strony: COP z cykli bufora, liczba startów, czas pracy i temperatury w pokojach, przy podobnej pogodzie.</p>
   <ol>
