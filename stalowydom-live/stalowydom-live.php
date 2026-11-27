@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.51.2
+Version: 1.51.3
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.51.2');
+define('SDL_VER', '1.51.3');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -1350,42 +1350,7 @@ add_shortcode('sdl_cop_pomiar', function () {
     <li><b>Wcześniejszy szacunek „ok. 3 przy 0 °C”</b> z filmu, po doliczeniu ciepła zabranego przez maty, wychodzi trochę niżej: ok. 2,65. Szacunek dla −7 °C (2,3–2,5) się trzyma.</li>
   </ul>
 
-  <h3 class="sdl-bil-h">6. COP i SCOP rekuperatora – czyli rekuperator jako pompa ciepła</h3>
-  <p>Pompy ciepła oceniamy jednym, bardzo wygodnym wskaźnikiem: <b>COP</b> (ang. <i>coefficient of performance</i>) – ile kilowatogodzin ciepła dostajemy z każdej kilowatogodziny prądu. Okazuje się, że ten sam sposób myślenia świetnie pasuje do rekuperatora. On też „pompuje” ciepło: wentylatory zużywają prąd, a wymiennik przenosi ciepło z powietrza, które i tak wyrzucamy na zewnątrz, do powietrza świeżego. Bez rekuperatora to ciepło po prostu uciekłoby przez wyrzutnię.</p>
-  <p class="sdl-bil-calc">COP rekuperatora = ciepło odzyskane ÷ prąd zużyty przez wentylatory</p>
-  <p>Różnica jest jedna, ale zasadnicza. Pompa ciepła musi „podnieść” ciepło z zimnego powietrza do ciepłej wody – to wymaga sprężarki i dużo pracy, stąd COP ok. 3. Rekuperator nie podnosi niczego pod górę: ciepło samo płynie z cieplejszego powietrza wyciąganego do zimniejszego nawiewanego, przez cienkie ścianki wymiennika. Prąd jest potrzebny tylko do przepchnięcia powietrza przez kanały i filtry. Dlatego COP rekuperatora jest kilka razy wyższy niż pompy ciepła.</p>
-  <div class="sdl-table-wrap"><table class="sdl-table">
-    <thead><tr><th scope="col">Sytuacja</th><th scope="col">Ciepło odzyskane</th><th scope="col">Wentylatory</th><th scope="col">COP</th></tr></thead>
-    <tbody>
-      <tr><td>25.11.2026 · 207 m³/h · +1,6 °C</td><td>ok. 1070 W</td><td>75 W</td><td><b>ok. 14</b></td></tr>
-      <tr><td>27.11.2026 · 160 m³/h · ok. 0 °C</td><td>ok. 860 W</td><td>40 W</td><td><b>ok. 21</b></td></tr>
-      <tr><td>dla porównania: pompa ciepła przy 0 °C</td><td colspan="2">–</td><td>ok. 2,7–3</td></tr>
-    </tbody>
-  </table></div>
-  <p>Każda kilowatogodzina prądu wydana na wentylatory oddaje więc do domu <b>14–21 kWh ciepła</b>. Ciekawostka: przy mniejszej wydajności COP rośnie. Wentylatory zużywają nieproporcjonalnie mniej prądu (opór kanałów rośnie z kwadratem prędkości powietrza), a wolniej płynące powietrze ma więcej czasu na oddanie ciepła w wymienniku.</p>
-
-  <h4 class="sdl-bil-h">SCOP – wynik za cały sezon</h4>
-  <p>Pojedynczy odczyt to zdjęcie chwili. Sprawiedliwą ocenę daje <b>SCOP</b> – sezonowy COP: suma ciepła odzyskanego od jesieni do wiosny podzielona przez sumę prądu wentylatorów. Liczymy go na bieżąco (kafelek wyżej) ze wszystkich dób, w których średnia temperatura na zewnątrz była niższa niż 12 °C. Latem wskaźnik traci sens: przy ciepłym powietrzu odzysk jest znikomy albo centrala otwiera bypass, a wtedy „COP” spadłby do zera, choć urządzenie pracuje dokładnie tak, jak powinno.</p>
-
-  <h4 class="sdl-bil-h">Dwa uczciwe zastrzeżenia</h4>
-  <ul>
-    <li><b>Wilgoć to też energia.</b> Wymiennik entalpiczny oddaje świeżemu powietrzu część pary wodnej z powietrza wyciąganego. Odparowanie wody pochłania energię, więc odzyskana wilgoć to odzyskane <i>ciepło utajone</i>. Nasze wzory liczą tylko ciepło jawne – z różnicy temperatur – więc prawdziwy COP centrali ERV jest jeszcze trochę wyższy. Świadomie raczej zaniżamy, niż zawyżamy.</li>
-    <li><b>Ciepło z silników.</b> Część prądu wentylatora i tak zamienia się w ciepło w strumieniu powietrza. To drobna poprawka, nieistotna wobec setek watów z wymiennika.</li>
-  </ul>
-
-  <h4 class="sdl-bil-h">SPI – drugi wskaźnik, którym posługuje się branża</h4>
-  <p>Producenci i normy (np. wymagania ekoprojektu UE dla central wentylacyjnych) opisują oszczędność wentylatorów wskaźnikiem <b>SPI</b> (ang. <i>specific power input</i>): ile watów potrzeba na przetłoczenie każdego metra sześciennego powietrza na godzinę.</p>
-  <p class="sdl-bil-calc">SPI = moc wentylatorów [W] ÷ przepływ [m³/h]</p>
-  <ul>
-    <li>207 m³/h przy 75 W → SPI ≈ <b>0,36 W/(m³/h)</b>,</li>
-    <li>160 m³/h przy 40 W → SPI ≈ <b>0,25 W/(m³/h)</b>.</li>
-  </ul>
-  <p>Wartości poniżej ok. 0,45 W/(m³/h) uchodzą za oszczędną centralę z dobrze zaprojektowanymi kanałami. Wysoki SPI zdradza za długie lub za wąskie kanały, zatkane filtry albo nieszczelności – dlatego warto go obserwować przez cały rok: powolny wzrost przy tym samym przepływie to sygnał, że czas wymienić filtry.</p>
-
-  <h4 class="sdl-bil-h">A w portfelu?</h4>
-  <p>Przy 160 m³/h wentylatory zużywają ok. 0,9 kWh prądu na dobę. W tym czasie wymiennik oddaje ok. 20 kWh ciepła – a to ciepło musiałaby inaczej wyprodukować pompa ciepła, zużywając przy COP ok. 3 jakieś 7 kWh prądu. <b>Na czysto zostaje ok. 6 kWh prądu oszczędności każdego zimowego dnia</b>, a do tego świeże powietrze o kontrolowanej wilgotności. To jeden z najlepszych „interesów” w całej instalacji domu.</p>
-
-  <h3 class="sdl-bil-h">7. Co dalej</h3>
+  <h3 class="sdl-bil-h">6. Co dalej</h3>
   <p>Wykres będzie się zapełniał przez całą zimę. W styczniu zobaczymy prawdziwe punkty przy −7 i −10 °C, a wiosną, przy +10 °C, prawdopodobnie COP powyżej 4,5. Gdy pojawi się ciepłomierz, porównamy tę metodę z dokładnym pomiarem – i sprawdzimy, jak dobrze bufor sprawdza się w roli ciepłomierza.</p>
   <h3 class="sdl-bil-h">7. A jaki jest SCOP?</h3>
   <?php $nn = 0; $ss = 0; foreach ($D['bins'] as $bn) { if ($bn['avg'] !== null && $bn['n'] > 0) { $nn += $bn['n']; $ss += $bn['avg'] * $bn['n']; } } ?>
@@ -1547,6 +1512,9 @@ add_shortcode('sdl_reqnet', function () {
   <h4 class="sdl-bil-h">A w portfelu?</h4>
   <p>Przy 160 m³/h wentylatory zużywają ok. 0,9 kWh prądu na dobę. W tym czasie wymiennik oddaje ok. 20 kWh ciepła – a to ciepło musiałaby inaczej wyprodukować pompa ciepła, zużywając przy COP ok. 3 jakieś 7 kWh prądu. <b>Na czysto zostaje ok. 6 kWh prądu oszczędności każdego zimowego dnia</b>, a do tego świeże powietrze o kontrolowanej wilgotności. To jeden z najlepszych „interesów” w całej instalacji domu.</p>
 
+  <?php echo sdl_sr_block('<p>Rekuperator reQnet reQ V 400 ERV – odczyt z ' . esc_html(sdl_when($R['ts'])) . ' (czas polski): przepływ ' . sdl_num($v['flow_in'] ?? null, 0) . ' m³/h, czerpnia ' . sdl_num($v['czerpnia'] ?? null) . ' °C, nawiew ' . sdl_num($v['nawiew'] ?? null) . ' °C, wyciąg ' . sdl_num($v['wyciag'] ?? null) . ' °C, sprawność odzysku ' . sdl_num($c['eta'] ?? null, 0) . ' %, ciepło odzyskane ' . sdl_num($c['rec'] ?? null, 0) . ' W, do dogrzania ' . sdl_num($c['loss'] ?? null, 0) . ' W, moc wentylatorów ' . sdl_num($v['power'] ?? null, 0) . ' W, COP rekuperatora ' . sdl_num($cop, 0) . ', SCOP sezonu ' . sdl_num($scop, 1) . ', SPI ' . sdl_num($spi, 2) . ' W/(m³/h)' . (isset($v['co2']) ? ', CO₂ ' . sdl_num($v['co2'], 0) . ' ppm' : '') . (isset($v['rh']) ? ', wilgotność ' . sdl_num($v['rh'], 0) . ' %' : '') . '.</p>');
+  echo sdl_dataset_ld('Rekuperator reQnet reQ V 400 ERV – dane na żywo', 'Przepływ powietrza, temperatury czerpni, nawiewu i wyciągu, moc wentylatorów, CO₂ i wilgotność centrali wentylacyjnej z odzyskiem ciepła w domu z kontenerów pod Poznaniem. Odczyty co 5 minut.', ['przepływ [m³/h]', 'temperatury powietrza [°C]', 'moc wentylatorów [W]', 'sprawność odzysku [%]', 'CO₂ [ppm]', 'wilgotność [%]']); ?>
+
   <h3 class="sdl-bil-h">7. Co dalej</h3>
   <ul>
     <li><b>Sterowanie według CO₂ z Home Assistant</b> zamiast wbudowanej automatyki wilgotności: niska wydajność, gdy CO₂ jest niskie, podbicie, gdy rośnie, i przy kąpieli.</li>
@@ -1645,6 +1613,9 @@ add_shortcode('sdl_maty', function () {
 
   <h3 class="sdl-bil-h">7. Te same maty latem chłodzą</h3>
   <p>Wystarczy puścić przez maty chłodną wodę, a sufit zacznie pochłaniać promieniowanie cieplne ludzi i przedmiotów – bez nawiewu zimnego powietrza i bez przeciągów. Granicą jest <b>punkt rosy</b>: jeśli sufit będzie chłodniejszy od punktu rosy powietrza, zacznie się na nim skraplać woda. Dlatego temperaturę wody chłodzącej ustawia się z zapasem 1,5–2 K powyżej punktu rosy, liczonego na bieżąco z temperatury i wilgotności w pokojach (kafelek „Punkt rosy” wyżej).</p>
+
+  <?php echo sdl_sr_block('<p>Maty kapilarne – odczyt z ' . esc_html(sdl_when($M['ts'])) . ' (czas polski): zasilanie mat ' . sdl_num($sup) . ' °C, powrót z mat ' . sdl_num($ret) . ' °C (różnica ' . sdl_num($dt) . ' K), temperatura zadana na zaworze mieszającym ' . sdl_num($v['zawor_zadana'] ?? null, 0) . ' °C, otwarcie zaworu ' . sdl_num($v['zawor_otwarcie'] ?? null, 0) . ' %, woda z wężownicy przed zaworem ' . sdl_num($v['zawor_przed'] ?? null) . ' °C. Temperatury pomieszczeń: salon ' . sdl_num($v['salon'] ?? null) . ' °C, sypialnia ' . sdl_num($v['sypialnia'] ?? null) . ' °C, łazienka ' . sdl_num($v['lazienka'] ?? null) . ' °C; punkt rosy ' . sdl_num($v['rosa'] ?? null) . ' °C. Ok. 88 m² mat na 102 m² domu; sufit grzewczy ok. 25 °C jesienią i ok. 30 °C zimą daje ok. 31–64 W/m².</p>');
+  echo sdl_dataset_ld('Maty kapilarne – ogrzewanie sufitowe na żywo', 'Temperatury wody zasilającej i powrotnej mat kapilarnych, nastawa i otwarcie zaworu mieszającego, temperatury pomieszczeń i punkt rosy w domu z kontenerów pod Poznaniem. Odczyty co 5 minut.', ['zasilanie mat [°C]', 'powrót z mat [°C]', 'temperatura zadana zaworu [°C]', 'otwarcie zaworu [%]', 'temperatury pomieszczeń [°C]', 'punkt rosy [°C]']); ?>
 
   <h3 class="sdl-bil-h" id="co-inaczej">8. Co zrobilibyśmy dziś inaczej</h3>
   <div class="sdl-figs sdl-figs-1">
