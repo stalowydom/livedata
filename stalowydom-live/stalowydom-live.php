@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.50.6
+Version: 1.50.7
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.50.6');
+define('SDL_VER', '1.50.7');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -1606,7 +1606,7 @@ add_shortcode('sdl_maty', function () {
     </tbody>
   </table></div>
   <p>Konwekcję przyjęliśmy ostrożnie: ok. 0,8 W/m² na każdy stopień różnicy. Razem wychodzi <b>ok. 6,3–6,5 W/m² na każdy stopień</b>, o który sufit jest cieplejszy od pokoju – i tyle samo podają normy badań sufitów grzewczych (EN 14240). <b>Producent mat podaje nawet ok. 70 W/m²</b> – to nie przeczy rachunkowi, tylko odpowiada sufitowi o ok. 31 °C, czyli o ok. 11 stopni cieplejszemu od pokoju. Teoria, katalog i pomiar to jedna i ta sama krzywa, tylko w różnych punktach.</p>
-  <p>Dwie uwagi praktyczne. Pierwsza: termowizja pokazuje najcieplejsze pasy nad rurkami, a w przerwach między matami sufit jest chłodniejszy – średnia temperatura całej powierzchni jest więc niższa niż szczytowe odczyty. Druga: nie cały sufit jest pokryty matami, więc moc liczymy dla 88 m² mat, a nie dla całego sufitu. Dla porównania nasz dom potrzebuje w mrozy ok. 3–3,5 kW (bilans na stronie <a href="<?php echo esc_url(home_url('/projekt/')); ?>">Projekt</a>) – zapas jest, choć w niektórych pokojach mat jest za mało (punkt 8).</p>
+  <p>Dwie uwagi praktyczne. Pierwsza: termowizja pokazuje najcieplejsze pasy nad rurkami, a w przerwach między matami sufit jest chłodniejszy – średnia temperatura całej powierzchni jest więc niższa niż szczytowe odczyty. Druga: nie cały sufit jest pokryty matami, więc moc liczymy dla 88 m² mat, a nie dla całego sufitu. Dla porównania nasz dom potrzebuje w mrozy ok. 3–3,5 kW (bilans na stronie <a href="<?php echo esc_url(home_url('/projekt/')); ?>">Projekt</a>) – zapas jest, choć w niektórych pokojach mat jest za mało (<a href="#co-inaczej">punkt 8</a>).</p>
 
   <h3 class="sdl-bil-h">3. Temperatura odczuwalna – dlaczego 20 °C może grzać jak 21 °C</h3>
   <p>Człowiek nie ma termometru powietrza. Odczuwamy bilans ciepła ciała: ile oddajemy powietrzu i ile promieniowaniem do otaczających powierzchni. Inżynierowie opisują to <b>temperaturą operacyjną</b> – w pokoju bez przeciągów to w przybliżeniu średnia z temperatury powietrza i średniej temperatury powierzchni dookoła:</p>
@@ -1646,11 +1646,11 @@ add_shortcode('sdl_maty', function () {
   <h3 class="sdl-bil-h">7. Te same maty latem chłodzą</h3>
   <p>Wystarczy puścić przez maty chłodną wodę, a sufit zacznie pochłaniać promieniowanie cieplne ludzi i przedmiotów – bez nawiewu zimnego powietrza i bez przeciągów. Granicą jest <b>punkt rosy</b>: jeśli sufit będzie chłodniejszy od punktu rosy powietrza, zacznie się na nim skraplać woda. Dlatego temperaturę wody chłodzącej ustawia się z zapasem 1,5–2 K powyżej punktu rosy, liczonego na bieżąco z temperatury i wilgotności w pokojach (kafelek „Punkt rosy” wyżej).</p>
 
-  <h3 class="sdl-bil-h">8. Co zrobilibyśmy dziś inaczej</h3>
+  <h3 class="sdl-bil-h" id="co-inaczej">8. Co zrobilibyśmy dziś inaczej</h3>
   <div class="sdl-figs sdl-figs-1">
     <?php echo $img('termo-sypialnia.webp', 'Termowizja sypialni: sufit z matami tylko ok. 22,5 °C, okno 12,5–16,5 °C', 'Sypialnia: sufit ok. 22,5 °C, wyraźnie chłodniejszy niż w innych pokojach. Okno: rama 12,5 °C, szyba ok. 16,5 °C.'); ?>
   </div>
-  <p>Maty w domu to SB20 i jest ich trochę za mało – dlatego w mrozy potrzebujemy cieplejszej wody, niż byłoby to konieczne. Najlepiej widać to w sypialni: sufit ma tam ok. 22,5 °C, a sypialnia bywa niedogrzana, choć ustawiamy w niej niższą temperaturę niż w reszcie domu. Dziś wybralibyśmy gęstsze maty SB10 i dodali maty ścienne w kilku pokojach. Więcej o tym i o planowanym osobnym buforze dla ogrzewania: <a href="<?php echo esc_url(home_url('/heiko/')); ?>">Pompa ciepła Heiko – plan rozwojowy</a>.</p>
+  <p>Maty w domu to SB20 i jest ich trochę za mało – dlatego w mrozy potrzebujemy cieplejszej wody, niż byłoby to konieczne. Najlepiej widać to w sypialni: sufit ma tam ok. 22,5 °C, a sypialnia bywa niedogrzana, choć ustawiamy w niej niższą temperaturę niż w reszcie domu. Dziś wybralibyśmy gęstsze maty SB10 i dodali maty ścienne w kilku pokojach. Więcej o tym: <a href="<?php echo esc_url(home_url('/heiko/#czego-nauczyl-nas-dom')); ?>">czego nauczył nas ten dom</a>, a o planowanym osobnym buforze dla ogrzewania: <a href="<?php echo esc_url(home_url('/heiko/#plan-rozwojowy')); ?>">Pompa ciepła Heiko – plan rozwojowy</a>.</p>
 </div>
 <?php
     return ob_get_clean();
@@ -1673,7 +1673,7 @@ add_shortcode('sdl_plan', function () {
   <p>Ma jednak swoją cenę. Zawory muszą „czuć” temperaturę otoczenia, więc są odkryte i nieizolowane – to miejsce, przez które instalacja traci ciepło przez cały sezon. Strata nie jest duża, ale stała.</p>
   <p>Gdy dom dostanie magazyn energii, pompa obiegowa będzie miała zasilanie także podczas przerw w dostawie prądu. Wtedy zawory będzie można usunąć albo solidnie zaizolować (co w praktyce wyłącza ich działanie) – a rolę zabezpieczenia przejmie zasilanie awaryjne i alarm w Home Assistant przy spadku temperatury wody w obiegu zewnętrznym.</p>
 
-  <h3 class="sdl-bil-h">3. Plan rozwojowy (2027–2028)</h3>
+  <h3 class="sdl-bil-h" id="plan-rozwojowy">3. Plan rozwojowy (2027–2028)</h3>
   <ol>
     <li><b>Etap 2: garaż.</b> Cztery kontenery już stoją – teraz czeka nas ich ocieplenie i wykończenie.</li>
     <li><b>Rozbudowa instalacji po wykończeniu garażu:</b> osobny bufor dla ogrzewania, który oddzieli ciepłą wodę od obiegu mat. Maty będą zasilane bezpośrednio niską temperaturą, bez pośrednictwa zasobnika CWU. Przy tej przebudowie zamontujemy też ciepłomierz.</li>
@@ -1681,7 +1681,7 @@ add_shortcode('sdl_plan', function () {
   </ol>
   <p>Wszystkie zmiany zmierzymy tym samym wskaźnikiem kWh na stopień – żeby porównanie „przed i po” było uczciwe.</p>
 
-  <h3 class="sdl-bil-h">4. Czego nauczył nas ten dom</h3>
+  <h3 class="sdl-bil-h" id="czego-nauczyl-nas-dom">4. Czego nauczył nas ten dom</h3>
   <p>Układ mat zostaje bez zmian – jego przebudowa oznaczałaby zbyt duże zniszczenia wykończonych wnętrz. Gdybyśmy jednak budowali dziś, zrobilibyśmy to inaczej:</p>
   <ul>
     <li><b>gęstsze maty kapilarne SB10</b> zamiast SB20,</li>

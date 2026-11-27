@@ -178,3 +178,4 @@ h4.sdl-bil-h{font-size:17px;color:#e5ded8;padding:14px 0 6px}
 .sdl-figs.sdl-figs-2{grid-template-columns:repeat(2,minmax(0,280px))}
 .sdl-figs.sdl-figs-1{grid-template-columns:minmax(0,280px)}
 @media (max-width:480px){.sdl-figs.sdl-figs-2,.sdl-figs.sdl-figs-1{grid-template-columns:1fr}}
+.sdl-bil-h[id]{scroll-margin-top:110px}
