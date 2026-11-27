@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.48.0
+Version: 1.49.0
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.48.0');
+define('SDL_VER', '1.49.0');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -1428,7 +1428,7 @@ add_shortcode('sdl_reqnet', function () {
     $c = sdl_rq_calc($v['flow_in'] ?? null, $v['czerpnia'] ?? null, $v['nawiew'] ?? null, $v['wyciag'] ?? null);
     $days = [];
     foreach (['flow_in', 'czerpnia', 'nawiew', 'wyciag', 'power'] as $m) {
-        foreach (sdl_now_daily('reqnet', $m, 14, 'avg') as $row) $days[$row[0]][$m] = $row[1];
+        foreach (sdl_now_daily('reqnet', $m, 31, 'avg') as $row) $days[$row[0]][$m] = $row[1];
     }
     krsort($days);
     $tz = sdl_tz();
@@ -1477,17 +1477,22 @@ add_shortcode('sdl_reqnet', function () {
 
   <h3 class="sdl-bil-h">2. Ostatnie doby</h3>
   <p>Średnie dobowe z odczytów co 5 minut. To przybliżenie: liczymy ze średnich temperatur i przepływu, nie z każdego odczytu osobno.</p>
+  <details class="sdl-more">
+  <summary><span class="sdl-more-open">Pokaż tabelę dób (do 30 dni)</span><span class="sdl-more-close">Zwiń tabelę</span></summary>
   <div class="sdl-table-wrap"><table class="sdl-table">
     <thead><tr><th scope="col">Doba</th><th scope="col">Przepływ</th><th scope="col">Na zewnątrz</th><th scope="col">Sprawność</th><th scope="col">Odzysk</th><th scope="col">Do dogrzania</th><th scope="col">Prąd wentylatorów</th><th scope="col">COP</th></tr></thead>
-    <tbody><?php foreach (array_slice($days, 0, 10, true) as $d => $x) {
+    <tbody><?php foreach (array_slice($days, 0, 30, true) as $d => $x) {
         $k = sdl_rq_calc($x['flow_in'] ?? null, $x['czerpnia'] ?? null, $x['nawiew'] ?? null, $x['wyciag'] ?? null);
         if (!$k) continue;
         echo '<tr><td>' . esc_html(wp_date('j.m', strtotime($d . ' 12:00'), $tz)) . '</td><td>' . sdl_num($x['flow_in'], 0) . ' m³/h</td><td>' . sdl_num($x['czerpnia']) . ' °C</td><td><b>' . sdl_num($k['eta'], 0) . '%</b></td><td>' . sdl_num($k['rec'] * 24 / 1000) . ' kWh</td><td>' . sdl_num($k['loss'] * 24 / 1000) . ' kWh</td><td>' . (isset($x['power']) ? sdl_num($x['power'] * 24 / 1000, 2) . ' kWh' : '–') . '</td><td><b>' . (!empty($x['power']) && $x['power'] > 3 ? sdl_num($k['rec'] / $x['power'], 0) : '–') . '</b></td></tr>';
     } ?></tbody>
   </table></div>
+  </details>
 
   <h3 class="sdl-bil-h">3. Czy wentylacja to duża strata?</h3>
   <p>Ten sam dzień (25.11.2026, +1,6 °C), przeliczony na trzy wydajności – przy tej samej sprawności ok. 78%:</p>
+  <details class="sdl-more">
+  <summary><span class="sdl-more-open">Pokaż porównanie wydajności</span><span class="sdl-more-close">Zwiń porównanie</span></summary>
   <div class="sdl-table-wrap"><table class="sdl-table">
     <thead><tr><th scope="col">Wydajność</th><th scope="col">Odzysk / dobę</th><th scope="col">Do dogrzania / dobę</th><th scope="col">Wentylatory / dobę</th></tr></thead>
     <tbody>
@@ -1496,6 +1501,7 @@ add_shortcode('sdl_reqnet', function () {
       <tr><td>110 m³/h</td><td>ok. 14 kWh</td><td><b>ok. 3,8 kWh</b> ciepła</td><td>ok. 0,6 kWh (szacunek)</td></tr>
     </tbody>
   </table></div>
+  </details>
   <p><b>Odpowiedź: nie, to nie jest duża strata.</b> Ciepło do dogrzania pompa pokrywa przy COP ok. 3, więc przy 207 m³/h wentylacja kosztuje ok. 2–2,5 kWh prądu na pompie i 1,8 kWh na wentylatorach na dobę – rząd 10% całego zużycia na ogrzewanie. Bez rekuperatora ta sama wymiana powietrza kosztowałaby ponad 30 kWh ciepła dziennie. Większy zysk niż ścinanie wydajności daje utrzymanie wysokiej sprawności wymiennika (czyste filtry, szczelne kanały).</p>
 
   <h3 class="sdl-bil-h">4. Ile powietrza naprawdę potrzebujemy?</h3>
