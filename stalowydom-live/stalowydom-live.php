@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.45.0
+Version: 1.46.0
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.45.0');
+define('SDL_VER', '1.46.0');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -776,7 +776,7 @@ add_shortcode('sdl_dom', function ($atts) {
     echo sdl_dom_row('reQnet', '', 'Rekuperator entalpiczny', 'Wentylacja z odzyskiem ciepła i wilgoci.',
         [['Wymiana powietrza (nawiew / wyciąg)', sdl_v('reqnet', 'flow_in', '', 0) . ' / ' . sdl_v('reqnet', 'flow_out', 'm³/h', 0)], 'br',
          ['Czerpnia', sdl_v('reqnet', 'czerpnia', '°C')], ['Nawiew', sdl_v('reqnet', 'nawiew', '°C')], ['Wyciąg / wyrzutnia', sdl_v('reqnet', 'wyciag', '', 1) . ' / ' . sdl_v('reqnet', 'wyrzutnia', '°C')], 'br',
-         ['Moc', sdl_v('reqnet', 'power', 'W', 0)], ['Dziś', '<span data-e="reqnet_today">–</span>'], ['30 dni', '<span data-e="reqnet_30">–</span>']], '');
+         ['Moc', sdl_v('reqnet', 'power', 'W', 0)], ['Dziś', '<span data-e="reqnet_today">–</span>'], ['30 dni', '<span data-e="reqnet_30">–</span>']], home_url('/reqnet/'));
     echo sdl_dom_row('Maty kapilarne', 'sdl-n-small', 'Ogrzewanie i chłodzenie sufitowe', 'Temperatury pomieszczeń z termostatów Sinum i zawór mieszający, który zasila maty wodą z wężownicy w buforze.',
         [['Salon', sdl_v('maty', 'salon', '°C')], ['Sypialnia', sdl_v('maty', 'sypialnia', '°C')], ['Łazienka', sdl_v('maty', 'lazienka', '°C')], 'br',
          ['Punkt rosy', sdl_v('maty', 'rosa', '°C')], ['Zawór: temp. zadana', sdl_v('maty', 'zawor_zadana', '°C', 0)], ['Otwarcie zaworu', sdl_v('maty', 'zawor_otwarcie', '%', 0)], 'br',
@@ -1377,6 +1377,90 @@ add_shortcode('sdl_cop_pomiar', function () {
 });
 
 /* ---------- odszranianie: [sdl_odszranianie device="heiko_defrost"] ---------- */
+/* ---------- [sdl_reqnet] – rekuperator reQ V 400 ERV: dane na żywo, bilans odzysku i strat, analizy ---------- */
+function sdl_rq_calc($q, $tout, $tsup, $tex) {
+    if (!is_numeric($q) || !is_numeric($tout) || !is_numeric($tsup) || !is_numeric($tex) || $q <= 0) return null;
+    $den = $tex - $tout;
+    return [
+        'eta'  => abs($den) > 2 ? ($tsup - $tout) / $den * 100 : null,   /* sprawność temperaturowa po stronie nawiewu */
+        'rec'  => 0.34 * $q * ($tsup - $tout),                           /* W: ciepło oddane świeżemu powietrzu przez wymiennik */
+        'loss' => 0.34 * $q * max(0, $tex - $tsup),                      /* W: ciepło, które dom musi dogrzać */
+    ];
+}
+add_shortcode('sdl_reqnet', function () {
+    wp_enqueue_style('sdl', SDL_URL . 'assets/sdl.css', [], SDL_VER);
+    $R = sdl_now_latest('reqnet'); $v = $R['values'];
+    $c = sdl_rq_calc($v['flow_in'] ?? null, $v['czerpnia'] ?? null, $v['nawiew'] ?? null, $v['wyciag'] ?? null);
+    $days = [];
+    foreach (['flow_in', 'czerpnia', 'nawiew', 'wyciag', 'power'] as $m) {
+        foreach (sdl_now_daily('reqnet', $m, 14, 'avg') as $row) $days[$row[0]][$m] = $row[1];
+    }
+    krsort($days);
+    $tz = sdl_tz();
+    ob_start(); ?>
+<div class="sdl-wrap sdl-bilans sdl-reqnet">
+  <p class="sdl-bil-lead">Centrala <b>reQnet reQ V 400 ERV</b> wymienia powietrze w całym domu przez całą dobę. Wymiennik entalpiczny oddaje świeżemu powietrzu nie tylko ciepło, ale też część wilgoci z powietrza usuwanego. Poniżej liczymy, ile ciepła odzyskuje, ile kosztuje nas wentylacja i ile powietrza naprawdę potrzebujemy.</p>
+
+  <div class="sdl-kpis sdl-kpis-5">
+    <div class="sdl-kpi"><div class="sdl-kpi-label">Wymiana teraz</div><div class="sdl-kpi-val"><?php echo sdl_num($v['flow_in'] ?? null, 0); ?> <small>m³/h</small></div><div class="sdl-kpi-sub">nawiew / wyciąg: <?php echo sdl_num($v['flow_in'] ?? null, 0) . ' / ' . sdl_num($v['flow_out'] ?? null, 0); ?></div></div>
+    <div class="sdl-kpi" title="Sprawność temperaturowa po stronie nawiewu: (nawiew − czerpnia) ÷ (wyciąg − czerpnia)."><div class="sdl-kpi-label">Sprawność odzysku</div><div class="sdl-kpi-val"><?php echo sdl_num($c['eta'] ?? null, 0); ?> <small>%</small></div><div class="sdl-kpi-sub">czerpnia <?php echo sdl_num($v['czerpnia'] ?? null); ?> °C → nawiew <?php echo sdl_num($v['nawiew'] ?? null); ?> °C</div></div>
+    <div class="sdl-kpi" style="border-top-color:#22c55e"><div class="sdl-kpi-label">Ciepło odzyskane</div><div class="sdl-kpi-val"><?php echo sdl_num($c['rec'] ?? null, 0); ?> <small>W</small></div><div class="sdl-kpi-sub">tyle grzałby dom bez rekuperatora</div></div>
+    <div class="sdl-kpi" style="border-top-color:#ef4444"><div class="sdl-kpi-label">Do dogrzania</div><div class="sdl-kpi-val"><?php echo sdl_num($c['loss'] ?? null, 0); ?> <small>W</small></div><div class="sdl-kpi-sub">nawiew → wyciąg <?php echo sdl_num($v['wyciag'] ?? null); ?> °C</div></div>
+    <div class="sdl-kpi"><div class="sdl-kpi-label">Wentylatory</div><div class="sdl-kpi-val"><?php echo sdl_num($v['power'] ?? null, 0); ?> <small>W</small></div><div class="sdl-kpi-sub"><?php if (isset($v['co2'])) echo 'CO₂ ' . sdl_num($v['co2'], 0) . ' ppm'; ?><?php if (isset($v['rh'])) echo ' · wilgotność ' . sdl_num($v['rh'], 0) . '%'; ?></div></div>
+  </div>
+  <p class="sdl-note">Odczyt z <?php echo esc_html(sdl_when($R['ts'])); ?> (czas polski). Wartości liczone ze wzorów opisanych niżej.</p>
+
+  <h3 class="sdl-bil-h">1. Jak liczymy</h3>
+  <p>Podgrzanie 1 m³ powietrza o 1 °C wymaga ok. <b>0,34 Wh</b>. Mamy cztery czujniki temperatury w centrali: czerpnia (powietrze z zewnątrz), nawiew (po wymienniku, do pokoi), wyciąg (z pokoi) i wyrzutnia (na zewnątrz). Stąd:</p>
+  <ul>
+    <li><b>sprawność odzysku</b> = (nawiew − czerpnia) ÷ (wyciąg − czerpnia),</li>
+    <li><b>ciepło odzyskane</b> = 0,34 × przepływ × (nawiew − czerpnia) – tyle musiałby dogrzać dom, gdyby powietrze wpadało prosto z zewnątrz,</li>
+    <li><b>ciepło do dogrzania</b> = 0,34 × przepływ × (wyciąg − nawiew) – tę różnicę pokrywa pompa ciepła przez maty.</li>
+  </ul>
+  <p class="sdl-bil-calc">Przykład z 25.11.2026 (+1,6 °C na zewnątrz, 207 m³/h): nawiew 16,8 °C, wyciąg 21,0 °C. Sprawność = 15,2 ÷ 19,4 ≈ <b>78%</b>. Odzysk = 0,34 × 207 × 15,2 ≈ 1,07 kW, czyli ok. <b>26 kWh na dobę</b>. Do dogrzania = 0,34 × 207 × 4,2 ≈ 0,3 kW, czyli ok. <b>7 kWh ciepła na dobę</b>.</p>
+
+  <h3 class="sdl-bil-h">2. Ostatnie doby</h3>
+  <p>Średnie dobowe z odczytów co 5 minut. To przybliżenie: liczymy ze średnich temperatur i przepływu, nie z każdego odczytu osobno.</p>
+  <div class="sdl-table-wrap"><table class="sdl-table">
+    <thead><tr><th scope="col">Doba</th><th scope="col">Przepływ</th><th scope="col">Na zewnątrz</th><th scope="col">Sprawność</th><th scope="col">Odzysk</th><th scope="col">Do dogrzania</th><th scope="col">Prąd wentylatorów</th></tr></thead>
+    <tbody><?php foreach (array_slice($days, 0, 10, true) as $d => $x) {
+        $k = sdl_rq_calc($x['flow_in'] ?? null, $x['czerpnia'] ?? null, $x['nawiew'] ?? null, $x['wyciag'] ?? null);
+        if (!$k) continue;
+        echo '<tr><td>' . esc_html(wp_date('j.m', strtotime($d . ' 12:00'), $tz)) . '</td><td>' . sdl_num($x['flow_in'], 0) . ' m³/h</td><td>' . sdl_num($x['czerpnia']) . ' °C</td><td><b>' . sdl_num($k['eta'], 0) . '%</b></td><td>' . sdl_num($k['rec'] * 24 / 1000) . ' kWh</td><td>' . sdl_num($k['loss'] * 24 / 1000) . ' kWh</td><td>' . (isset($x['power']) ? sdl_num($x['power'] * 24 / 1000, 2) . ' kWh' : '–') . '</td></tr>';
+    } ?></tbody>
+  </table></div>
+
+  <h3 class="sdl-bil-h">3. Czy wentylacja to duża strata?</h3>
+  <p>Ten sam dzień (25.11.2026, +1,6 °C), przeliczony na trzy wydajności – przy tej samej sprawności ok. 78%:</p>
+  <div class="sdl-table-wrap"><table class="sdl-table">
+    <thead><tr><th scope="col">Wydajność</th><th scope="col">Odzysk / dobę</th><th scope="col">Do dogrzania / dobę</th><th scope="col">Wentylatory / dobę</th></tr></thead>
+    <tbody>
+      <tr><td>207 m³/h</td><td>ok. 26 kWh</td><td><b>ok. 7,1 kWh</b> ciepła</td><td>ok. 1,8 kWh (75 W)</td></tr>
+      <tr><td>160 m³/h</td><td>ok. 20 kWh</td><td><b>ok. 5,5 kWh</b> ciepła</td><td>ok. 0,9 kWh (39 W)</td></tr>
+      <tr><td>110 m³/h</td><td>ok. 14 kWh</td><td><b>ok. 3,8 kWh</b> ciepła</td><td>ok. 0,6 kWh (szacunek)</td></tr>
+    </tbody>
+  </table></div>
+  <p><b>Odpowiedź: nie, to nie jest duża strata.</b> Ciepło do dogrzania pompa pokrywa przy COP ok. 3, więc przy 207 m³/h wentylacja kosztuje ok. 2–2,5 kWh prądu na pompie i 1,8 kWh na wentylatorach na dobę – rząd 10% całego zużycia na ogrzewanie. Bez rekuperatora ta sama wymiana powietrza kosztowałaby ponad 30 kWh ciepła dziennie. Większy zysk niż ścinanie wydajności daje utrzymanie wysokiej sprawności wymiennika (czyste filtry, szczelne kanały).</p>
+
+  <h3 class="sdl-bil-h">4. Ile powietrza naprawdę potrzebujemy?</h3>
+  <p>Dom ma ok. 300 m³ kubatury, mieszkają w nim cztery osoby. Typowo przyjmuje się ok. 30 m³/h świeżego powietrza na osobę, czyli <b>ok. 120 m³/h</b> – i tyle mniej więcej wybiera centrala w trybie automatycznym: najczęściej ok. 110 m³/h. Nasze odczucie jest jednak takie, że przy 110 m³/h powietrze nie jest wystarczająco świeże.</p>
+  <p>Jedna z przyczyn jest ciekawa: <b>automatyka „uczy się” wilgotności</b>. Gdy przez dłuższy czas w domu utrzymuje się ok. 60%, centrala zaczyna traktować tę wartość jako normalną i przestaje zwiększać wydajność. Dom jest wtedy wentylowany za słabo, choć według czujnika wszystko jest w porządku.</p>
+  <p>Dlatego od 27.11.2026 testujemy stałe <b>160 m³/h</b> (ok. 0,5 wymiany na godzinę). Porównamy CO₂, wilgotność, odczucie domowników i koszt z dniami na 110 i 207 m³/h – wyniki pojawią się w tabeli „Ostatnie doby”.</p>
+
+  <h3 class="sdl-bil-h">5. Wymiennik entalpiczny zimą</h3>
+  <p>Zwykły rekuperator przy dużej wymianie zimą mocno wysusza dom – mroźne powietrze z zewnątrz ma bardzo mało wody. Wymiennik entalpiczny (ERV) przekazuje część wilgoci z powietrza wyciąganego do nawiewanego, więc spadek wilgotności przy 160–200 m³/h jest wyraźnie mniejszy. To jeden z powodów, dla których przy tej centrali możemy sobie pozwolić na większą wymianę bez nawilżacza.</p>
+
+  <h3 class="sdl-bil-h">6. Co dalej</h3>
+  <ul>
+    <li><b>Sterowanie według CO₂ z Home Assistant</b> zamiast wbudowanej automatyki wilgotności: niska wydajność, gdy CO₂ jest niskie, podbicie, gdy rośnie, i przy kąpieli.</li>
+    <li><b>Stop przy pożarze:</b> planujemy wyłączanie centrali przez alarm dymu, żeby nie rozprowadzała dymu po kanałach.</li>
+    <li><b>Wyniki testu 110 / 160 / 207 m³/h</b> – opiszemy je tutaj po kilku tygodniach.</li>
+  </ul>
+</div>
+<?php
+    return ob_get_clean();
+});
+
 /* ---------- [sdl_plan] – podział CO/CWU, zawory przeciwzamrożeniowe, plan rozwojowy (treść uzgodniona z właścicielem 27.11.2026) ---------- */
 add_shortcode('sdl_plan', function () {
     wp_enqueue_style('sdl', SDL_URL . 'assets/sdl.css', [], SDL_VER);
@@ -1547,6 +1631,7 @@ add_action('init', function () {
         . "- [Projekt domu](" . $u('/projekt/') . "): układ (prostokąt ok. 10 × 12 m, podział na strefę dzienną i odpoczynku), ocieplenie pianą PUR, instalacje.\n"
         . "- [Dom na żywo](" . $u('/live/') . "): zużycie energii całego domu i urządzeń, temperatury, wentylacja – dane co 5 minut.\n"
         . "- [Pompa ciepła Heiko Thermal 15 kW](" . $u('/heiko/') . "): moc, zużycie dobowe i miesięczne z podziałem CO/CWU, bufor NOEL 700 l, odszranianie, czuwanie.\n"
+        . "- [Rekuperator reQnet reQ V 400 ERV](" . $u('/reqnet/') . "): wentylacja z odzyskiem ciepła i wilgoci – sprawność odzysku, ciepło odzyskane i do dogrzania, koszt wentylacji, test wydajności 110/160/207 m³/h.\n"
         . "- [Zastosowany sprzęt](" . $u('/sprzet/') . "): urządzenia pracujące w domu.\n"
         . "- [Aquilo WiFi](" . $u('/aquilo/') . "): bezprzewodowy czujnik poziomu szamba.\n"
         . "- [Kontakt](" . $u('/kontakt/') . "): formularz kontaktowy (współpraca, testy sprzętu).\n"
@@ -1561,7 +1646,7 @@ add_action('init', function () {
         . "Urządzenia (DEVICE) i metryki:\n"
         . "- `dom` – cały dom: `power` [W], `l1` `l2` `l3` [W], `energy_total` [kWh, licznik narastający], `outdoor` [°C].\n"
         . "- `heiko` – pompa ciepła: `power` [W], `energy_total` `energy_co` `energy_cwu` `energy_standby` [kWh, narastająco], `noel_top` `noel_mid` `noel_bot` `supply` `outdoor` [°C], `starts`, `defrost_n`, `defrost_h` [h], `circ_starts` (dzisiejsze), `rh_out` (wilgotność na zewnątrz) [%], `tp` (temperatura parownika) [°C], `fan` (obroty wentylatora), `wind` (wiatr z prognozy met.no) [km/h], `run_h` (czas pracy sprężarki dziś) [h]. Odpowiedź `latest?device=heiko` zawiera też `starts_week_avg`, `starts_month_avg` (średnio startów na dobę), `year_kwh`, `year_starts`, `year_run_h`, `year_starts_avg` (od początku roku), `months` (zużycie i czas pracy sprężarki w 5 ostatnich miesiącach, [RRRR-MM, kWh, h]) i `year_since`.\n"
-        . "- `reqnet` – rekuperator: `flow_in` `flow_out` [m³/h], `czerpnia` `nawiew` `wyciag` `wyrzutnia` [°C], `power` [W], `energy_total` [kWh].\n"
+        . "- `reqnet` – rekuperator: `flow_in` `flow_out` [m³/h], `czerpnia` `nawiew` `wyciag` `wyrzutnia` [°C], `power` [W], `energy_total` [kWh], `co2` [ppm], `rh` [%].\n"
         . "- `maty` – temperatury pomieszczeń: `salon` `sypialnia` `lazienka` [°C], `rosa` (punkt rosy) [°C]; zawór mieszający: `zawor_zadana` (temperatura zadana), `zawor_temp` (zasilanie mat), `zawor_powrot` (powrót z mat), `zawor_przed` (woda z wężownicy w buforze przed zaworem) [°C], `zawor_otwarcie` [%].\n"
         . "- `pompa_cwu` – pompa cyrkulacyjna: `energy_total` [kWh], `starts` (dziś), `run_h` `run_h_yday` [h].\n"
         . "- `serwer` – serwer domowy: `power` [W], `energy_total` [kWh].\n\n"
