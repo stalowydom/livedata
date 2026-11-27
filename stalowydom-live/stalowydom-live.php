@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.50.3
+Version: 1.50.4
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.50.3');
+define('SDL_VER', '1.50.4');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -1565,8 +1565,8 @@ add_shortcode('sdl_maty', function () {
     $sup = $v['zawor_temp'] ?? null; $ret = $v['zawor_powrot'] ?? null;
     $dt  = (is_numeric($sup) && is_numeric($ret)) ? $sup - $ret : null;
     $avg = (is_numeric($sup) && is_numeric($ret)) ? ($sup + $ret) / 2 : null;
-    $img = function ($f, $alt, $cap) {
-        return '<figure class="sdl-fig"><img src="' . esc_url(SDL_URL . 'assets/img/' . $f) . '" width="720" height="960" loading="lazy" alt="' . esc_attr($alt) . '"><figcaption>' . $cap . '</figcaption></figure>';
+    $img = function ($f, $alt, $cap, $w = 720, $h = 960) {
+        return '<figure class="sdl-fig"><img src="' . esc_url(SDL_URL . 'assets/img/' . $f) . '" width="' . $w . '" height="' . $h . '" loading="lazy" alt="' . esc_attr($alt) . '"><figcaption>' . $cap . '</figcaption></figure>';
     };
     ob_start(); ?>
 <div class="sdl-wrap sdl-bilans sdl-maty">
@@ -1624,8 +1624,8 @@ add_shortcode('sdl_maty', function () {
   <div class="sdl-figs">
     <?php echo $img('termo-sufit-okno-1.webp', 'Termowizja: sufit z matami kapilarnymi ok. 25 °C, widoczne pasy mat, okno balkonowe z ramą 12,5 °C', 'Sufit ok. 25 °C. Widać pasy mat – jaśniejsze tam, gdzie biegną rurki, ciemniejsze w przerwach między matami.'); ?>
     <?php echo $img('termo-sufit-okno-2.webp', 'Termowizja: ciepły sufit z matami kapilarnymi 24,3 °C nad oknem, najzimniejszy punkt dolna rama okna 12,4 °C', 'Ten sam układ w drugim pokoju: sufit 24,3 °C, najzimniej przy dolnej ramie okna – 12,4 °C.'); ?>
-    <?php echo $img('termo-okno-biurko.webp', 'Termowizja: ściana z oknem ok. 20 °C, rama okna 14,3 °C, gorący punkt elektroniki na biurku 43,6 °C', 'Ściana ok. 20 °C, rama okna 14,3 °C. Gorący punkt 43,6 °C na biurku to elektronika – świeci w podczerwieni najmocniej w kadrze.'); ?>
-    <?php echo $img('termo-okno-poziome.webp', 'Termowizja: okno 12,7 °C na tle ciepłej ściany i sufitu ok. 26 °C', 'Ściany i sufit ciepłe, okno – najzimniejsza powierzchnia pokoju (12,7 °C na ramie).'); ?>
+    <?php echo $img('termo-okno-biurko.webp', 'Termowizja: ciepły sufit z matami kapilarnymi nad oknem, rama okna 14,3 °C, gorący punkt elektroniki na biurku 43,6 °C', 'Ciepły sufit u góry, okno z ramą 14,3 °C. Gorący punkt 43,6 °C na biurku to elektronika – świeci w podczerwieni najmocniej w kadrze.', 960, 720); ?>
+    <?php echo $img('termo-okno-poziome.webp', 'Termowizja: ciepły sufit z matami ok. 26 °C nad oknem, rama okna 12,7 °C', 'Sufit u góry ok. 26 °C, okno – najzimniejsza powierzchnia pokoju (12,7 °C na ramie).', 960, 720); ?>
   </div>
   <p>Czego uczą te obrazy:</p>
   <ul>
@@ -1636,7 +1636,7 @@ add_shortcode('sdl_maty', function () {
   </ul>
 
   <h3 class="sdl-bil-h">6. Łazienki – maty także w podłodze</h3>
-  <p>W łazienkach maty leżą również w podłodze, pod płytkami. Ciepła podłoga to komfort bosych stóp i szybko schnąca posadzka. Norma ogrzewania płaszczyznowego (EN 1264) dopuszcza w łazienkach powierzchnię podłogi do 33 °C, w pokojach do 29 °C – my, przy niskiej temperaturze wody, jesteśmy wyraźnie poniżej. Zdjęcia termowizyjne łazienki dodamy wkrótce.</p>
+  <p>W łazienkach maty leżą również w podłodze, pod mikrocementem – łazienki mają mikrocement na podłogach i ścianach, bez płytek; tylko sufit jest z płyt g-k, tak jak w pokojach. Cienka warstwa mikrocementu dobrze przewodzi ciepło, więc podłoga reaguje szybko. Ciepła podłoga to komfort bosych stóp i szybko schnąca posadzka. Norma ogrzewania płaszczyznowego (EN 1264) dopuszcza w łazienkach powierzchnię podłogi do 33 °C, w pokojach do 29 °C – my, przy niskiej temperaturze wody, jesteśmy wyraźnie poniżej. Zdjęcia termowizyjne łazienki dodamy wkrótce.</p>
 
   <h3 class="sdl-bil-h">7. Te same maty latem chłodzą</h3>
   <p>Wystarczy puścić przez maty chłodną wodę, a sufit zacznie pochłaniać promieniowanie cieplne ludzi i przedmiotów – bez nawiewu zimnego powietrza i bez przeciągów. Granicą jest <b>punkt rosy</b>: jeśli sufit będzie chłodniejszy od punktu rosy powietrza, zacznie się na nim skraplać woda. Dlatego temperaturę wody chłodzącej ustawia się z zapasem 1,5–2 K powyżej punktu rosy, liczonego na bieżąco z temperatury i wilgotności w pokojach (kafelek „Punkt rosy” wyżej).</p>
