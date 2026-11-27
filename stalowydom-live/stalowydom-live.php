@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.50.5
+Version: 1.50.6
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.50.5');
+define('SDL_VER', '1.50.6');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -1636,13 +1636,21 @@ add_shortcode('sdl_maty', function () {
   </ul>
 
   <h3 class="sdl-bil-h">6. Łazienki – maty także w podłodze</h3>
-  <p>W łazienkach maty leżą również w podłodze, pod mikrocementem – łazienki mają mikrocement na podłogach i ścianach, bez płytek; tylko sufit jest z płyt g-k, tak jak w pokojach. Cienka warstwa mikrocementu dobrze przewodzi ciepło, więc podłoga reaguje szybko. Ciepła podłoga to komfort bosych stóp i szybko schnąca posadzka. Norma ogrzewania płaszczyznowego (EN 1264) dopuszcza w łazienkach powierzchnię podłogi do 33 °C, w pokojach do 29 °C – my, przy niskiej temperaturze wody, jesteśmy wyraźnie poniżej. Zdjęcia termowizyjne łazienki dodamy wkrótce.</p>
+  <p>W łazienkach maty leżą również w podłodze, pod mikrocementem – łazienki mają mikrocement na podłogach i ścianach, bez płytek; tylko sufit jest z płyt g-k, tak jak w pokojach. Cienka warstwa mikrocementu dobrze przewodzi ciepło, więc podłoga reaguje szybko. Ciepła podłoga to komfort bosych stóp i szybko schnąca posadzka. Norma ogrzewania płaszczyznowego (EN 1264) dopuszcza w łazienkach powierzchnię podłogi do 33 °C, w pokojach do 29 °C – my, przy niskiej temperaturze wody, jesteśmy wyraźnie poniżej.</p>
+  <div class="sdl-figs sdl-figs-2">
+    <?php echo $img('termo-lazienka-1.webp', 'Termowizja łazienki: podłoga z matami kapilarnymi pod mikrocementem ok. 24 °C, ściany ok. 17–19 °C', 'Podłoga ok. 24 °C – widać dokładnie prostokąt maty. Ściany z mikrocementu bez mat: ok. 17–19 °C.'); ?>
+    <?php echo $img('termo-lazienka-2.webp', 'Termowizja drugiej łazienki: podłoga z matami ok. 28 °C, dywaniki chłodniejsze', 'Druga łazienka: podłoga do 28 °C. Dywaniki są chłodniejsze – izolują i zatrzymują ciepło pod sobą.'); ?>
+  </div>
+  <p>Na zdjęciach dobrze widać, gdzie leżą maty: ciepłe pole kończy się ostrą krawędzią, a poza nim podłoga ma temperaturę pokoju. To zaleta i ograniczenie jednocześnie – ciepło jest tam, gdzie je zaplanowano, więc matę trzeba rozłożyć na całej wolnej powierzchni podłogi.</p>
 
   <h3 class="sdl-bil-h">7. Te same maty latem chłodzą</h3>
   <p>Wystarczy puścić przez maty chłodną wodę, a sufit zacznie pochłaniać promieniowanie cieplne ludzi i przedmiotów – bez nawiewu zimnego powietrza i bez przeciągów. Granicą jest <b>punkt rosy</b>: jeśli sufit będzie chłodniejszy od punktu rosy powietrza, zacznie się na nim skraplać woda. Dlatego temperaturę wody chłodzącej ustawia się z zapasem 1,5–2 K powyżej punktu rosy, liczonego na bieżąco z temperatury i wilgotności w pokojach (kafelek „Punkt rosy” wyżej).</p>
 
   <h3 class="sdl-bil-h">8. Co zrobilibyśmy dziś inaczej</h3>
-  <p>Maty w domu to SB20 i jest ich trochę za mało – dlatego w mrozy potrzebujemy cieplejszej wody, niż byłoby to konieczne. Dziś wybralibyśmy gęstsze maty SB10 i dodali maty ścienne w kilku pokojach. Więcej o tym i o planowanym osobnym buforze dla ogrzewania: <a href="<?php echo esc_url(home_url('/heiko/')); ?>">Pompa ciepła Heiko – plan rozwojowy</a>.</p>
+  <div class="sdl-figs sdl-figs-1">
+    <?php echo $img('termo-sypialnia.webp', 'Termowizja sypialni: sufit z matami tylko ok. 22,5 °C, okno 12,5–16,5 °C', 'Sypialnia: sufit ok. 22,5 °C, wyraźnie chłodniejszy niż w innych pokojach. Okno: rama 12,5 °C, szyba ok. 16,5 °C.'); ?>
+  </div>
+  <p>Maty w domu to SB20 i jest ich trochę za mało – dlatego w mrozy potrzebujemy cieplejszej wody, niż byłoby to konieczne. Najlepiej widać to w sypialni: sufit ma tam ok. 22,5 °C, a sypialnia bywa niedogrzana, choć ustawiamy w niej niższą temperaturę niż w reszcie domu. Dziś wybralibyśmy gęstsze maty SB10 i dodali maty ścienne w kilku pokojach. Więcej o tym i o planowanym osobnym buforze dla ogrzewania: <a href="<?php echo esc_url(home_url('/heiko/')); ?>">Pompa ciepła Heiko – plan rozwojowy</a>.</p>
 </div>
 <?php
     return ob_get_clean();
