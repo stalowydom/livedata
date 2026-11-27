@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.51.11
+Version: 1.51.12
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.51.11');
+define('SDL_VER', '1.51.12');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -1332,7 +1332,7 @@ add_shortcode('sdl_cop_pomiar', function () {
     <li><b>COP cyklu</b> = (przyrost energii w buforze + ciepło oddane na maty) ÷ zużyty prąd.</li>
   </ol>
   <p class="sdl-bil-calc">Przykład: bufor nagrzał się z 35,0 do 40,3 °C (+5,3 K × 0,74 = 3,9 kWh), maty w tym czasie zabrały ok. 1,3 kWh, a pompa zużyła 1,5 kWh prądu. COP = (3,9 + 1,3) ÷ 1,5 ≈ <b>3,5</b> – przy +6,8 °C na zewnątrz.</p>
-  <p>W wyniku są już straty na odszranianie, praca pompy obiegowej i automatyki – to COP rzeczywisty, a nie laboratoryjny. Dokładność oceniamy na <b>±10–15%</b>: czujniki leżą na powierzchni zbiornika, a ciepło zabrane przez maty szacujemy.</p>
+  <p>W wyniku są już straty na odszranianie, praca pompy obiegowej i automatyki – to COP rzeczywisty, a nie laboratoryjny. Dokładność oceniamy na <b>±10–15%</b>: czujniki Zigbee są włożone do tulei w zbiorniku i mierzą wodę, ale tylko w trzech punktach (góra, środek, dół), a ciepło zabrane przez maty szacujemy.</p>
 
   <h3 class="sdl-bil-h">3. Wyniki</h3>
   <p>Grzanie domu (bufor podgrzewany z ok. 35 do 41 °C), średni COP w przedziałach temperatury zewnętrznej. Tabela i wykres <b>liczą się same</b> z każdego nowego cyklu<?php echo $since ? ' – pomiary od ' . esc_html($since) : ''; ?>.</p>
