@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.50.1
+Version: 1.50.2
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.50.1');
+define('SDL_VER', '1.50.2');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -1570,7 +1570,7 @@ add_shortcode('sdl_maty', function () {
     };
     ob_start(); ?>
 <div class="sdl-wrap sdl-bilans sdl-maty">
-  <p class="sdl-bil-lead">W całym domu grzeją <b>maty kapilarne w sufitach</b>, a w łazienkach także w podłogach – ok. 88 m² mat na 102 m² domu. Nie ma grzejników ani nawiewu ciepłego powietrza. Sufit ma tylko kilka stopni więcej niż pokój, a mimo to wystarcza do ogrzania domu. Jak to możliwe? Bo <b>grzejemy światłem – podczerwonym, tak jak Słońce</b>.</p>
+  <p class="sdl-bil-lead">W całym domu grzeją <b>maty kapilarne w sufitach</b>, a w łazienkach także w podłogach – ok. 88 m² mat na 102 m² domu. Nie ma grzejników ani nawiewu ciepłego powietrza. Sufit jest cieplejszy od pokoju tylko o 5–10 stopni, a mimo to wystarcza do ogrzania domu. Jak to możliwe? Bo <b>grzejemy światłem – podczerwonym, tak jak Słońce</b>.</p>
 
   <div class="sdl-kpis sdl-kpis-5">
     <div class="sdl-kpi" style="border-top-color:#f97316"><div class="sdl-kpi-label">Zasilanie mat</div><div class="sdl-kpi-val"><?php echo sdl_num($sup); ?> <small>°C</small></div><div class="sdl-kpi-sub">zawór: zadana <?php echo sdl_num($v['zawor_zadana'] ?? null, 0); ?> °C</div></div>
@@ -1595,17 +1595,28 @@ add_shortcode('sdl_maty', function () {
   <p class="sdl-bil-calc">q = ε · σ · (T<sub>sufitu</sub>⁴ − T<sub>otoczenia</sub>⁴), σ = 5,67 · 10⁻⁸ W/(m²·K⁴), ε ≈ 0,93 (tynk, farba)</p>
   <p class="sdl-bil-calc">Przykład: sufit 25 °C (298,15 K), ściany i podłoga 20 °C (293,15 K):<br>q = 0,93 · 5,67·10⁻⁸ · (298,15⁴ − 293,15⁴) ≈ <b>27 W/m²</b> samym promieniowaniem.</p>
   <p>Do tego dochodzi trochę konwekcji, ale niewiele: ciepłe powietrze zostaje pod sufitem, bo nie ma gdzie „uciec” wyżej. To ok. 3–5 W/m². Razem <b>ok. 30 W/m²</b>, z czego <b>85–90% to promieniowanie</b>. Grzejnik działa odwrotnie – większość ciepła oddaje przez ogrzewanie powietrza, które krąży po pokoju.</p>
-  <p>30 W/m² wygląda skromnie, ale sufit jest duży. 88 m² mat × 30 W/m² ≈ <b>2,6 kW</b> – a tyle mniej więcej potrzebuje nasz dom w mroźny dzień (bilans na stronie <a href="<?php echo esc_url(home_url('/projekt/')); ?>">Projekt</a>).</p>
+  <p>To wynik dla jesiennego wieczoru, gdy sufit ma ok. 25 °C. Zimą podnosimy temperaturę wody i sufit robi się cieplejszy – projektowo do ok. <b>30 °C</b>, a w mrozy miejscami nawet więcej. A moc rośnie szybciej niż różnica temperatur, bo promieniowanie zależy od czwartej potęgi temperatury bezwzględnej:</p>
+  <div class="sdl-table-wrap"><table class="sdl-table">
+    <thead><tr><th scope="col">Sufit (pokój 20 °C)</th><th scope="col">Promieniowanie</th><th scope="col">Konwekcja</th><th scope="col">Razem</th><th scope="col">88 m² mat</th></tr></thead>
+    <tbody>
+      <tr><td>25 °C – jesień, zdjęcia niżej</td><td>27 W/m²</td><td>4 W/m²</td><td><b>ok. 31 W/m²</b></td><td>ok. 2,7 kW</td></tr>
+      <tr><td>28 °C</td><td>44 W/m²</td><td>6 W/m²</td><td><b>ok. 51 W/m²</b></td><td>ok. 4,5 kW</td></tr>
+      <tr><td>30 °C – zima, wartość projektowa</td><td>56 W/m²</td><td>8 W/m²</td><td><b>ok. 64 W/m²</b></td><td>ok. 5,6 kW</td></tr>
+      <tr><td>32 °C</td><td>68 W/m²</td><td>10 W/m²</td><td><b>ok. 77 W/m²</b></td><td>ok. 6,8 kW</td></tr>
+    </tbody>
+  </table></div>
+  <p>Konwekcję przyjęliśmy ostrożnie: ok. 0,8 W/m² na każdy stopień różnicy. Razem wychodzi <b>ok. 6,3–6,5 W/m² na każdy stopień</b>, o który sufit jest cieplejszy od pokoju – i tyle samo podają normy badań sufitów grzewczych (EN 14240). <b>Producent mat podaje nawet ok. 70 W/m²</b> – to nie przeczy rachunkowi, tylko odpowiada sufitowi o ok. 31 °C, czyli o ok. 11 stopni cieplejszemu od pokoju. Teoria, katalog i pomiar to jedna i ta sama krzywa, tylko w różnych punktach.</p>
+  <p>Dwie uwagi praktyczne. Pierwsza: termowizja pokazuje najcieplejsze pasy nad rurkami, a w przerwach między matami sufit jest chłodniejszy – średnia temperatura całej powierzchni jest więc niższa niż szczytowe odczyty. Druga: nie cały sufit jest pokryty matami, więc moc liczymy dla 88 m² mat, a nie dla całego sufitu. Dla porównania nasz dom potrzebuje w mrozy ok. 3–3,5 kW (bilans na stronie <a href="<?php echo esc_url(home_url('/projekt/')); ?>">Projekt</a>) – zapas jest, choć w niektórych pokojach mat jest za mało (punkt 8).</p>
 
   <h3 class="sdl-bil-h">3. Temperatura odczuwalna – dlaczego 20 °C może grzać jak 21 °C</h3>
   <p>Człowiek nie ma termometru powietrza. Odczuwamy bilans ciepła ciała: ile oddajemy powietrzu i ile promieniowaniem do otaczających powierzchni. Inżynierowie opisują to <b>temperaturą operacyjną</b> – w pokoju bez przeciągów to w przybliżeniu średnia z temperatury powietrza i średniej temperatury powierzchni dookoła:</p>
   <p class="sdl-bil-calc">t<sub>odczuwalna</sub> ≈ (t<sub>powietrza</sub> + t<sub>powierzchni</sub>) ÷ 2</p>
   <p>Ciepły sufit podnosi średnią temperaturę powierzchni, więc to samo poczucie komfortu osiągamy przy powietrzu chłodniejszym o ok. 1 °C. A każdy stopień mniej w powietrzu to – według popularnej reguły – ok. 6% mniej ciepła na ogrzewanie, bo mniej ucieka przez ściany i wentylację.</p>
-  <p>Są też granice. Norma komfortu cieplnego (EN ISO 7730) dopuszcza dla ciepłego sufitu asymetrię promieniowania do ok. 5 K – czyli sufit nie powinien być dużo cieplejszy od reszty pokoju, bo zaczniemy czuć „grzanie w głowę”. Dlatego sufit grzewczy pracuje szeroko i łagodnie: <b>24–27 °C, a nie 40 °C</b>. U nas na zdjęciach ma 24–25 °C.</p>
+  <p>Są też granice. Norma komfortu cieplnego (EN ISO 7730) ogranicza tzw. asymetrię promieniowania od ciepłego sufitu – zbyt gorący sufit nad głową jest odczuwany jako „grzanie w głowę”. Ile to stopni na powierzchni, zależy od wielkości pokoju i wysokości sufitu, dlatego sufity grzewcze w pomieszczeniach mieszkalnych projektuje się zwykle do ok. <b>30–32 °C</b>, a nie na 40 °C jak grzejnik. U nas jesienią sufit ma ok. 25 °C, zimą ok. 30 °C.</p>
   <p>Dodatkowe zalety, które czuć na co dzień: nie ma ruchu powietrza ani kurzu unoszonego przez grzejniki, nic nie szumi, a ściany i meble nie zabierają miejsca.</p>
 
   <h3 class="sdl-bil-h">4. Niska temperatura wody, czyli dobra praca pompy ciepła</h3>
-  <p>Skoro sufit ma mieć tylko 24–27 °C, woda w matach wystarczy ciepła o kilka stopni więcej – teraz zasilamy maty wodą o temperaturze <b><?php echo sdl_num($sup); ?> °C</b>, a wraca <b><?php echo sdl_num($ret); ?> °C</b>. Grzejniki potrzebują zwykle 45–55 °C. Dla pompy ciepła to ogromna różnica: im niższa temperatura wody, tym mniej pracy musi wykonać sprężarka. Typowo każdy stopień mniej poprawia COP o ok. 2–3%.</p>
+  <p>Skoro sufit ma mieć 25–30 °C, woda w matach wystarczy ciepła o kilka stopni więcej – teraz zasilamy maty wodą o temperaturze <b><?php echo sdl_num($sup); ?> °C</b>, a wraca <b><?php echo sdl_num($ret); ?> °C</b>. Zimą, w mrozy, potrzebujemy wody ok. 35–38 °C. Grzejniki potrzebują zwykle 45–55 °C. Dla pompy ciepła to ogromna różnica: im niższa temperatura wody, tym mniej pracy musi wykonać sprężarka. Typowo każdy stopień mniej poprawia COP o ok. 2–3%.</p>
   <p>Mata kapilarna to siatka cienkich rurek z polipropylenu – średnicy kilku milimetrów, ułożonych co 10 mm (maty SB10) lub co 20 mm (SB20) – połączonych z grubszymi rurami zbiorczymi. Rurki są gęsto, więc ciepło rozchodzi się równomiernie i z wody do powierzchni sufitu tracimy tylko kilka stopni. Na naszych zdjęciach: woda średnio ok. <?php echo sdl_num($avg, 0); ?> °C, sufit ok. 24–25 °C.</p>
 
   <h3 class="sdl-bil-h">5. Co widzi kamera termowizyjna</h3>
