@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.46.0
+Version: 1.47.0
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.46.0');
+define('SDL_VER', '1.47.0');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -1443,9 +1443,9 @@ add_shortcode('sdl_reqnet', function () {
   <p><b>Odpowiedź: nie, to nie jest duża strata.</b> Ciepło do dogrzania pompa pokrywa przy COP ok. 3, więc przy 207 m³/h wentylacja kosztuje ok. 2–2,5 kWh prądu na pompie i 1,8 kWh na wentylatorach na dobę – rząd 10% całego zużycia na ogrzewanie. Bez rekuperatora ta sama wymiana powietrza kosztowałaby ponad 30 kWh ciepła dziennie. Większy zysk niż ścinanie wydajności daje utrzymanie wysokiej sprawności wymiennika (czyste filtry, szczelne kanały).</p>
 
   <h3 class="sdl-bil-h">4. Ile powietrza naprawdę potrzebujemy?</h3>
-  <p>Dom ma ok. 300 m³ kubatury, mieszkają w nim cztery osoby. Typowo przyjmuje się ok. 30 m³/h świeżego powietrza na osobę, czyli <b>ok. 120 m³/h</b> – i tyle mniej więcej wybiera centrala w trybie automatycznym: najczęściej ok. 110 m³/h. Nasze odczucie jest jednak takie, że przy 110 m³/h powietrze nie jest wystarczająco świeże.</p>
+  <p>Dom ma ok. 250 m³ kubatury, mieszkają w nim cztery osoby. Typowo przyjmuje się ok. 30 m³/h świeżego powietrza na osobę, czyli <b>ok. 120 m³/h</b> – i tyle mniej więcej wybiera centrala w trybie automatycznym: najczęściej ok. 110 m³/h. Nasze odczucie jest jednak takie, że przy 110 m³/h powietrze nie jest wystarczająco świeże.</p>
   <p>Jedna z przyczyn jest ciekawa: <b>automatyka „uczy się” wilgotności</b>. Gdy przez dłuższy czas w domu utrzymuje się ok. 60%, centrala zaczyna traktować tę wartość jako normalną i przestaje zwiększać wydajność. Dom jest wtedy wentylowany za słabo, choć według czujnika wszystko jest w porządku.</p>
-  <p>Dlatego od 27.11.2026 testujemy stałe <b>160 m³/h</b> (ok. 0,5 wymiany na godzinę). Porównamy CO₂, wilgotność, odczucie domowników i koszt z dniami na 110 i 207 m³/h – wyniki pojawią się w tabeli „Ostatnie doby”.</p>
+  <p>Dlatego od 27.11.2026 testujemy stałe <b>160 m³/h</b> (ok. 0,6 wymiany na godzinę – przy 207 m³/h było to ok. 0,8). Porównamy CO₂, wilgotność, odczucie domowników i koszt z dniami na 110 i 207 m³/h – wyniki pojawią się w tabeli „Ostatnie doby”.</p>
 
   <h3 class="sdl-bil-h">5. Wymiennik entalpiczny zimą</h3>
   <p>Zwykły rekuperator przy dużej wymianie zimą mocno wysusza dom – mroźne powietrze z zewnątrz ma bardzo mało wody. Wymiennik entalpiczny (ERV) przekazuje część wilgoci z powietrza wyciąganego do nawiewanego, więc spadek wilgotności przy 160–200 m³/h jest wyraźnie mniejszy. To jeden z powodów, dla których przy tej centrali możemy sobie pozwolić na większą wymianę bez nawilżacza.</p>
