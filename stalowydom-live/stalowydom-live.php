@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.51.8
+Version: 1.51.9
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.51.8');
+define('SDL_VER', '1.51.9');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -977,6 +977,10 @@ add_shortcode('sdl_bilans', function () {
   <p class="sdl-bil-calc">W najzimniejsze dni przed Wigilią 2025 (ok. −10 °C) same grzałki zużyły do <b>92 kWh na dobę</b>. W sierpniu, bez ogrzewania, ciepła woda brała średnio ok. 9,5 kWh na dobę. Zostaje <b>92 − 10 = 82 kWh</b> na ogrzewanie, czyli przez 24 godziny <b>ok. 3,4 kW</b> – to zmierzona licznikiem strata domu przy −10 °C. <?php echo sdl_yt('rKTyAxtBmX8', 1358, 'liczę to w filmie'); ?></p>
   <p>Według obliczeń przy −10 °C powinno to być ok. 2,8 kW (3,6 kW przy −18 °C, przeliczone na mniejszą różnicę temperatur). Wyszło ok. 20% więcej – mniej więcej tyle, ile szacuję straty przez wychłodzoną podłogę, zanim powstał murek (25–30%, <?php echo sdl_yt('CftcsQWNF08', 872, 'mówię o tym tutaj'); ?>). Jedno i drugie to wciąż ten sam rząd wielkości: kilka kilowatów, a nie kilkanaście.</p>
   <p>Kolejne sprawdziany: ciepłomierz na wyjściu z pompy pokaże prawdziwy COP zamiast przyjętego „ok. 3”, a pełne dane dobowe z grzałek ze sterownika bufora dołączymy do wykresów, gdy tylko go podłączymy. Porównanie grzałek z pompą krok po kroku jest na <a href="/heiko/">stronie pompy ciepła</a>.</p>
+
+  <h3 class="sdl-bil-h">Drugi sprawdzian: doba z pompą ciepła (27.11.2026)</h3>
+  <p class="sdl-bil-calc">Średnio −1,0 °C na zewnątrz. Według OZC dom potrzebuje wtedy 3,6 kW × 21/38 ≈ <b>2,0 kW, czyli ok. 48 kWh ciepła na dobę</b>. Pompa zużyła 22,8 kWh prądu; po odjęciu ok. 4,3 kWh na ciepłą wodę zostaje ok. 18,5 kWh na ogrzewanie. Przy COP ok. 2,65 (zmierzonym metodą bufora) to <b>ok. 49 kWh ciepła</b> – praktycznie dokładnie tyle, ile przewiduje projekt.</p>
+  <p>Zimą 2025, na grzałkach i przed murkiem, instalacja musiała dawać o ok. 20% więcej, niż wynikało z obliczeń. Teraz – z murkiem – trafia w OZC. To dwa niezależne pomiary (licznik grzałek, w których nie ma żadnego COP, i bilans bufora pompy), a razem mówią to samo: obliczenia były dobre, a nadwyżkę zjadała wychłodzona podłoga. Uczciwe zastrzeżenie: w obu przypadkach dom dostaje dodatkowo ciepło od ludzi i ok. 12 kWh prądu na dobę z pozostałych urządzeń, więc jego całkowita strata jest wyższa niż samo ciepło z instalacji – ale porównanie „przed i po” jest liczone tak samo.</p>
 
   <h3 class="sdl-bil-h">Gdzie ucieka ciepło</h3>
   <div class="sdl-bil-split">
