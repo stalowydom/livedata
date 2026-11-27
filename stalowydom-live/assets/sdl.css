@@ -168,3 +168,4 @@
 .sdl-mode-m0{color:var(--sdl-muted)}.sdl-mode-m1{color:#ef4444}.sdl-mode-m2{color:#f97316}
 @media (max-width:980px){.sdl-mode{grid-template-columns:1fr 1fr 1fr}.sdl-mode-wide{grid-column:1/-1}}
 @media (max-width:600px){.sdl-mode{grid-template-columns:1fr 1fr}}
+h4.sdl-bil-h{font-size:17px;color:#e5ded8;padding:14px 0 6px}
