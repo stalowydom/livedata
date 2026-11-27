@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.50.7
+Version: 1.51.0
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.50.7');
+define('SDL_VER', '1.51.0');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -781,7 +781,7 @@ add_shortcode('sdl_dom', function ($atts) {
         [['Salon', sdl_v('maty', 'salon', '°C')], ['Sypialnia', sdl_v('maty', 'sypialnia', '°C')], ['Łazienka', sdl_v('maty', 'lazienka', '°C')], 'br',
          ['Punkt rosy', sdl_v('maty', 'rosa', '°C')], ['Zawór: temp. zadana', sdl_v('maty', 'zawor_zadana', '°C', 0)], ['Otwarcie zaworu', sdl_v('maty', 'zawor_otwarcie', '%', 0)], 'br',
          ['Przed zaworem (z wężownicy)', sdl_v('maty', 'zawor_przed', '°C')], ['Zasilanie mat', sdl_v('maty', 'zawor_temp', '°C')], ['Powrót z mat', sdl_v('maty', 'zawor_powrot', '°C')], 'br',
-         ['Strata wężownicy (dół bufora – przed zaworem)', '<span data-d="maty_loss">–</span> K'], ['Zasilanie – powrót mat', '<span data-d="maty_dt">–</span> K']], '');
+         ['Strata wężownicy (dół bufora – przed zaworem)', '<span data-d="maty_loss">–</span> K'], ['Zasilanie – powrót mat', '<span data-d="maty_dt">–</span> K']], home_url('/maty-kapilarne/'));
     echo sdl_dom_row('Pompa CWU', 'sdl-n-small', 'Cyrkulacja ciepłej wody', 'Pompa cyrkulacyjna – ciepła woda od razu w kranie.',
         [['Dziś', '<span data-e="pompa_cwu_today">–</span>'], ['30 dni', '<span data-e="pompa_cwu_30">–</span>'], 'br',
          ['Czas pracy dziś', '<span data-d="cwu_run">–</span>'], ['Włączeń dziś', sdl_v('pompa_cwu', 'starts', '', 0)], 'br',
@@ -1827,6 +1827,7 @@ add_action('init', function () {
         . "- [Dom na żywo](" . $u('/live/') . "): zużycie energii całego domu i urządzeń, temperatury, wentylacja – dane co 5 minut.\n"
         . "- [Pompa ciepła Heiko Thermal 15 kW](" . $u('/heiko/') . "): moc, zużycie dobowe i miesięczne z podziałem CO/CWU, bufor NOEL 700 l, odszranianie, czuwanie.\n"
         . "- [Rekuperator reQnet reQ V 400 ERV](" . $u('/reqnet/') . "): wentylacja z odzyskiem ciepła i wilgoci – sprawność odzysku, ciepło odzyskane i do dogrzania, koszt wentylacji, test wydajności 110/160/207 m³/h.\n"
+        . "- [Maty kapilarne – grzejemy światłem podczerwonym](" . $u('/maty-kapilarne/') . "): ogrzewanie sufitowe (i podłogowe w łazienkach) matami kapilarnymi – dane na żywo z zaworu mieszającego, moc sufitu 25–32 °C z prawa Stefana–Boltzmanna, temperatura odczuwalna, zdjęcia termowizyjne.\n"
         . "- [Zastosowany sprzęt](" . $u('/sprzet/') . "): urządzenia pracujące w domu.\n"
         . "- [Aquilo WiFi](" . $u('/aquilo/') . "): bezprzewodowy czujnik poziomu szamba.\n"
         . "- [Kontakt](" . $u('/kontakt/') . "): formularz kontaktowy (współpraca, testy sprzętu).\n"
