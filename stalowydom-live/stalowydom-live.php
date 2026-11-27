@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.51.0
+Version: 1.51.1
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.51.0');
+define('SDL_VER', '1.51.1');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -1625,12 +1625,12 @@ add_shortcode('sdl_maty', function () {
     <?php echo $img('termo-sufit-okno-1.webp', 'Termowizja: sufit z matami kapilarnymi ok. 25 °C, widoczne pasy mat, okno balkonowe z ramą 12,5 °C', 'Sufit ok. 25 °C. Widać pasy mat – jaśniejsze tam, gdzie biegną rurki, ciemniejsze w przerwach między matami.'); ?>
     <?php echo $img('termo-sufit-okno-2.webp', 'Termowizja: ciepły sufit z matami kapilarnymi 24,3 °C nad oknem, najzimniejszy punkt dolna rama okna 12,4 °C', 'Ten sam układ w drugim pokoju: sufit 24,3 °C, najzimniej przy dolnej ramie okna – 12,4 °C.'); ?>
     <?php echo $img('termo-okno-biurko.webp', 'Termowizja: ciepły sufit z matami kapilarnymi nad oknem, rama okna 14,3 °C, gorący punkt elektroniki na biurku 43,6 °C', 'Ciepły sufit u góry, okno z ramą 14,3 °C. Gorący punkt 43,6 °C na biurku to elektronika – świeci w podczerwieni najmocniej w kadrze.', 960, 720); ?>
-    <?php echo $img('termo-okno-poziome.webp', 'Termowizja: ciepły sufit z matami ok. 26 °C nad oknem, rama okna 12,7 °C', 'Sufit u góry ok. 26 °C, okno – najzimniejsza powierzchnia pokoju (12,7 °C na ramie).', 960, 720); ?>
+    <?php echo $img('termo-okno-poziome.webp', 'Termowizja: drzwi wejściowe z przeszkleniem, krawędź 12,7 °C, nad nimi ciepły sufit z matami ok. 26 °C', 'Drzwi wejściowe: najzimniej na krawędzi – 12,7 °C. Nad nimi ciepły sufit, ok. 26 °C.', 960, 720); ?>
   </div>
   <p>Czego uczą te obrazy:</p>
   <ul>
     <li><b>Sufit jest najcieplejszą dużą powierzchnią w pokoju</b> – to on oddaje ciepło. Pasy widać, bo maty nie pokrywają sufitu w 100%: między nimi zostają wąskie przerwy (na profile, oprawy, rury zbiorcze).</li>
-    <li><b>Okna są najzimniejsze.</b> Szyba i rama mają 12–14 °C, podczas gdy ściany ok. 20 °C. Okno „zabiera” promieniowanie z pokoju – stojąc przy nim, czujemy chłód, choć powietrze ma tyle samo stopni.</li>
+    <li><b>Okna i drzwi wejściowe są najzimniejsze.</b> Szyby, ramy i krawędzie drzwi mają 12–14 °C, podczas gdy ściany ok. 20 °C. Okno „zabiera” promieniowanie z pokoju – stojąc przy nim, czujemy chłód, choć powietrze ma tyle samo stopni.</li>
     <li><b>Punkt rosy ma znaczenie także zimą.</b> Teraz w domu wynosi <?php echo sdl_num($v['rosa'] ?? null); ?> °C, a najzimniejsza rama ma 12,4 °C – zapas jest, ale niewielki. Przy wyższej wilgotności dolna krawędź okna zaczęłaby się pocić. To jeden z powodów, dla których pilnujemy wymiany powietrza (<a href="<?php echo esc_url(home_url('/reqnet/')); ?>">rekuperator</a>).</li>
     <li><b>Uwaga na szkło:</b> szyba częściowo odbija podczerwień jak lustro, więc kamera pokazuje na niej mieszankę własnej temperatury szkła i odbić. Wiarygodniejsze są odczyty z ram i ścian.</li>
   </ul>
