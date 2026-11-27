@@ -58,6 +58,11 @@
         setD('heiko_today', nf(data.heiko.today_kwh, 1));
         setD('heiko_co', nf(data.heiko.today_co, 1));
         setD('heiko_cwu', nf(data.heiko.today_cwu, 1));
+        if (heiko.mode != null) setD('heiko_mode', { 0: 'postój', 1: 'grzanie CWU', 2: 'ogrzewanie (CO)' }[Math.round(heiko.mode)] || '–');
+        if (heiko.sched_on != null) {
+          var hm = function (m) { m = Math.round(m); return Math.floor(m / 60) + ':' + ('0' + (m % 60)).slice(-2); };
+          setD('heiko_sched', !heiko.sched_on ? 'wyłączony' : (heiko.auto_from != null && heiko.co_from != null ? 'CWU od ' + hm(heiko.auto_from) + ', CO od ' + hm(heiko.co_from) : 'włączony'));
+        }
         setD('heiko_defrost', heiko.defrost_n == null ? '–' : nf(heiko.defrost_n, 0) + '× · ' + nf((heiko.defrost_h || 0) * 60, 1) + ' min');
         var setE = function (k, v) { root.querySelectorAll('[data-e="' + k + '"]').forEach(function (el) { el.textContent = en(v); }); };
         setE('pompa_cwu_today', data.pompa_cwu.today_kwh);
