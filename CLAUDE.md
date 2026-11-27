@@ -41,7 +41,7 @@ Historia:
 - Strona ma być przyjazna agentom AI bez zmian wyglądu: `lang="pl-PL"`, dane live wpisane w HTML po stronie serwera, ukryty wizualnie blok „Dane w formie tekstu” (`.sdl-sr`), Dataset JSON-LD, `/llms.txt` generowany przez wtyczkę.
 - Każdy obrazek ma ALT (w module Divi i w bibliotece mediów); każda strona ma jeden H1 i opis Rank Math (`POST /sdl/v1/meta/<id>`).
 - Nowe urządzenie lub strona = dopisać je do `/llms.txt` i do podsumowania tekstowego.
-- **Nowa podstrona urządzenia = OBOWIĄZKOWO przycisk „zobacz więcej” na jego kafelku na /sprzet/ (page_id 90)** – skopiuj przycisk z innego kafelka (moduł `divi/button`, link to zmienna Divi `post_link_url_page` z `post_id` nowej strony), dopasuj `margin.top`, żeby nie nachodził na tekst (odstęp jak w innych kafelkach, ok. 17 px), podbij wersję /sprzet/. Do tego link z kafelka na /live/ (`sdl_dom_row`, ostatni argument).
+- **Nowa podstrona urządzenia = OBOWIĄZKOWO przycisk „zobacz więcej” na jego kafelku na /sprzet/ (page_id 90)** – skopiuj przycisk z innego kafelka (moduł `divi/button`, link to zmienna Divi `post_link_url_page` z `post_id` nowej strony), przycisk ma `margin.top` −86px, a karta (moduł `divi/blurb`) musi mieć `padding.bottom` 80px – tak jak pozostałe kafelki; wtedy przycisk siedzi w karcie na każdej szerokości. Sprawdź na 1300, 768 i 375 px. Podbij wersję /sprzet/. Do tego link z kafelka na /live/ (`sdl_dom_row`, ostatni argument).
 
 ## Dane z Home Assistant
 - HA co 5 min wysyła odczyty urządzeń (heiko, dom, reqnet, maty, pompa_cwu, serwer) na `POST /wp-json/sdl/v1/push` z tokenem w nagłówku `X-SDL-Token`. Token jest tylko w bazie WordPressa i w sekretach HA – nigdy w tym repozytorium.
