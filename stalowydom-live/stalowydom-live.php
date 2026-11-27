@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.51.12
+Version: 1.51.13
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.51.12');
+define('SDL_VER', '1.51.13');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -1679,6 +1679,16 @@ add_shortcode('sdl_plan', function () {
   <h3 class="sdl-bil-h" id="plan-optymalizacyjny">5. Plan optymalizacyjny – nastawy sterownika krok po kroku</h3>
   <p>Przejrzeliśmy wszystkie ekrany sterownika hydroboksa i porównaliśmy nastawy z danymi z ostatnich tygodni. Wniosek: pompa pracuje poprawnie, ale część ustawień każe jej grzać wodę cieplej, niż dom potrzebuje. A każdy stopień niżej to ok. 2–3% lepszy COP.</p>
   <p>Zmiany wprowadzamy <b>po kolei, co kilka dni</b>, a nie wszystkie naraz. Inaczej nie dałoby się powiedzieć, która zmiana ile dała – ani która odpowiada za ewentualny chłodniejszy pokój czy więcej startów sprężarki. Każdy krok oceniamy na tych samych danych co resztę strony: COP z cykli bufora, liczba startów, czas pracy i temperatury w pokojach, przy podobnej pogodzie.</p>
+  <h4 class="sdl-bil-h" id="kalibracja">Krok 0: kalibracja czujników – zanim cokolwiek policzymy</h4>
+  <p>Już pierwsza noc z krzywą grzewczą pokazała, że czujniki w instalacji nie mówią tym samym językiem. W zbiorniku siedzą obok siebie czujniki pompy i nasze czujniki Zigbee (wszystkie w tulejach, czyli w wodzie). Czujnik pompy na dole zbiornika pokazuje o ok. 2 K więcej niż Zigbee obok – a nawet więcej niż czujnik pompy w połowie zbiornika, co w zbiorniku z ciepłą wodą u góry jest fizycznie niemożliwe. Jeden z czujników zaworu mieszającego wskazuje z kolei temperaturę powietrza w maszynowni, zamiast wody.</p>
+  <p>To nie drobiazg: pompa reguluje grzanie na swoim czujniku z dołu zbiornika. Jeśli zawyża on o 2 K, pompa rusza za późno, a maty przez część doby dostają chłodniejszą wodę, niż ustawiliśmy. Dlatego przed oceną kolejnych nastaw kalibrujemy wszystko, co się da wyjąć:</p>
+  <ul>
+    <li><b>Punkt 0,0 °C – lód z wodą.</b> Naczynie pełne pokruszonego lodu, zalane wodą tylko w szczelinach. To wzorzec praktycznie laboratoryjny: mieszanina lodu i wody ma zawsze 0 °C, niezależnie od tego, co pokazuje jakikolwiek termometr. Odchyłka każdego czujnika to jego poprawka.</li>
+    <li><b>Punkt kontrolny ok. 30 °C – kąpiel w myjce ultradźwiękowej z podgrzewaną misą</b> (bez włączania ultradźwięków). Tu nie liczy się, ile pokażą czujniki, tylko czy po poprawce z 0 °C pokażą <b>dokładnie to samo</b>. Jeśli któryś odjedzie, ma błąd rosnący z temperaturą i dostanie poprawkę dwupunktową.</li>
+    <li><b>Kolejność:</b> najpierw czujniki Zigbee z bufora i czujniki Sinum z rur, na końcu – przy wyłączonej pompie – czujniki pompy. Odczyty z tej samej minuty zapisuje Home Assistant, więc nikt nie przepisuje liczb z ekranów.</li>
+    <li><b>Montaż po kalibracji:</b> czujniki rurowe wracają na miejsce z pastą termoprzewodzącą, opaską i otuliną – kalibracja usuwa błąd czujnika, ale nie błąd złego przylegania do rury.</li>
+  </ul>
+  <p>Wyniki – tabelę z poprawką dla każdego czujnika – opublikujemy tutaj. Od nich zależy też, gdzie dokładnie położyć krzywą grzewczą pompy: musi ona wypadać o kilka stopni powyżej krzywej pogodowej zaworu mieszającego (strata na wężownicy + histereza).</p>
   <ol>
     <li><b>Krzywa grzewcza zamiast stałej temperatury 37 °C i histereza 3 K zamiast 5 K</b> – <i>wdrożone w nocy z 27 na 28.11.2026, obserwujemy</i>. Dotąd zbiornik wahał się między ok. 32 a 42 °C niezależnie od pogody. Teraz temperatura wody zależy od pogody (−20 / −10 / −5 / +5 / +10 °C → 44 / 41 / 39 / 35 / 30 °C), a wahania są węższe. Lekcja z pierwszej godziny: w sterowniku było ustawione przesunięcie krzywej o +3 K („Curve 1 Parallel Move”) – niewidoczne przy stałej temperaturze, ale po włączeniu krzywej pompa zadała 39 °C zamiast ok. 36 °C. Po zmianie przesunięcia na 0 wszystko się zgadza. Uczciwie: przy ok. 0 °C zysk będzie niewielki – już przy 37 °C zawór mieszający przez znaczną część doby nie dobijał do zadanej, więc niżej zejść się nie da. Oszczędność przyjdzie w cieplejsze dni (+3…+10 °C), kiedy woda może być o kilka stopni chłodniejsza.</li>
     <li><b>Ciepła woda raz dziennie, w najcieplejszych godzinach</b> (ok. 13–16), a w nocy bez grzania CWU. Taryfa jest całodobowa, więc nie chodzi o cenę prądu, tylko o COP: po południu powietrze jest o kilka stopni cieplejsze, a grzanie wody do 48 °C to najcięższa praca pompy.</li>
