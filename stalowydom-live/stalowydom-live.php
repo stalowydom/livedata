@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.50.2
+Version: 1.50.3
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.50.2');
+define('SDL_VER', '1.50.3');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -1617,7 +1617,7 @@ add_shortcode('sdl_maty', function () {
 
   <h3 class="sdl-bil-h">4. Niska temperatura wody, czyli dobra praca pompy ciepła</h3>
   <p>Skoro sufit ma mieć 25–30 °C, woda w matach wystarczy ciepła o kilka stopni więcej – teraz zasilamy maty wodą o temperaturze <b><?php echo sdl_num($sup); ?> °C</b>, a wraca <b><?php echo sdl_num($ret); ?> °C</b>. Zimą, w mrozy, potrzebujemy wody ok. 35–38 °C. Grzejniki potrzebują zwykle 45–55 °C. Dla pompy ciepła to ogromna różnica: im niższa temperatura wody, tym mniej pracy musi wykonać sprężarka. Typowo każdy stopień mniej poprawia COP o ok. 2–3%.</p>
-  <p>Mata kapilarna to siatka cienkich rurek z polipropylenu – średnicy kilku milimetrów, ułożonych co 10 mm (maty SB10) lub co 20 mm (SB20) – połączonych z grubszymi rurami zbiorczymi. Rurki są gęsto, więc ciepło rozchodzi się równomiernie i z wody do powierzchni sufitu tracimy tylko kilka stopni. Na naszych zdjęciach: woda średnio ok. <?php echo sdl_num($avg, 0); ?> °C, sufit ok. 24–25 °C.</p>
+  <p>Mata kapilarna to siatka cienkich rurek z polipropylenu połączonych z grubszymi rurami zbiorczymi. W matach typu B (np. GB10, SB10, SB20) rurki mają średnicę <b>4,3 mm</b>, w wersjach bez „B” – 3,4 mm. Liczba w nazwie to rozstaw rurek: co 10 mm albo co 20 mm. W zdecydowanej większości instalacji, które wykonuję, wybieram najmocniejsze maty <b>GB10 i SB10</b>: montaż wymaga tyle samo pracy, cena jest prawie taka sama, a moc z metra kwadratowego – najwyższa. Rurki są gęsto, więc ciepło rozchodzi się równomiernie i z wody do powierzchni sufitu tracimy tylko kilka stopni. Na naszych zdjęciach: woda średnio ok. <?php echo sdl_num($avg, 0); ?> °C, sufit ok. 24–25 °C.</p>
 
   <h3 class="sdl-bil-h">5. Co widzi kamera termowizyjna</h3>
   <p>Zdjęcia zrobione 27.11.2026 wieczorem, w trakcie grzania. Kolory oznaczają temperaturę powierzchni: żółty – najcieplej, fiolet – najzimniej (skala z prawej strony każdego zdjęcia).</p>
