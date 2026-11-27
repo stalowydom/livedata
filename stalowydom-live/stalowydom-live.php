@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.51.4
+Version: 1.51.5
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.51.4');
+define('SDL_VER', '1.51.5');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -1659,6 +1659,16 @@ add_shortcode('sdl_plan', function () {
     <li><b>dodatkowe maty ścienne</b> w jednym z pokoi dzieci, w sypialni i w salonie.</li>
   </ul>
   <p>Dane z naszych termostatów pokazują dlaczego: w tych dwóch pokojach temperatura przez dużą część sezonu nie osiąga wartości zadanej (w ostatnich dwóch tygodniach przez 36–50% czasu była niższa o ponad 0,5 °C), a w salonie dodatkowe ok. 10 m² mat pozwoliłoby częściej zamykać obieg. To wiedza, którą stosujemy dziś w nowych projektach.</p>
+
+  <h3 class="sdl-bil-h" id="nastawy">5. Nastawy sterownika – plan zmian krok po kroku</h3>
+  <p>Przejrzeliśmy wszystkie ekrany sterownika hydroboksa i porównaliśmy nastawy z danymi z ostatnich tygodni. Wniosek: pompa pracuje poprawnie, ale część ustawień każe jej grzać wodę cieplej, niż dom potrzebuje. A każdy stopień niżej to ok. 2–3% lepszy COP.</p>
+  <p>Zmiany wprowadzamy <b>po kolei, co kilka dni</b>, a nie wszystkie naraz. Inaczej nie dałoby się powiedzieć, która zmiana ile dała – ani która odpowiada za ewentualny chłodniejszy pokój czy więcej startów sprężarki. Każdy krok oceniamy na tych samych danych co resztę strony: COP z cykli bufora, liczba startów, czas pracy i temperatury w pokojach, przy podobnej pogodzie.</p>
+  <ol>
+    <li><b>Krzywa grzewcza zamiast stałej temperatury 37 °C i histereza 3 K zamiast 5 K</b> – <i>wdrożone 27.11.2026, obserwujemy</i>. Do tej pory zbiornik wahał się między ok. 32 a 42 °C niezależnie od pogody: na dole za chłodno dla mat (temperatura z zaworu plus ok. 3 K strat na wężownicy), na górze niepotrzebnie gorąco. Teraz temperatura wody zależy od pogody (−20 / −10 / −5 / +5 / +10 °C → 44 / 41 / 39 / 35 / 33 °C), a wahania są węższe. Spodziewamy się największej oszczędności z całego planu – rzędu 8–12% energii na ogrzewanie.</li>
+    <li><b>Ciepła woda raz dziennie, w najcieplejszych godzinach</b> (ok. 13–16), a w nocy bez grzania CWU. Taryfa jest całodobowa, więc nie chodzi o cenę prądu, tylko o COP: po południu powietrze jest o kilka stopni cieplejsze, a grzanie wody do 48 °C to najcięższa praca pompy.</li>
+    <li><b>Temperatura ciepłej wody 48 → 45 °C</b>, jeśli komfort domowników się utrzyma, i <b>dezynfekcja termiczna raz w tygodniu</b> (dziś wyłączona). Kilka procent oszczędności na CWU, praktycznie za darmo.</li>
+  </ol>
+  <p>Trybu cichego nie ruszamy: ogranicza obroty sprężarki, a niższe obroty to wyższy COP. Wrócimy do niego tylko wtedy, gdy w mrozy zabraknie mocy. Wyniki każdego kroku opiszemy tutaj.</p>
 </div>
 <?php
     return ob_get_clean();
