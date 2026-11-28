@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.51.16
+Version: 1.51.17
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.51.16');
+define('SDL_VER', '1.51.17');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -1637,7 +1637,7 @@ add_shortcode('sdl_maty', function () {
   <div class="sdl-figs sdl-figs-1">
     <?php echo $img('termo-sypialnia.webp', 'Termowizja sypialni: sufit z matami tylko ok. 22,5 °C, okno 12,5–16,5 °C', 'Sypialnia: sufit ok. 22,5 °C, wyraźnie chłodniejszy niż w innych pokojach. Okno: rama 12,5 °C, szyba ok. 16,5 °C.'); ?>
   </div>
-  <p>Maty w domu to SB20 i jest ich trochę za mało – dlatego w mrozy potrzebujemy cieplejszej wody, niż byłoby to konieczne. Najlepiej widać to w sypialni: sufit ma tam ok. 22,5 °C, a sypialnia bywa niedogrzana, choć ustawiamy w niej niższą temperaturę niż w reszcie domu. Dziś wybralibyśmy gęstsze maty SB10 i dodali maty ścienne w kilku pokojach. Więcej o tym: <a href="<?php echo esc_url(home_url('/heiko/#czego-nauczyl-nas-dom')); ?>">czego nauczył nas ten dom</a>, a o planowanym osobnym buforze dla ogrzewania: <a href="<?php echo esc_url(home_url('/heiko/#plan-rozwojowy')); ?>">Pompa ciepła Heiko – plan rozwojowy</a>.</p>
+  <p>Maty w domu to SB20 i jest ich trochę za mało – dlatego w mrozy potrzebujemy cieplejszej wody, niż byłoby to konieczne. Najlepiej widać to w sypialni: sufit ma tam ok. 22,5 °C, a sypialnia bywa niedogrzana, choć ustawiamy w niej niższą temperaturę niż w reszcie domu. Dziś wybralibyśmy gęstsze maty SB10 (rozstaw kapilar 10 mm zamiast 20 mm) i dodali maty ścienne na ścianach zewnętrznych w kilku pokojach. Więcej o tym: <a href="<?php echo esc_url(home_url('/heiko/#czego-nauczyl-nas-dom')); ?>">czego nauczył nas ten dom</a>, a o planowanym osobnym buforze dla ogrzewania: <a href="<?php echo esc_url(home_url('/heiko/#plan-rozwojowy')); ?>">Pompa ciepła Heiko – plan rozwojowy</a>.</p>
 </div>
 <?php
     return ob_get_clean();
@@ -1674,8 +1674,8 @@ add_shortcode('sdl_plan', function () {
   <h3 class="sdl-bil-h" id="czego-nauczyl-nas-dom">4. Czego nauczył nas ten dom</h3>
   <p>Układ mat zostaje bez zmian – jego przebudowa oznaczałaby zbyt duże zniszczenia wykończonych wnętrz. Gdybyśmy jednak budowali dziś, zrobilibyśmy to inaczej:</p>
   <ul>
-    <li><b>gęstsze maty kapilarne SB10</b> zamiast SB20,</li>
-    <li><b>dodatkowe maty ścienne</b> w jednym z pokoi dzieci, w sypialni i w salonie.</li>
+    <li><b>gęstsze maty kapilarne SB10</b> zamiast SB20 (rozstaw kapilar 10 mm w SB10 i 20 mm w SB20),</li>
+    <li><b>dodatkowe maty ścienne na ścianach zewnętrznych</b> w jednym z pokoi dzieci, w sypialni i w salonie.</li>
   </ul>
   <p>Dane z naszych termostatów pokazują dlaczego: w tych dwóch pokojach temperatura przez dużą część sezonu nie osiąga wartości zadanej (w ostatnich dwóch tygodniach przez 36–50% czasu była niższa o ponad 0,5 °C), a w salonie dodatkowe ok. 10 m² mat pozwoliłoby częściej zamykać obieg. To wiedza, którą stosujemy dziś w nowych projektach.</p>
 
