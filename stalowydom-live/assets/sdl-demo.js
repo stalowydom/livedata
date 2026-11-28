@@ -22,6 +22,10 @@
       var parts = [mod];
       var prev = mod.previousElementSibling;
       if (prev && prev.classList.contains('et_pb_text') && !prev.querySelector('[class*="sdl-"]')) parts.unshift(prev);
+      else if (!prev) {
+        var row = mod.closest('.et_pb_row'), pr = row && row.previousElementSibling;
+        if (pr && pr.classList.contains('et_pb_row') && !pr.querySelector('[class*="sdl-"]') && pr.querySelector('h1,h2,h3')) parts = [pr, row];
+      }
       var bar = document.createElement('button');
       bar.type = 'button'; bar.className = 'sdl-demo-bar'; bar.id = c.id;
       bar.innerHTML = '<span class="sdl-demo-bar-t"><b>' + c.name + '</b><small>' + c.sub + '</small></span><span class="sdl-demo-bar-k">' + c.key + '</span><span class="sdl-demo-chev" aria-hidden="true"></span>';
