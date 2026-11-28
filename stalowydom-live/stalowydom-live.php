@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.55.0
+Version: 1.55.1
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.55.0');
+define('SDL_VER', '1.55.1');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -2175,12 +2175,12 @@ function sdl_ga_report($q) {
     $r = new WP_REST_Request('GET', '/google-site-kit/v1/modules/analytics-4/data/report');
     $r->set_query_params($q);
     $res = rest_do_request($r);
-    if ($res->is_error()) return null;
+    if ($res->is_error()) { $GLOBALS['sdl_ga_err'] = $res->as_error()->get_error_message(); return null; }
     $d = $res->get_data();
     return is_array($d) ? $d : (is_object($d) ? json_decode(wp_json_encode($d), true) : null);
 }
 function sdl_ga_stats() {
-    $c = get_transient('sdl_ga');
+    $c = get_transient('sdl_ga2');
     if ($c !== false) return $c;
     $st = get_option('googlesitekit_analytics-4_settings');
     $owner = is_array($st) && !empty($st['ownerID']) ? (int) $st['ownerID'] : 0;
@@ -2190,21 +2190,22 @@ function sdl_ga_stats() {
     wp_set_current_user($owner);
     $tz = sdl_tz();
     $day = function ($n) use ($tz) { return (new DateTime('now', $tz))->modify("-$n day")->format('Y-m-d'); };
-    $met = ['metrics[0][name]' => 'totalUsers', 'metrics[1][name]' => 'sessions', 'metrics[2][name]' => 'screenPageViews'];
+    $met = ['metrics' => [['name' => 'totalUsers'], ['name' => 'sessions'], ['name' => 'screenPageViews']]];
     $tot = function ($from, $to) use ($met) {
         $d = sdl_ga_report(['startDate' => $from, 'endDate' => $to] + $met);
         $v = $d['rows'][0]['metricValues'] ?? null;
         return $v ? ['users' => (int) $v[0]['value'], 'sessions' => (int) $v[1]['value'], 'views' => (int) $v[2]['value']] : ['users' => 0, 'sessions' => 0, 'views' => 0];
     };
     $out = ['today' => $tot($day(0), $day(0)), 'yesterday' => $tot($day(1), $day(1)), 'd7' => $tot($day(7), $day(1)), 'd28' => $tot($day(28), $day(1)), 'pages' => [], 'sources' => []];
-    $pg = sdl_ga_report(['startDate' => $day(7), 'endDate' => $day(1), 'dimensions[0][name]' => 'pagePath', 'metrics[0][name]' => 'screenPageViews',
-        'orderby[0][metric][metricName]' => 'screenPageViews', 'orderby[0][desc]' => 'true', 'limit' => 5]);
+    $pg = sdl_ga_report(['startDate' => $day(7), 'endDate' => $day(1), 'dimensions' => [['name' => 'pagePath']], 'metrics' => [['name' => 'screenPageViews']],
+        'orderby' => [['metric' => ['metricName' => 'screenPageViews'], 'desc' => true]], 'limit' => 5]);
     foreach (($pg['rows'] ?? []) as $row) $out['pages'][] = [$row['dimensionValues'][0]['value'], (int) $row['metricValues'][0]['value']];
-    $sr = sdl_ga_report(['startDate' => $day(28), 'endDate' => $day(1), 'dimensions[0][name]' => 'sessionDefaultChannelGroup', 'metrics[0][name]' => 'sessions',
-        'orderby[0][metric][metricName]' => 'sessions', 'orderby[0][desc]' => 'true', 'limit' => 6]);
+    $sr = sdl_ga_report(['startDate' => $day(28), 'endDate' => $day(1), 'dimensions' => [['name' => 'sessionDefaultChannelGroup']], 'metrics' => [['name' => 'sessions']],
+        'orderby' => [['metric' => ['metricName' => 'sessions'], 'desc' => true]], 'limit' => 6]);
     foreach (($sr['rows'] ?? []) as $row) $out['sources'][] = [$row['dimensionValues'][0]['value'], (int) $row['metricValues'][0]['value']];
     wp_set_current_user($prev);
     $out['updated'] = time();
-    set_transient('sdl_ga', $out, HOUR_IN_SECONDS);
+    if (!empty($GLOBALS['sdl_ga_err'])) { $out['error'] = $GLOBALS['sdl_ga_err']; return $out; }   /* błędu nie zapamiętujemy */
+    set_transient('sdl_ga2', $out, HOUR_IN_SECONDS);
     return $out;
 }
