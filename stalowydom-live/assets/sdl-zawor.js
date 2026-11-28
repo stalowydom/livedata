@@ -9,7 +9,7 @@
   function init(root) {
     var cv = root.querySelector('[data-zawor="chart"]'); if (!cv || typeof Chart === 'undefined') return;
     Promise.all([get(SDLZAW.maty), get(SDLZAW.heiko)]).then(function (r) {
-      var M = r[0], H = r[1], grid = 'rgba(255,255,255,.06)', tick = '#9aa7b4';
+      var M = r[0], H = r[1], xs = [].concat(M.zawor_temp || [], H.setpoint || []).map(function (p) { return p[0] * 1000; }), x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs), grid = 'rgba(255,255,255,.06)', tick = '#9aa7b4';
       var fmt = function (ms) { return new Date(ms).toLocaleString('pl-PL', { weekday: 'short', hour: '2-digit', minute: '2-digit' }); };
       new Chart(cv, {
         type: 'line',
@@ -23,7 +23,7 @@
           responsive: true, maintainAspectRatio: false, animation: false, parsing: true, spanGaps: true,
           interaction: { mode: 'index', intersect: false },
           scales: {
-            x: { type: 'linear', ticks: { color: tick, maxTicksLimit: 8, callback: function (v) { return fmt(v); } }, grid: { color: grid } },
+            x: { type: 'linear', min: x0, max: x1, ticks: { color: tick, maxTicksLimit: 8, callback: function (v) { return fmt(v); } }, grid: { color: grid } },
             y: { position: 'left', suggestedMin: 25, suggestedMax: 50, title: { display: true, text: 'Woda [°C]', color: tick }, ticks: { color: tick }, grid: { color: grid } },
             y2: { position: 'right', title: { display: true, text: 'Na zewnątrz [°C]', color: tick }, ticks: { color: tick }, grid: { drawOnChartArea: false } }
           },
