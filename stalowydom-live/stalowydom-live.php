@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.51.15
+Version: 1.51.16
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.51.15');
+define('SDL_VER', '1.51.16');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -1702,6 +1702,15 @@ add_shortcode('sdl_plan', function () {
   <div class="sdl-card sdl-zawor"><div class="sdl-canvas sdl-chart-tall"><canvas data-zawor="chart" role="img" aria-label="Wykres z ostatnich 48 godzin: nastawa zaworu mieszającego, rzeczywista temperatura za zaworem, temperatura zadana pompy ciepła i temperatura zewnętrzna"></canvas></div>
   <p class="sdl-note">Ostatnie 48 godzin, odczyty co 5 minut. Gdy pompa grzeje ciepłą wodę, jej temperatura zadana na chwilę skacze do ok. 48 °C – to nie ogrzewanie, tylko CWU.</p></div>
   <p><b>Wniosek, którego będziemy się trzymać:</b> krzywej pompy nie szukamy „na oko”, tylko patrząc, jak <b>rzeczywista temperatura za zaworem</b> zależy od <b>temperatury zadanej przez krzywą pompy</b>. Dobra krzywa pompy to taka, przy której pomarańczowa linia (za zaworem) przez całą dobę leży na żółtej (nastawa zaworu) – i ani stopnia wyżej, bo każdy nadmiarowy stopień w zbiorniku to gorszy COP. Najpierw jednak kalibracja czujników (krok 0) – dopiero po niej różnica między liniami będzie mówić o instalacji, a nie o błędach termometrów. Potem dla każdej temperatury zewnętrznej odczytamy z danych, ile stopni zapasu ponad krzywą zaworu naprawdę potrzebuje pompa, i dopiero z tego ułożymy jej krzywą.</p>
+  <h4 class="sdl-bil-h" id="regulacja-kaskadowa">Krok 4 (plan): Home Assistant jako nadrzędny regulator</h4>
+  <p>Skoro najwięcej mówi zależność „zawór – pompa”, naturalny następny krok to nie ręczne przestawianie krzywych, tylko automat, który pilnuje obu urządzeń naraz. W automatyce nazywa się to <b>regulacją kaskadową</b>:</p>
+  <ul>
+    <li><b>Warstwa szybka zostaje na miejscu.</b> Sinum dalej trzyma temperaturę za zaworem z sekundy na sekundę, pompa dalej pilnuje sprężarki. Gdy Home Assistant przestanie działać, dom grzeje się na własnych krzywych urządzeń.</li>
+    <li><b>Warstwa wolna w Home Assistant</b>, z korektą co 15–30 minut. Zadana zaworu = krzywa pogodowa + korekta z pokoi (stopniominuty niedogrzania, czyli różnica między temperaturą zadaną a rzeczywistą, sumowana w czasie – liczona z mediany pokoi, a nie z najsłabszego, żeby nie przegrzewać reszty domu). Zadana pompy = zadana zaworu + zapas na wężownicę i histerezę – a ten zapas <b>sam się dostraja</b>: rośnie, gdy zawór nie dobija do nastawy, maleje, gdy przez dobę ma nadmiar.</li>
+    <li><b>Ograniczone uprawnienia.</b> Automat zmienia tylko przesunięcia krzywych – „korektę” zaworu w Sinum i przesunięcie krzywej pompy – w zakresie kilku stopni. Krzywe w urządzeniach zostają jako podstawa i zabezpieczenie.</li>
+    <li><b>Zwykły regulator PI, a nie sztuczna inteligencja.</b> Dom z matami w suficie reaguje w ciągu godzin, ma ogromną bezwładność i mało zakłóceń – wystarczy wolna całka, ograniczenie szybkości zmian i zabezpieczenie przed jej „rozpędzeniem”. Coś mądrzejszego – sterowanie predykcyjne z prognozą pogody i energią z fotowoltaiki – ma sens dopiero na końcu.</li>
+  </ul>
+  <p>Kolejność: kalibracja czujników, obserwacja kroku 1, sprawdzenie, czy Home Assistant może zapisywać korektę zaworu i przesunięcie krzywej pompy, potem najpierw sam dostrajany zapas pompy (to on likwiduje „zawór nie dobija”), a na końcu korekta z pokoi.</p>
   <p>Trybu cichego nie ruszamy: ogranicza obroty sprężarki, a niższe obroty to wyższy COP. Wrócimy do niego tylko wtedy, gdy w mrozy zabraknie mocy. Wyniki każdego kroku opiszemy tutaj.</p>
 </div>
 <?php
