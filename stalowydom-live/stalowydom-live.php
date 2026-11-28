@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.55.1
+Version: 1.56.0
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.55.1');
+define('SDL_VER', '1.56.0');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -489,7 +489,7 @@ function sdl_summary_dom() {
         . (isset($d['heiko']['today_co'], $d['heiko']['today_cwu']) ? ' (CO ' . sdl_num($d['heiko']['today_co']) . ' / CWU ' . sdl_num($d['heiko']['today_cwu']) . ' kWh)' : '') . '; starty dziś ' . sdl_num($hv['starts'] ?? null, 0) . '; odszraniania dziś ' . sdl_num($hv['defrost_n'] ?? null, 0) . '.';
     $li[] = 'Bufor NOEL 700 l: góra ' . sdl_num($hv['noel_top'] ?? null) . ' °C, środek ' . sdl_num($hv['noel_mid'] ?? null) . ' °C, dół ' . sdl_num($hv['noel_bot'] ?? null) . ' °C.';
     $li[] = 'Rekuperator reQnet: wymiana powietrza ' . sdl_num($rv['flow_in'] ?? null, 0) . ' / ' . sdl_num($rv['flow_out'] ?? null, 0) . ' m³/h (nawiew / wyciąg); czerpnia ' . sdl_num($rv['czerpnia'] ?? null) . ' °C, nawiew ' . sdl_num($rv['nawiew'] ?? null) . ' °C, wyciąg ' . sdl_num($rv['wyciag'] ?? null) . ' °C, wyrzutnia ' . sdl_num($rv['wyrzutnia'] ?? null) . ' °C; moc ' . sdl_num($rv['power'] ?? null, 0) . ' W; dziś ' . sdl_kwh_txt($d['reqnet']['today_kwh'] ?? null) . '.';
-    $li[] = 'Maty kapilarne (temperatury pomieszczeń): salon ' . sdl_num($mv['salon'] ?? null) . ' °C, sypialnia ' . sdl_num($mv['sypialnia'] ?? null) . ' °C, łazienka ' . sdl_num($mv['lazienka'] ?? null) . ' °C; punkt rosy ' . sdl_num($mv['rosa'] ?? null) . ' °C. Zawór mieszający: temperatura zadana ' . sdl_num($mv['zawor_zadana'] ?? null, 0) . ' °C, zasilanie mat ' . sdl_num($mv['zawor_temp'] ?? null) . ' °C, powrót z mat ' . sdl_num($mv['zawor_powrot'] ?? null) . ' °C, woda z wężownicy przed zaworem ' . sdl_num($mv['zawor_przed'] ?? null) . ' °C, otwarcie zaworu ' . sdl_num($mv['zawor_otwarcie'] ?? null, 0) . ' %.';
+    $li[] = 'Maty kapilarne (temperatury pomieszczeń): salon ' . sdl_num($mv['salon'] ?? null) . ' °C, sypialnia ' . sdl_num($mv['sypialnia'] ?? null) . ' °C, łazienka ' . sdl_num($mv['lazienka'] ?? null) . ' °C; punkt rosy ' . sdl_num($mv['rosa'] ?? null) . ' °C. Zawór mieszający: temperatura zadana ' . sdl_num($mv['zawor_zadana'] ?? null, 0) . ' °C, zasilanie mat ' . sdl_num($mv['zawor_temp'] ?? null) . ' °C, powrót z mat ' . sdl_num($mv['zawor_powrot'] ?? null) . ' °C, woda w buforze przy wężownicy ' . sdl_num($mv['zawor_co'] ?? null) . ' °C, woda z wężownicy przed zaworem ' . sdl_num($mv['zawor_przed'] ?? null) . ' °C, otwarcie zaworu ' . sdl_num($mv['zawor_otwarcie'] ?? null, 0) . ' %.';
     $li[] = 'Pompa cyrkulacyjna CWU: dziś ' . sdl_kwh_txt($d['pompa_cwu']['today_kwh'] ?? null) . '; czas pracy dziś ' . sdl_dur_txt($cv['run_h'] ?? null) . ', wczoraj ' . sdl_dur_txt($cv['run_h_yday'] ?? null) . '; włączeń dziś ' . sdl_num($cv['starts'] ?? null, 0) . ', wczoraj ' . sdl_num($d['pompa_cwu']['starts_yday'] ?? null, 0) . '.';
     $li[] = 'Serwer domowy: moc ' . sdl_num($sv['power'] ?? null, 0) . ' W; dziś ' . sdl_kwh_txt($d['serwer']['today_kwh'] ?? null) . '.';
     return '<p>Stan na ' . esc_html(sdl_when($ts ?: null)) . ' (czas polski).</p><ul><li>' . implode('</li><li>', array_map('esc_html', $li)) . '</li></ul>';
@@ -791,8 +791,8 @@ add_shortcode('sdl_dom', function ($atts) {
     echo sdl_dom_row('Maty kapilarne', 'sdl-n-small', 'Ogrzewanie i chłodzenie sufitowe', 'Temperatury pomieszczeń z termostatów Sinum i zawór mieszający, który zasila maty wodą z wężownicy w buforze.',
         [['Salon', sdl_v('maty', 'salon', '°C')], ['Sypialnia', sdl_v('maty', 'sypialnia', '°C')], ['Łazienka', sdl_v('maty', 'lazienka', '°C')], 'br',
          ['Punkt rosy', sdl_v('maty', 'rosa', '°C')], ['Zawór: temp. zadana', sdl_v('maty', 'zawor_zadana', '°C', 0)], ['Otwarcie zaworu', sdl_v('maty', 'zawor_otwarcie', '%', 0)], 'br',
-         ['Przed zaworem (z wężownicy)', sdl_v('maty', 'zawor_przed', '°C')], ['Zasilanie mat', sdl_v('maty', 'zawor_temp', '°C')], ['Powrót z mat', sdl_v('maty', 'zawor_powrot', '°C')], 'br',
-         ['Strata wężownicy (dół bufora – przed zaworem)', '<span data-d="maty_loss">–</span> K'], ['Zasilanie – powrót mat', '<span data-d="maty_dt">–</span> K']], home_url('/maty-kapilarne/'));
+         ['Bufor przy wężownicy', sdl_v('maty', 'zawor_co', '°C')], ['Przed zaworem (z wężownicy)', sdl_v('maty', 'zawor_przed', '°C')], ['Zasilanie mat', sdl_v('maty', 'zawor_temp', '°C')], ['Powrót z mat', sdl_v('maty', 'zawor_powrot', '°C')], 'br',
+         ['Strata wężownicy (bufor – przed zaworem)', '<span data-d="maty_loss">–</span> K'], ['Zasilanie – powrót mat', '<span data-d="maty_dt">–</span> K']], home_url('/maty-kapilarne/'));
     echo sdl_dom_row('Pompa CWU', 'sdl-n-small', 'Cyrkulacja ciepłej wody', 'Pompa cyrkulacyjna – ciepła woda od razu w kranie.',
         [['Dziś', '<span data-e="pompa_cwu_today">–</span>'], ['30 dni', '<span data-e="pompa_cwu_30">–</span>'], 'br',
          ['Czas pracy dziś', '<span data-d="cwu_run">–</span>'], ['Włączeń dziś', sdl_v('pompa_cwu', 'starts', '', 0)], 'br',
@@ -1570,7 +1570,7 @@ add_shortcode('sdl_maty', function () {
   <div class="sdl-kpis sdl-kpis-5">
     <div class="sdl-kpi" style="border-top-color:#f97316"><div class="sdl-kpi-label">Zasilanie mat</div><div class="sdl-kpi-val"><?php echo sdl_num($sup); ?> <small>°C</small></div><div class="sdl-kpi-sub">zawór: zadana <?php echo sdl_num($v['zawor_zadana'] ?? null, 0); ?> °C</div></div>
     <div class="sdl-kpi" style="border-top-color:#3b82f6"><div class="sdl-kpi-label">Powrót z mat</div><div class="sdl-kpi-val"><?php echo sdl_num($ret); ?> <small>°C</small></div><div class="sdl-kpi-sub">różnica <?php echo sdl_num($dt); ?> K · średnio <?php echo sdl_num($avg); ?> °C</div></div>
-    <div class="sdl-kpi" title="Zawór mieszający domieszuje chłodniejszą wodę z powrotu do gorącej wody z wężownicy w buforze."><div class="sdl-kpi-label">Otwarcie zaworu</div><div class="sdl-kpi-val"><?php echo sdl_num($v['zawor_otwarcie'] ?? null, 0); ?> <small>%</small></div><div class="sdl-kpi-sub">z wężownicy: <?php echo sdl_num($v['zawor_przed'] ?? null); ?> °C</div></div>
+    <div class="sdl-kpi" title="Zawór mieszający domieszuje chłodniejszą wodę z powrotu do gorącej wody z wężownicy w buforze."><div class="sdl-kpi-label">Otwarcie zaworu</div><div class="sdl-kpi-val"><?php echo sdl_num($v['zawor_otwarcie'] ?? null, 0); ?> <small>%</small></div><div class="sdl-kpi-sub">bufor <?php echo sdl_num($v['zawor_co'] ?? null); ?> °C → z wężownicy <?php echo sdl_num($v['zawor_przed'] ?? null); ?> °C</div></div>
     <div class="sdl-kpi"><div class="sdl-kpi-label">W pokojach</div><div class="sdl-kpi-val"><?php echo sdl_num($v['salon'] ?? null); ?> <small>°C</small></div><div class="sdl-kpi-sub">salon · sypialnia <?php echo sdl_num($v['sypialnia'] ?? null); ?> · łazienka <?php echo sdl_num($v['lazienka'] ?? null); ?> °C</div></div>
     <div class="sdl-kpi" style="border-top-color:#06b6d4" title="Punkt rosy powietrza w domu. Powierzchnia chłodniejsza od punktu rosy zaczyna się pocić – ważne przy chłodzeniu i przy zimnych ramach okien."><div class="sdl-kpi-label">Punkt rosy</div><div class="sdl-kpi-val"><?php echo sdl_num($v['rosa'] ?? null); ?> <small>°C</small></div><div class="sdl-kpi-sub">granica rosienia powierzchni</div></div>
   </div>
@@ -1641,7 +1641,7 @@ add_shortcode('sdl_maty', function () {
   <h3 class="sdl-bil-h">7. Te same maty latem chłodzą</h3>
   <p>Wystarczy puścić przez maty chłodną wodę, a sufit zacznie pochłaniać promieniowanie cieplne ludzi i przedmiotów – bez nawiewu zimnego powietrza i bez przeciągów. Granicą jest <b>punkt rosy</b>: jeśli sufit będzie chłodniejszy od punktu rosy powietrza, zacznie się na nim skraplać woda. Dlatego temperaturę wody chłodzącej ustawia się z zapasem 1,5–2 K powyżej punktu rosy, liczonego na bieżąco z temperatury i wilgotności w pokojach (kafelek „Punkt rosy” wyżej).</p>
 
-  <?php echo sdl_sr_block('<p>Maty kapilarne – odczyt z ' . esc_html(sdl_when($M['ts'])) . ' (czas polski): zasilanie mat ' . sdl_num($sup) . ' °C, powrót z mat ' . sdl_num($ret) . ' °C (różnica ' . sdl_num($dt) . ' K), temperatura zadana na zaworze mieszającym ' . sdl_num($v['zawor_zadana'] ?? null, 0) . ' °C, otwarcie zaworu ' . sdl_num($v['zawor_otwarcie'] ?? null, 0) . ' %, woda z wężownicy przed zaworem ' . sdl_num($v['zawor_przed'] ?? null) . ' °C. Temperatury pomieszczeń: salon ' . sdl_num($v['salon'] ?? null) . ' °C, sypialnia ' . sdl_num($v['sypialnia'] ?? null) . ' °C, łazienka ' . sdl_num($v['lazienka'] ?? null) . ' °C; punkt rosy ' . sdl_num($v['rosa'] ?? null) . ' °C. Ok. 88 m² mat na 102 m² domu; sufit grzewczy ok. 25 °C jesienią i ok. 30 °C zimą daje ok. 31–64 W/m².</p>');
+  <?php echo sdl_sr_block('<p>Maty kapilarne – odczyt z ' . esc_html(sdl_when($M['ts'])) . ' (czas polski): zasilanie mat ' . sdl_num($sup) . ' °C, powrót z mat ' . sdl_num($ret) . ' °C (różnica ' . sdl_num($dt) . ' K), temperatura zadana na zaworze mieszającym ' . sdl_num($v['zawor_zadana'] ?? null, 0) . ' °C, otwarcie zaworu ' . sdl_num($v['zawor_otwarcie'] ?? null, 0) . ' %, woda w buforze przy wężownicy ' . sdl_num($v['zawor_co'] ?? null) . ' °C, woda z wężownicy przed zaworem ' . sdl_num($v['zawor_przed'] ?? null) . ' °C. Temperatury pomieszczeń: salon ' . sdl_num($v['salon'] ?? null) . ' °C, sypialnia ' . sdl_num($v['sypialnia'] ?? null) . ' °C, łazienka ' . sdl_num($v['lazienka'] ?? null) . ' °C; punkt rosy ' . sdl_num($v['rosa'] ?? null) . ' °C. Ok. 88 m² mat na 102 m² domu; sufit grzewczy ok. 25 °C jesienią i ok. 30 °C zimą daje ok. 31–64 W/m².</p>');
   echo sdl_dataset_ld('Maty kapilarne – ogrzewanie sufitowe na żywo', 'Temperatury wody zasilającej i powrotnej mat kapilarnych, nastawa i otwarcie zaworu mieszającego, temperatury pomieszczeń i punkt rosy w domu z kontenerów pod Poznaniem. Odczyty co 5 minut.', ['zasilanie mat [°C]', 'powrót z mat [°C]', 'temperatura zadana zaworu [°C]', 'otwarcie zaworu [%]', 'temperatury pomieszczeń [°C]', 'punkt rosy [°C]']); ?>
 
   <h3 class="sdl-bil-h" id="co-inaczej">8. Co zrobilibyśmy dziś inaczej</h3>
@@ -1959,7 +1959,7 @@ add_action('init', function () {
         . "- `dom` – cały dom: `power` [W], `l1` `l2` `l3` [W], `energy_total` [kWh, licznik narastający], `outdoor` [°C].\n"
         . "- `heiko` – pompa ciepła: `power` [W], `energy_total` `energy_co` `energy_cwu` `energy_standby` [kWh, narastająco], `noel_top` `noel_mid` `noel_bot` `supply` `outdoor` [°C], `starts`, `defrost_n`, `defrost_h` [h], `circ_starts` (dzisiejsze), `rh_out` (wilgotność na zewnątrz) [%], `tp` (temperatura parownika) [°C], `fan` (obroty wentylatora), `wind` (wiatr z prognozy met.no) [km/h], `run_h` (czas pracy sprężarki dziś) [h]. Odpowiedź `latest?device=heiko` zawiera też `starts_week_avg`, `starts_month_avg` (średnio startów na dobę), `year_kwh`, `year_starts`, `year_run_h`, `year_starts_avg` (od początku roku), `months` (zużycie i czas pracy sprężarki w 5 ostatnich miesiącach, [RRRR-MM, kWh, h]) i `year_since`.\n"
         . "- `reqnet` – rekuperator: `flow_in` `flow_out` [m³/h], `czerpnia` `nawiew` `wyciag` `wyrzutnia` [°C], `power` [W], `energy_total` [kWh], `co2` [ppm], `rh` [%].\n"
-        . "- `maty` – temperatury pomieszczeń: `salon` `sypialnia` `lazienka` [°C], `rosa` (punkt rosy) [°C]; zawór mieszający: `zawor_zadana` (temperatura zadana), `zawor_temp` (zasilanie mat), `zawor_powrot` (powrót z mat), `zawor_przed` (woda z wężownicy w buforze przed zaworem) [°C], `zawor_otwarcie` [%].\n"
+        . "- `maty` – temperatury pomieszczeń: `salon` `sypialnia` `lazienka` [°C], `rosa` (punkt rosy) [°C]; zawór mieszający: `zawor_zadana` (temperatura zadana), `zawor_temp` (zasilanie mat), `zawor_powrot` (powrót z mat), `zawor_co` (woda w buforze przy wężownicy) [°C], `zawor_przed` (woda z wężownicy w buforze przed zaworem) [°C], `zawor_otwarcie` [%].\n"
         . "- `pompa_cwu` – pompa cyrkulacyjna: `energy_total` [kWh], `starts` (dziś), `run_h` `run_h_yday` [h].\n"
         . "- `serwer` – serwer domowy: `power` [W], `energy_total` [kWh].\n\n"
         . "Odczyty co 5 minut; doby według czasu polskiego (Europe/Warsaw).\n\n"
