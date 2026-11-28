@@ -205,3 +205,5 @@ h4.sdl-bil-h{font-size:17px;color:#e5ded8;padding:14px 0 6px}
 .sdl-demo-bar[aria-expanded="true"] .sdl-demo-chev{transform:rotate(-135deg)}
 .sdl-demo-hide{display:none!important}
 @media (max-width:760px){.sdl-demo-find{grid-template-columns:1fr}.sdl-demo-steps{grid-template-columns:repeat(2,minmax(0,1fr))}.sdl-demo-bar-k{display:none}}
+.sdl-demo-collapsed{padding-top:6px!important;padding-bottom:6px!important}
+.sdl-demo-barrow{padding:0!important}

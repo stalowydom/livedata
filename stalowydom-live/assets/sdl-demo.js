@@ -30,12 +30,17 @@
       bar.type = 'button'; bar.className = 'sdl-demo-bar'; bar.id = c.id;
       bar.innerHTML = '<span class="sdl-demo-bar-t"><b>' + c.name + '</b><small>' + c.sub + '</small></span><span class="sdl-demo-bar-k">' + c.key + '</span><span class="sdl-demo-chev" aria-hidden="true"></span>';
       bar.setAttribute('aria-expanded', 'false');
-      parts[0].parentNode.insertBefore(bar, parts[0]);
+      var holder = bar;
+      if (parts[0].classList.contains('et_pb_row')) { holder = document.createElement('div'); holder.className = 'et_pb_row sdl-demo-barrow'; holder.appendChild(bar); }
+      parts[0].parentNode.insertBefore(holder, parts[0]);
+      var sec = holder.closest('.et_pb_section');
       parts.forEach(function (p) { p.classList.add('sdl-demo-hide'); });
+      if (sec) sec.classList.add('sdl-demo-collapsed');
       var toggle = function (open) {
         var o = open === undefined ? bar.getAttribute('aria-expanded') !== 'true' : open;
         bar.setAttribute('aria-expanded', o ? 'true' : 'false');
         parts.forEach(function (p) { p.classList.toggle('sdl-demo-hide', !o); });
+        if (sec) sec.classList.toggle('sdl-demo-collapsed', !o);
         if (o) window.dispatchEvent(new Event('resize'));
       };
       bar.addEventListener('click', function () { toggle(); });
