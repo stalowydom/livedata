@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.51.19
+Version: 1.52.0
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.51.19');
+define('SDL_VER', '1.52.0');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -1643,6 +1643,33 @@ add_shortcode('sdl_maty', function () {
     return ob_get_clean();
 });
 
+/* ---------- [sdl_heiko_demo] – demonstracja nowego układu strony Heiko (tylko na stronie roboczej) ---------- */
+add_shortcode('sdl_heiko_demo', function () {
+    wp_enqueue_style('sdl', SDL_URL . 'assets/sdl.css', [], SDL_VER);
+    wp_enqueue_script('sdl-demo', SDL_URL . 'assets/sdl-demo.js', [], SDL_VER, true);
+    $st = function ($n, $t, $s, $c, $anchor) { return '<button type="button" class="sdl-demo-step" data-go="r-laboratorium" data-anchor="' . esc_attr($anchor) . '"><small>Krok ' . $n . '</small><b>' . esc_html($t) . '</b><span class="sdl-demo-st ' . $c . '">' . esc_html($s) . '</span></button>'; };
+    ob_start(); ?>
+<div class="sdl-demo">
+  <div class="sdl-demo-h">Najważniejsze wnioski</div>
+  <div class="sdl-demo-find">
+    <a href="#r-cop-pomiar" data-go="r-cop-pomiar"><b>ok. 2,65</b><span>COP przy 0 °C – zmierzony na naszej instalacji, a nie z katalogu</span></a>
+    <a href="<?php echo esc_url(home_url('/projekt/')); ?>"><b>ok. −20%</b><span>ciepła na ogrzewanie dzięki murkowi pod kontenerami</span></a>
+    <a href="#r-laboratorium" data-go="r-laboratorium"><b>ok. połowa</b><span>energii liczonej jako „CWU” to w rzeczywistości ogrzewanie domu</span></a>
+  </div>
+  <div class="sdl-demo-nav"><div class="sdl-demo-nav-in"></div></div>
+  <div class="sdl-demo-h">Laboratorium – gdzie jesteśmy</div>
+  <div class="sdl-demo-steps">
+    <?php echo $st(0, 'Kalibracja czujników', 'w przygotowaniu', 'w', 'kalibracja');
+          echo $st(1, 'Krzywa grzewcza', 'obserwujemy', 'w', 'plan-optymalizacyjny');
+          echo $st(2, 'CWU w dzień', 'plan', 'p', 'plan-optymalizacyjny');
+          echo $st(3, 'CWU 45 °C', 'plan', 'p', 'plan-optymalizacyjny');
+          echo $st(4, 'Regulator w HA', 'plan', 'p', 'regulacja-kaskadowa'); ?>
+  </div>
+</div>
+<?php
+    return ob_get_clean();
+});
+
 /* ---------- [sdl_plan] – podział CO/CWU, zawory przeciwzamrożeniowe, plan rozwojowy (treść uzgodniona z właścicielem 27.11.2026) ---------- */
 add_shortcode('sdl_plan', function () {
     wp_enqueue_style('sdl', SDL_URL . 'assets/sdl.css', [], SDL_VER);
@@ -1711,7 +1738,7 @@ add_shortcode('sdl_plan', function () {
     <li><b>Zwykły regulator PI, a nie sztuczna inteligencja.</b> Dom z matami w suficie reaguje w ciągu godzin, ma ogromną bezwładność i mało zakłóceń – wystarczy wolna całka, ograniczenie szybkości zmian i zabezpieczenie przed jej „rozpędzeniem”. Coś mądrzejszego – sterowanie predykcyjne z prognozą pogody i energią z fotowoltaiki – ma sens dopiero na końcu.</li>
   </ul>
   <p>Kolejność: kalibracja czujników, obserwacja kroku 1, sprawdzenie, czy Home Assistant może zapisywać korektę zaworu i przesunięcie krzywej pompy, potem najpierw sam dostrajany zapas pompy (to on likwiduje „zawór nie dobija”), a na końcu korekta z pokoi.</p>
-  <p>Trybu cichego nie ruszamy: ogranicza obroty sprężarki, a niższe obroty to wyższy COP. Wrócimy do niego tylko wtedy, gdy w mrozy zabraknie mocy. Wyniki każdego kroku opiszemy tutaj.</p>
+  <p>Tryb cichy to na razie tylko plan: dziś pompa pracuje bez ograniczeń, pełną mocą. Tryb cichy ogranicza obroty sprężarki, a niższe obroty to zwykle wyższy COP – sprawdzimy go jako osobny krok i wrócimy do pełnej mocy, jeśli w mrozy jej zabraknie. Wyniki każdego kroku opiszemy tutaj.</p>
 </div>
 <?php
     return ob_get_clean();
