@@ -37,14 +37,18 @@
       box.appendChild(bar);
       parts.forEach(function (p) { box.appendChild(p); });
       var sec = box.closest('.et_pb_section');
+      var head = (parts.length > 1 && parts[0].querySelector('h1,h2,h3') && !parts[0].querySelector('[class*="sdl-"]')) ? parts.shift() : null;
+      if (head) head.classList.add('sdl-demo-hide');
       parts.forEach(function (p) { p.classList.add('sdl-demo-hide'); });
       if (sec) sec.classList.add('sdl-demo-collapsed');
       var toggle = function (open) {
         var o = open === undefined ? bar.getAttribute('aria-expanded') !== 'true' : open;
         bar.setAttribute('aria-expanded', o ? 'true' : 'false');
+        var y0 = bar.getBoundingClientRect().top;
         parts.forEach(function (p) { p.classList.toggle('sdl-demo-hide', !o); });
-        if (sec) sec.classList.toggle('sdl-demo-collapsed', !o);
         box.classList.toggle('sdl-demo-open', o);
+        var dy = bar.getBoundingClientRect().top - y0;
+        if (Math.abs(dy) > 1) window.scrollBy(0, dy);
         if (o) window.dispatchEvent(new Event('resize'));
       };
       bar.addEventListener('click', function () { toggle(); });

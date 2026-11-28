@@ -208,7 +208,7 @@ h4.sdl-bil-h{font-size:17px;color:#e5ded8;padding:14px 0 6px}
 .sdl-demo-collapsed{padding-top:6px!important;padding-bottom:6px!important}
 .sdl-demo-barrow{padding:0!important}
 .sdl-demo-box{width:80%;margin:10px auto;border:1px solid #2f3b47;border-radius:12px;background:#1d262f;overflow:hidden}
-.sdl-demo-box.sdl-demo-open{border:2px solid #f97316}
+.sdl-demo-box.sdl-demo-open{border-color:#f97316;box-shadow:0 0 0 1px #f97316}
 .sdl-demo-box>.sdl-demo-bar{margin:0;border:0;border-radius:0;background:#242f3a}
 .sdl-demo-box.sdl-demo-open>.sdl-demo-bar{border-bottom:1px solid #f9731655}
 .sdl-demo-box>.et_pb_row{width:100%!important;max-width:none!important;padding-left:20px!important;padding-right:20px!important}
