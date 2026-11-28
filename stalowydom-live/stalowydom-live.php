@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.56.0
+Version: 1.56.1
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.56.0');
+define('SDL_VER', '1.56.1');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -1749,7 +1749,8 @@ add_shortcode('sdl_plan', function () {
     <li><b>Od razu predykcyjnie – ale bez „sztucznej inteligencji”.</b> Dom z matami w suficie reaguje w ciągu godzin, więc regulator patrzący tylko wstecz zawsze byłby spóźniony. Wystarczy krótka prognoza pogody, która się sprawdza – 3 godziny w zupełności – i prosty model cieplny domu dopasowany do naszych danych. Na tej podstawie automat podnosi zapas pompy, zanim zrobi się zimniej, a nie wtedy, gdy pokoje już stygną. Do tego ograniczenie szybkości zmian i bezpieczne granice. Gdy dojdzie magazyn energii, ten sam algorytm rozszerzymy o decyzję, kiedy grzeć z sieci, a kiedy z magazynu.</li>
   </ul>
   <p>Kolejność: kalibracja czujników, obserwacja kroku 1, sprawdzenie, czy Home Assistant może zapisywać korektę zaworu i przesunięcie krzywej pompy, potem najpierw sam dostrajany zapas pompy (to on likwiduje „zawór nie dobija”), a na końcu korekta z pokoi.</p>
-  <p>Tryb cichy to na razie tylko plan: dziś pompa pracuje bez ograniczeń, pełną mocą. Tryb cichy ogranicza obroty sprężarki, a niższe obroty to zwykle wyższy COP – sprawdzimy go jako osobny krok i wrócimy do pełnej mocy, jeśli w mrozy jej zabraknie. Wyniki każdego kroku opiszemy tutaj.</p>
+  <p id="tryb-cichy"><b>Sprawdzone: tryb cichy nie zmniejsza mocy (28.11.2026).</b> Liczyliśmy, że „tryb cichej pracy nocnej” obetnie obroty sprężarki – niższe obroty to zwykle wyższy COP i spokojniejsze ładowanie bufora. Test przy −4 °C pokazał coś innego. W trybie cichym sprężarka i tak rozpędziła się do 61 Hz, a pompa brała ok. 2,9 kW. Gdy wyłączyliśmy tryb cichy w trakcie cyklu, sprężarka pracowała dalej na tych samych obrotach, a przyspieszył tylko wentylator jednostki zewnętrznej – z ok. 575 do ponad 630 obr./min.</p>
+  <p>Wniosek: w naszej pompie tryb cichy ogranicza wyłącznie wentylator. Pompa jest ciszej, ale nie oszczędniej – w mróz może być nawet gorzej, bo przez parownik przepływa mniej powietrza, więc jest zimniejszy, szybciej szronieje, a COP spada. Hałas nikomu u nas nie przeszkadza, więc tryb cichy zostaje wyłączony. Wyniki kolejnych kroków opiszemy tutaj.</p>
 </div>
 <?php
     return ob_get_clean();
