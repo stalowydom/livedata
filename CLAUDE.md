@@ -66,6 +66,9 @@ Historia:
 - Kody QR wskazują na `https://stalowydom.com/qr` (lub `/qr/<nazwa>` dla osobnych kodów, np. ulotka, baner) – nasza domena, więc kod nie wygasa. Wtyczka liczy skany (łącznie, osoby, dziś), przekierowuje na stronę główną z `utm_source=qr&utm_medium=<nazwa>`.
 - Statystyki: `GET /sdl/v1/qr` z nagłówkiem `X-SDL-Token` (HA, pakiet REST) lub jako administrator. Adresów IP nie zapisujemy – tylko dobowy skrót do liczenia osób.
 
+## Odwiedziny (GA4)
+- `GET /sdl/v1/ga` (token `X-SDL-Token` albo administrator) – osoby/wizyty/wyświetlenia dziś, wczoraj, 7 i 28 dni, top 5 stron (7 dni), źródła ruchu (28 dni). Dane z raportów Site Kit (GA4 podłączone w Site Kit), zapytanie w imieniu właściciela modułu; pamięć podręczna 1 h, błędów nie zapamiętuje. W HA: pakiet `packages/sdl_ga.yaml` (czujniki `sensor.strona_*`), sekcja na panelu „Odwiedziny z QR”. GA4 liczy tylko osoby ze zgodą w banerze Complianz.
+
 ## Prywatność
 - Nie publikujemy nazw hostów, systemów ani szczegółów domowej sieci – ani na stronie, ani w tym repozytorium.
 - Nie zapisujemy w repozytorium tokenów, haseł, adresów IP ani danych kontaktowych.
