@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.53.1
+Version: 1.54.0
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.53.1');
+define('SDL_VER', '1.54.0');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -1744,11 +1744,48 @@ add_shortcode('sdl_plan', function () {
     return ob_get_clean();
 });
 
+/* ---------- odszranianie w dłuższym okresie: doby z liczbą i czasem odszronień, temperaturą, wilgotnością i czasem pracy sprężarki ---------- */
+function sdl_defrost_stats($days = 400) {
+    $days = min(800, max(7, (int) $days));
+    return sdl_cached("defrost_stats2|$days", function () use ($days) {
+        global $wpdb;
+        $t = sdl_table(); $off = sdl_offset();
+        $first = $wpdb->get_var("SELECT MIN(DATE(DATE_ADD(ts, INTERVAL $off SECOND))) FROM $t WHERE device='heiko_defrost'");
+        if (!$first) return ['since' => null, 'days' => []];
+        $from = max($first, (new DateTime('now', sdl_tz()))->modify('-' . ($days - 1) . ' day')->format('Y-m-d'));
+        $ev = $wpdb->get_results($wpdb->prepare(
+            "SELECT DATE(DATE_ADD(ts, INTERVAL %d SECOND)) AS d, COUNT(*) AS n, SUM(value) AS m FROM $t
+             WHERE device='heiko_defrost' AND metric='duration_min' AND ts >= %s - INTERVAL 1 DAY GROUP BY d", $off, $from));
+        $E = [];
+        foreach ($ev as $r) if ($r->d >= $from) $E[$r->d] = [(int) $r->n, (float) $r->m];
+        $rh = $wpdb->get_results($wpdb->prepare(
+            "SELECT DATE(DATE_ADD(ts, INTERVAL %d SECOND)) AS d, AVG(value) AS v FROM $t
+             WHERE device='heiko' AND metric='rh_out' AND ts >= %s - INTERVAL 1 DAY GROUP BY d", $off, $from));
+        $RH = [];
+        foreach ($rh as $r) $RH[$r->d] = (float) $r->v;
+        $H = sdl_heiko_days($from);
+        $out = [];
+        $today = (new DateTime('now', sdl_tz()))->format('Y-m-d');
+        for ($d = new DateTime($from, sdl_tz()); $d->format('Y-m-d') <= $today; $d->modify('+1 day')) {
+            $k = $d->format('Y-m-d');
+            if (!isset($H[$k]['tout']) && !isset($E[$k])) continue;      /* brak danych z pompy w tej dobie */
+            $out[] = [$k, $E[$k][0] ?? 0, isset($E[$k]) ? round($E[$k][1], 1) : 0,
+                isset($H[$k]['tout']) ? round($H[$k]['tout'], 1) : null, isset($RH[$k]) ? round($RH[$k]) : null,
+                isset($H[$k]['run']) ? round($H[$k]['run'], 2) : null, $k === $today];
+        }
+        return ['since' => $first, 'days' => $out];
+    }, 600);
+}
+add_action('rest_api_init', function () {
+    register_rest_route('sdl/v1', '/defrost_stats', ['methods' => 'GET', 'callback' => function (WP_REST_Request $r) { return sdl_defrost_stats($r->get_param('days') ?: 400); }, 'permission_callback' => '__return_true']);
+});
+
 add_shortcode('sdl_odszranianie', function ($atts) {
     $a = shortcode_atts(['device' => 'heiko_defrost'], $atts);
     if (!sdl_key_ok($a['device'])) return '';
     wp_enqueue_style('sdl', SDL_URL . 'assets/sdl.css', [], SDL_VER);
-    wp_enqueue_script('sdl-defrost', SDL_URL . 'assets/sdl-defrost.js', [], SDL_VER, true);
+    wp_enqueue_script('chartjs', 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js', [], '4.4.1', true);
+    wp_enqueue_script('sdl-defrost', SDL_URL . 'assets/sdl-defrost.js', ['chartjs'], SDL_VER, true);
     wp_localize_script('sdl-defrost', 'SDL', ['api' => esc_url_raw(rest_url('sdl/v1/'))]);
     ob_start(); ?>
 <div class="sdl-wrap sdl-defrost" data-sdl-defrost="<?php echo esc_attr($a['device']); ?>">
@@ -1788,6 +1825,22 @@ add_shortcode('sdl_odszranianie', function ($atts) {
       </table></div>
     </details>
     <p class="sdl-note">Odszranianie liczymy tylko wtedy, gdy sprężarka pracuje, a wentylator jednostki zewnętrznej stoi – sama flaga z pompy potrafi „wisieć” dłużej.</p>
+  </div>
+  <?php $DS = sdl_defrost_stats(400); $dsum = function ($n) use ($DS) {
+          $L = array_slice($DS['days'], -$n); $c = 0; $m = 0; foreach ($L as $x) { $c += $x[1]; $m += $x[2]; }
+          return [count($L), $c, $m]; };
+        [$d7, $c7, $m7] = $dsum(7); [$da, $ca, $ma] = $dsum(100000); ?>
+  <div class="sdl-card" id="odszranianie-historia" data-dl>
+    <div class="sdl-head"><h3>Odszranianie w dłuższym okresie</h3>
+      <div class="sdl-range" role="group" aria-label="Zakres czasu"><button type="button" data-dr="7" class="on">7 dni</button><button type="button" data-dr="30">30 dni</button><button type="button" data-dr="0">Cały sezon</button></div></div>
+    <p class="sdl-defrost-text" data-dl="sum"><?php if ($DS['since']) echo esc_html('Od ' . date_i18n('j.m.Y', strtotime($DS['since'])) . ' (' . $da . ' dób) pompa odszraniała się ' . $ca . ' razy, łącznie przez ' . sdl_num($ma, 0) . ' min. W ostatnich 7 dobach: ' . $c7 . ' razy, ' . sdl_num($m7, 0) . ' min.'); ?></p>
+    <div class="sdl-chart-box" style="position:relative;height:280px"><canvas data-dl="chart" role="img" aria-label="Wykres: liczba odszronień na dobę i średnia temperatura na zewnątrz"></canvas></div>
+    <h4 class="sdl-sub-h">Odszranianie a temperatura na zewnątrz</h4>
+    <div class="sdl-table-wrap"><table class="sdl-table">
+      <thead><tr><th scope="col">Średnia doby</th><th scope="col">Doby</th><th scope="col">Odszronień na dobę</th><th scope="col">Minut na dobę</th><th scope="col">Średni czas</th><th scope="col">Na godzinę pracy sprężarki</th><th scope="col">Wilgotność</th></tr></thead>
+      <tbody data-dl="rows"><tr><td colspan="7">Wczytuję…</td></tr></tbody>
+    </table></div>
+    <p class="sdl-note"><b>Jak porównać ze swoją pompą:</b> policz odszronienia w dobach o podobnej średniej temperaturze i podziel przez godziny pracy sprężarki. Liczba na dobę zależy od tego, jak długo pompa pracuje (dom, bufor, nastawy), a liczba na godzinę pracy – głównie od jednostki zewnętrznej, wilgotności i logiki odszraniania. Dane zbieramy od <?php echo $DS['since'] ? esc_html(date_i18n('j.m.Y', strtotime($DS['since']))) : '–'; ?>; tabela będzie się zapełniać z każdą zimową dobą. Bieżąca doba jest wliczona do wykresu, ale nie do tabeli.</p>
   </div>
 </div>
 <?php
@@ -1888,6 +1941,7 @@ add_action('init', function () {
         . "- `GET {$api}daily?device=DEVICE&metric=energy_total&days=30` – zużycie dobowe [kWh] jako `[[\"RRRR-MM-DD\", kWh], …]`. `metric=outdoor&agg=stats` zwraca `[dzień, średnia, min, maks]` temperatury.\n"
         . "- `GET {$api}series?device=heiko&range=24h|7d|30d&metrics=power,noel_top` – przebieg w czasie.\n"
         . "- `GET {$api}events?device=heiko_defrost` – zdarzenia odszraniania.\n"
+        . "- `GET {$api}defrost_stats` – odszranianie dobami: [data, liczba, minuty, śr. temp. zewn., wilgotność %, godziny pracy sprężarki, czy doba bieżąca].\n"
         . "- Łączność: " . $u('/starlink/') . " – internet satelitarny Starlink (antena Mini, router Gen3, 2 routery Mini w sieci mesh) i statystyki przesyłu danych z domu na stronę.\n"
         . "- `GET {$api}seasons` – dobowe zużycie prądu pompy i średnia temperatura zewnętrzna (od 01.2026), trendy dla sezonów grzewczych i porównanie przy tej samej temperaturze (efekt obmurowania podłogi). Obliczenia strat ciepła (OZC) są opisane na stronie projektu.\n\n"
         . "Urządzenia (DEVICE) i metryki:\n"
