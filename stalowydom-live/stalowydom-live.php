@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.51.18
+Version: 1.51.19
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.51.18');
+define('SDL_VER', '1.51.19');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -1695,7 +1695,7 @@ add_shortcode('sdl_plan', function () {
   <ol>
     <li><b>Krzywa grzewcza zamiast stałej temperatury 37 °C i histereza 3 K zamiast 5 K</b> – <i>wdrożone w nocy z 27 na 28.11.2026, obserwujemy</i>. Dotąd zbiornik wahał się między ok. 32 a 42 °C niezależnie od pogody. Teraz temperatura wody zależy od pogody (−20 / −10 / −5 / +5 / +10 °C → 44 / 41 / 39 / 35 / 30 °C), a wahania są węższe. Lekcja z pierwszej godziny: w sterowniku było ustawione przesunięcie krzywej o +3 K („Curve 1 Parallel Move”) – niewidoczne przy stałej temperaturze, ale po włączeniu krzywej pompa zadała 39 °C zamiast ok. 36 °C. Po zmianie przesunięcia na 0 wszystko się zgadza. Uczciwie: przy ok. 0 °C zysk będzie niewielki – już przy 37 °C zawór mieszający przez znaczną część doby nie dobijał do zadanej, więc niżej zejść się nie da. Oszczędność przyjdzie w cieplejsze dni (+3…+10 °C), kiedy woda może być o kilka stopni chłodniejsza.</li>
     <li><b>Ciepła woda raz dziennie, w najcieplejszych godzinach</b> (ok. 13–16), a w nocy bez grzania CWU. Taryfa jest całodobowa, więc nie chodzi o cenę prądu, tylko o COP: po południu powietrze jest o kilka stopni cieplejsze, a grzanie wody do 48 °C to najcięższa praca pompy.</li>
-    <li><b>Temperatura ciepłej wody 48 → 45 °C</b>, jeśli komfort domowników się utrzyma. Dezynfekcja termiczna nie jest potrzebna: zbiornik jest higieniczny – woda użytkowa płynie przez wężownicę ze stali nierdzewnej i nie stoi w zbiorniku. Kilka procent oszczędności na CWU, praktycznie za darmo.</li>
+    <li><b>Temperatura ciepłej wody 48 → 45 °C</b>, jeśli komfort domowników się utrzyma. Dezynfekcja termiczna nie jest potrzebna: zbiornik jest higieniczny – woda użytkowa płynie przez wężownicę i nie stoi w zbiorniku. Kilka procent oszczędności na CWU, praktycznie za darmo.</li>
   </ol>
   <h4 class="sdl-bil-h" id="zawor-a-krzywa">Wykres, który prowadzi nas dalej: zawór mieszający a krzywa pompy</h4>
   <p>W domu pracują dwie krzywe pogodowe. <b>Krzywa zaworu mieszającego</b> w Sinum ustala, jak ciepłą wodę dostają maty. <b>Krzywa pompy</b> ustala, jak ciepły jest zbiornik, z którego zawór tę wodę miesza. Zawór może tylko schłodzić wodę z wężownicy – nie podgrzeje jej. Jeśli zbiornik jest za chłodny, rzeczywista temperatura za zaworem spada poniżej nastawy, a pokoje z najmniejszą powierzchnią mat zaczynają marznąć.</p>
