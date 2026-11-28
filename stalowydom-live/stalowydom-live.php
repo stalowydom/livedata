@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.52.4
+Version: 1.53.0
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.52.4');
+define('SDL_VER', '1.53.0');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -1735,7 +1735,7 @@ add_shortcode('sdl_plan', function () {
     <li><b>Warstwa szybka zostaje na miejscu.</b> Sinum dalej trzyma temperaturę za zaworem z sekundy na sekundę, pompa dalej pilnuje sprężarki. Gdy Home Assistant przestanie działać, dom grzeje się na własnych krzywych urządzeń.</li>
     <li><b>Warstwa wolna w Home Assistant</b>, z korektą co 15–30 minut. Zadana zaworu = krzywa pogodowa + korekta z pokoi (stopniominuty niedogrzania, czyli różnica między temperaturą zadaną a rzeczywistą, sumowana w czasie – liczona z mediany pokoi, a nie z najsłabszego, żeby nie przegrzewać reszty domu). Zadana pompy = zadana zaworu + zapas na wężownicę i histerezę – a ten zapas <b>sam się dostraja</b>: rośnie, gdy zawór nie dobija do nastawy, maleje, gdy przez dobę ma nadmiar.</li>
     <li><b>Ograniczone uprawnienia.</b> Automat zmienia tylko przesunięcia krzywych – „korektę” zaworu w Sinum i przesunięcie krzywej pompy – w zakresie kilku stopni. Krzywe w urządzeniach zostają jako podstawa i zabezpieczenie.</li>
-    <li><b>Zwykły regulator PI, a nie sztuczna inteligencja.</b> Dom z matami w suficie reaguje w ciągu godzin, ma ogromną bezwładność i mało zakłóceń – wystarczy wolna całka, ograniczenie szybkości zmian i zabezpieczenie przed jej „rozpędzeniem”. Coś mądrzejszego – sterowanie predykcyjne z prognozą pogody i energią z fotowoltaiki – ma sens dopiero na końcu.</li>
+    <li><b>Od razu predykcyjnie – ale bez „sztucznej inteligencji”.</b> Dom z matami w suficie reaguje w ciągu godzin, więc regulator patrzący tylko wstecz zawsze byłby spóźniony. Wystarczy krótka prognoza pogody, która się sprawdza – 3 godziny w zupełności – i prosty model cieplny domu dopasowany do naszych danych. Na tej podstawie automat podnosi zapas pompy, zanim zrobi się zimniej, a nie wtedy, gdy pokoje już stygną. Do tego ograniczenie szybkości zmian i bezpieczne granice. Gdy dojdzie magazyn energii, ten sam algorytm rozszerzymy o decyzję, kiedy grzeć z sieci, a kiedy z magazynu.</li>
   </ul>
   <p>Kolejność: kalibracja czujników, obserwacja kroku 1, sprawdzenie, czy Home Assistant może zapisywać korektę zaworu i przesunięcie krzywej pompy, potem najpierw sam dostrajany zapas pompy (to on likwiduje „zawór nie dobija”), a na końcu korekta z pokoi.</p>
   <p>Tryb cichy to na razie tylko plan: dziś pompa pracuje bez ograniczeń, pełną mocą. Tryb cichy ogranicza obroty sprężarki, a niższe obroty to zwykle wyższy COP – sprawdzimy go jako osobny krok i wrócimy do pełnej mocy, jeśli w mrozy jej zabraknie. Wyniki każdego kroku opiszemy tutaj.</p>
