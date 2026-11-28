@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.51.13
+Version: 1.51.14
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.51.13');
+define('SDL_VER', '1.51.14');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -269,7 +269,7 @@ function sdl_latest(WP_REST_Request $r) {
 function sdl_series(WP_REST_Request $r) {
     $device  = $r->get_param('device');
     $metrics = array_values(array_filter(explode(',', (string) $r->get_param('metrics')), 'sdl_key_ok'));
-    $ranges  = ['24h' => [86400, 900], '7d' => [604800, 3600], '30d' => [2592000, 14400]];
+    $ranges  = ['24h' => [86400, 900], '48h' => [172800, 300], '7d' => [604800, 3600], '30d' => [2592000, 14400]];
     $range   = $r->get_param('range');
     if (!sdl_key_ok($device) || !$metrics || count($metrics) > 8 || !isset($ranges[$range])) {
         return new WP_Error('sdl_bad', 'params', ['status' => 400]);
@@ -1646,6 +1646,9 @@ add_shortcode('sdl_maty', function () {
 /* ---------- [sdl_plan] – podział CO/CWU, zawory przeciwzamrożeniowe, plan rozwojowy (treść uzgodniona z właścicielem 27.11.2026) ---------- */
 add_shortcode('sdl_plan', function () {
     wp_enqueue_style('sdl', SDL_URL . 'assets/sdl.css', [], SDL_VER);
+    wp_enqueue_script('chartjs', 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js', [], '4.4.1', true);
+    wp_enqueue_script('sdl-zawor', SDL_URL . 'assets/sdl-zawor.js', ['chartjs'], SDL_VER, true);
+    wp_localize_script('sdl-zawor', 'SDLZAW', ['maty' => rest_url('sdl/v1/series?device=maty&metrics=zawor_zadana,zawor_temp&range=48h'), 'heiko' => rest_url('sdl/v1/series?device=heiko&metrics=setpoint,outdoor&range=48h')]);
     ob_start(); ?>
 <div class="sdl-wrap sdl-bilans sdl-plan">
   <p class="sdl-bil-lead">Liczby na tej stronie pokazują nie tylko pompę, ale cały układ, w którym pracuje. Kilka jego cech zmienia sposób czytania danych – a część z nich chcemy w najbliższych latach poprawić.</p>
@@ -1694,6 +1697,11 @@ add_shortcode('sdl_plan', function () {
     <li><b>Ciepła woda raz dziennie, w najcieplejszych godzinach</b> (ok. 13–16), a w nocy bez grzania CWU. Taryfa jest całodobowa, więc nie chodzi o cenę prądu, tylko o COP: po południu powietrze jest o kilka stopni cieplejsze, a grzanie wody do 48 °C to najcięższa praca pompy.</li>
     <li><b>Temperatura ciepłej wody 48 → 45 °C</b>, jeśli komfort domowników się utrzyma, i <b>dezynfekcja termiczna raz w tygodniu</b> (dziś wyłączona). Kilka procent oszczędności na CWU, praktycznie za darmo.</li>
   </ol>
+  <h4 class="sdl-bil-h" id="zawor-a-krzywa">Wykres, który prowadzi nas dalej: zawór mieszający a krzywa pompy</h4>
+  <p>W domu pracują dwie krzywe pogodowe. <b>Krzywa zaworu mieszającego</b> w Sinum ustala, jak ciepłą wodę dostają maty. <b>Krzywa pompy</b> ustala, jak ciepły jest zbiornik, z którego zawór tę wodę miesza. Zawór może tylko schłodzić wodę z wężownicy – nie podgrzeje jej. Jeśli zbiornik jest za chłodny, rzeczywista temperatura za zaworem spada poniżej nastawy, a pokoje z najmniejszą powierzchnią mat zaczynają marznąć.</p>
+  <div class="sdl-card sdl-zawor"><div class="sdl-canvas sdl-chart-tall"><canvas data-zawor="chart" role="img" aria-label="Wykres z ostatnich 48 godzin: nastawa zaworu mieszającego, rzeczywista temperatura za zaworem, temperatura zadana pompy ciepła i temperatura zewnętrzna"></canvas></div>
+  <p class="sdl-note">Ostatnie 48 godzin, odczyty co 5 minut. Gdy pompa grzeje ciepłą wodę, jej temperatura zadana na chwilę skacze do ok. 48 °C – to nie ogrzewanie, tylko CWU.</p></div>
+  <p><b>Wniosek, którego będziemy się trzymać:</b> krzywej pompy nie szukamy „na oko”, tylko patrząc, jak <b>rzeczywista temperatura za zaworem</b> zależy od <b>temperatury zadanej przez krzywą pompy</b>. Dobra krzywa pompy to taka, przy której pomarańczowa linia (za zaworem) przez całą dobę leży na żółtej (nastawa zaworu) – i ani stopnia wyżej, bo każdy nadmiarowy stopień w zbiorniku to gorszy COP. Najpierw jednak kalibracja czujników (krok 0) – dopiero po niej różnica między liniami będzie mówić o instalacji, a nie o błędach termometrów. Potem dla każdej temperatury zewnętrznej odczytamy z danych, ile stopni zapasu ponad krzywą zaworu naprawdę potrzebuje pompa, i dopiero z tego ułożymy jej krzywą.</p>
   <p>Trybu cichego nie ruszamy: ogranicza obroty sprężarki, a niższe obroty to wyższy COP. Wrócimy do niego tylko wtedy, gdy w mrozy zabraknie mocy. Wyniki każdego kroku opiszemy tutaj.</p>
 </div>
 <?php
