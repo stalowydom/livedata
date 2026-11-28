@@ -2,14 +2,14 @@
 /*
 Plugin Name: StalowyDOM Live Data
 Description: Odbiera odczyty z Home Assistant i pokazuje je na stronie jako kafelki i wykresy. Shortcode: [sdl_heiko].
-Version: 1.56.1
+Version: 1.56.2
 Author: StalowyDOM
 Requires PHP: 7.4
 */
 
 if (!defined('ABSPATH')) exit;
 
-define('SDL_VER', '1.56.1');
+define('SDL_VER', '1.56.2');
 define('SDL_URL', plugin_dir_url(__FILE__));
 
 function sdl_table() { global $wpdb; return $wpdb->prefix . 'sdl_readings'; }
@@ -1732,6 +1732,7 @@ add_shortcode('sdl_plan', function () {
   <p>Wyniki – tabelę z poprawką dla każdego czujnika – opublikujemy tutaj. Od nich zależy też, gdzie dokładnie położyć krzywą grzewczą pompy: musi ona wypadać o kilka stopni powyżej krzywej pogodowej zaworu mieszającego (strata na wężownicy + histereza).</p>
   <ol>
     <li><b>Krzywa grzewcza zamiast stałej temperatury 37 °C i histereza 3 K zamiast 5 K</b> – <i>wdrożone w nocy z 27 na 28.11.2026, obserwujemy</i>. Dotąd zbiornik wahał się między ok. 32 a 42 °C niezależnie od pogody. Teraz temperatura wody zależy od pogody (−20 / −10 / −5 / +5 / +10 °C → 44 / 41 / 39 / 35 / 30 °C), a wahania są węższe. Lekcja z pierwszej godziny: w sterowniku było ustawione przesunięcie krzywej o +3 K („Curve 1 Parallel Move”) – niewidoczne przy stałej temperaturze, ale po włączeniu krzywej pompa zadała 39 °C zamiast ok. 36 °C. Po zmianie przesunięcia na 0 wszystko się zgadza. Uczciwie: przy ok. 0 °C zysk będzie niewielki – już przy 37 °C zawór mieszający przez znaczną część doby nie dobijał do zadanej, więc niżej zejść się nie da. Oszczędność przyjdzie w cieplejsze dni (+3…+10 °C), kiedy woda może być o kilka stopni chłodniejsza.</li>
+    <li id="krok-1b"><b>Krok 1b: histereza asymetryczna i krzywa niżej o 1 K</b> – <i>wdrożone 28.11.2026 ok. 17:53, obserwujemy</i>. Pierwsze godziny kroku 1 pokazały, gdzie ucieka sprawność: pompa startuje, gdy dół zbiornika spadnie 3 K poniżej zadanej, ale staje dopiero 3 K <i>powyżej</i> niej. Przy −4 °C zbiornik wahał się więc między 35 a 41 °C, a pod koniec każdego cyklu woda z pompy miała ok. 45 °C. Maty potrzebowały w tym czasie 31 °C – zawór mieszający domieszywał chłodny powrót i przymykał się do kilku procent otwarcia. Czyli pompa grzała wodę wyżej, niż trzeba, a każdy zbędny stopień kosztuje 2–3 % COP. Zmiana: histereza zatrzymania 3 → 2 K (histereza uruchomienia bez zmian, 3 K) i całą krzywą w dół o 1 K. Przy −4 °C zbiornik ma się wahać między ok. 34 a 39 °C. Cel, który przyjęliśmy: <b>zawór mieszający jak najdłużej otwarty blisko 100 %</b> (w zakresie 80–100 %) – wtedy woda w zbiorniku ma tyle, ile potrzebują maty, i nic nie tracimy na mieszaniu. Sprawdzamy: czas z zaworem powyżej 80 %, minuty z zaworem na 100 % i niedoborem temperatury, temperatury pokoi, starty i COP z cykli.</li>
     <li><b>Ciepła woda raz dziennie, w najcieplejszych godzinach</b> (ok. 13–16), a w nocy bez grzania CWU. Taryfa jest całodobowa, więc nie chodzi o cenę prądu, tylko o COP: po południu powietrze jest o kilka stopni cieplejsze, a grzanie wody do 48 °C to najcięższa praca pompy.</li>
     <li><b>Temperatura ciepłej wody 48 → 45 °C</b>, jeśli komfort domowników się utrzyma. Dezynfekcja termiczna nie jest potrzebna: zbiornik jest higieniczny – woda użytkowa płynie przez wężownicę i nie stoi w zbiorniku. Kilka procent oszczędności na CWU, praktycznie za darmo.</li>
   </ol>
